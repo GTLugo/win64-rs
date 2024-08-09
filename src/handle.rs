@@ -27,10 +27,16 @@ impl Handle {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Instance(Handle);
 
+impl Default for Instance {
+  fn default() -> Self {
+    Self::get_exe()
+  }
+}
+
 impl Instance {
   #[inline]
-  pub fn get_exe() -> Result<Self, windows::core::Error> {
-    Self::get(None::<&str>)
+  pub fn get_exe() -> Self {
+    Self::get(None::<&str>).unwrap() // shouldn't fail, right?
   }
 
   pub fn get(module: Option<impl Into<String>>) -> Result<Self, windows::core::Error> {

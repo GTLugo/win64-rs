@@ -1,31 +1,75 @@
-use std::marker::PhantomData;
-
 use windows::{
   core::{HSTRING, PCWSTR},
   Win32::{
     Foundation::HINSTANCE,
     UI::WindowsAndMessaging::{
-      CreateWindowExW, RegisterClassExW, UnregisterClassW, CW_USEDEFAULT, WNDCLASSEXW,
+      GetClassInfoExW, RegisterClassExW, UnregisterClassW, CW_USEDEFAULT, WNDCLASSEXW,
+      WNDCLASS_STYLES,
     },
   },
 };
 
 use crate::{
-  flag::{ExtendedWindowStyle, WindowClassStyle, WindowStyle},
+  flag::WindowClassStyle,
   handle::Instance,
-  procedure::{self, CreateInfo, WindowProcedure},
-  window::Window,
+  procedure::{self},
 };
 
 pub struct Registered;
 pub struct Unregistered;
 
-// pub struct NoProcedure;
-// pub struct WithProcedure<W: WindowProcedure>(W);
+pub struct WindowClass {
+  instance: Instance,
+  name: String,
+}
 
-pub enum WindowClass2 {
-  Descriptor(WindowClassDescriptor),
-  Handle { instance: Instance, name: String },
+impl WindowClass {
+  pub fn new(desc: &WindowClassDescriptor) -> Self {
+    let name = HSTRING::from(desc.name.clone());
+    let wc = WNDCLASSEXW {
+      cbSize: core::mem::size_of::<WNDCLASSEXW>() as _,
+      hInstance: desc.instance.into(),
+      lpszClassName: PCWSTR(name.as_ptr()),
+      lpfnWndProc: Some(procedure::window_procedure),
+      style: WNDCLASS_STYLES(desc.style.bits()),
+      ..Default::default()
+    };
+
+    unsafe { RegisterClassExW(&wc) };
+
+    Self {
+      instance: desc.instance,
+      name: desc.name.clone(),
+    }
+  }
+
+  pub fn get(instance: &Instance, name: String) -> Result<Self, windows::core::Error> {
+    let hstring = HSTRING::from(name.clone());
+    let mut class = WNDCLASSEXW::default();
+    let result =
+      unsafe { GetClassInfoExW(HINSTANCE::from(*instance), &hstring, &mut class) };
+    result.map(|_| Self {
+      instance: *instance,
+      name,
+    })
+  }
+
+  pub fn unregister(self) -> Result<(), windows::core::Error> {
+    let hstring = HSTRING::from(self.name);
+    unsafe {
+      UnregisterClassW(PCWSTR(hstring.as_ptr()), HINSTANCE::from(self.instance))
+    }?;
+
+    Ok(())
+  }
+
+  pub fn name(&self) -> &String {
+    &self.name
+  }
+
+  pub fn instance(&self) -> &Instance {
+    &self.instance
+  }
 }
 
 pub struct WindowClassDescriptor {
@@ -34,151 +78,13 @@ pub struct WindowClassDescriptor {
   pub style: WindowClassStyle,
 }
 
-impl WindowClassDescriptor {
-  pub fn try_default() -> Result<Self, windows::core::Error> {
-    Ok(Self {
-      instance: Instance::get_exe()?,
+impl Default for WindowClassDescriptor {
+  fn default() -> Self {
+    Self {
+      instance: Instance::default(),
       name: "Window Class".to_owned(),
       style: WindowClassStyle::empty(),
-    })
-  }
-
-  pub(crate) fn register(&self) -> Result<WindowClass<Registered>, windows::core::Error> {
-    let name = HSTRING::from(self.name.clone());
-    let wc = WNDCLASSEXW {
-      cbSize: core::mem::size_of::<WNDCLASSEXW>() as _,
-      hInstance: self.instance.into(),
-      lpszClassName: PCWSTR(name.as_ptr()),
-      lpfnWndProc: Some(procedure::window_procedure),
-      ..Default::default()
-    };
-
-    unsafe { RegisterClassExW(&wc) };
-
-    Ok(WindowClass {
-      instance: self.instance.into(),
-      name,
-      style: self.style,
-      _registration: PhantomData,
-    })
-  }
-}
-
-pub struct WindowClass<Registration> {
-  instance: Option<Instance>,
-  name: HSTRING,
-  style: WindowClassStyle,
-  _registration: PhantomData<Registration>,
-}
-
-// impl Default for WindowClass<Unregistered> {
-//   fn default() -> Self {
-//     Self {
-//       instance: None,
-//       name: "Window Class".into(),
-//       style: WindowClassStyle::empty(),
-//       _registration: PhantomData,
-//     }
-//   }
-// }
-
-impl WindowClass<Unregistered> {
-  pub fn new(name: impl Into<HSTRING>) -> WindowClass<Unregistered> {
-    WindowClass {
-      instance: None,
-      name: name.into(),
-      style: WindowClassStyle::empty(),
-      _registration: PhantomData,
     }
-  }
-}
-
-impl WindowClass<Unregistered> {
-  pub fn with_instance(self, instance: Instance) -> Self {
-    Self {
-      instance: Some(instance),
-      ..self
-    }
-  }
-
-  pub fn with_style(self, style: WindowClassStyle) -> Self {
-    Self { style, ..self }
-  }
-
-  pub fn register(self) -> Result<WindowClass<Registered>, windows::core::Error> {
-    let instance = HINSTANCE::from(match self.instance {
-      None => Instance::get_exe()?, // this pesky result means we can't do unwrap_or_else
-      Some(instance) => instance,
-    });
-
-    let wc = WNDCLASSEXW {
-      cbSize: core::mem::size_of::<WNDCLASSEXW>() as _,
-      hInstance: instance,
-      lpszClassName: PCWSTR(self.name.as_ptr()),
-      lpfnWndProc: Some(procedure::window_procedure),
-      ..Default::default()
-    };
-
-    unsafe { RegisterClassExW(&wc) };
-
-    Ok(WindowClass {
-      instance: self.instance,
-      name: self.name,
-      style: self.style,
-      _registration: PhantomData,
-    })
-  }
-}
-
-impl WindowClass<Registered> {
-  pub fn create_window<Procedure: 'static + WindowProcedure>(
-    &self,
-    title: impl Into<HSTRING>,
-    position: Option<Position>,
-    size: Option<Size>,
-    style: WindowStyle,
-    ext_style: ExtendedWindowStyle,
-    procedure: Procedure,
-  ) -> Result<Window, windows::core::Error> {
-    let title: HSTRING = title.into();
-    let mut create_info = CreateInfo {
-      user_state: Some(Box::new(procedure)),
-    };
-    let position = position.unwrap_or(Position::AUTO);
-    let size = size.unwrap_or(Size::AUTO);
-    unsafe {
-      CreateWindowExW(
-        ext_style.into(),
-        &self.name,
-        &title,
-        style.into(),
-        position.x,
-        position.y,
-        size.width,
-        size.height,
-        None,
-        None,
-        HINSTANCE::from(self.instance.unwrap()),
-        Some(std::ptr::addr_of_mut!(create_info).cast()),
-      )
-    }
-    .map(Into::into)
-  }
-
-  pub fn unregister(self) -> Result<WindowClass<Unregistered>, windows::core::Error> {
-    unsafe {
-      UnregisterClassW(
-        PCWSTR(self.name.as_ptr()),
-        HINSTANCE::from(self.instance.unwrap()),
-      )
-    }?;
-
-    Ok(WindowClass {
-      instance: self.instance,
-      name: self.name,
-      style: self.style,
-      _registration: PhantomData,
-    })
   }
 }
 
@@ -229,53 +135,3 @@ impl From<(i32, i32)> for Position {
     Self { x, y }
   }
 }
-
-// impl<W: WindowProcedure, Registration> From<WindowClass<WithProcedure<W>, Registration>> for WNDCLASSEXW {
-//   fn from(value: WindowClass<WithProcedure<W>, Registration>) -> Self {
-//     Self {
-//       cbSize: std::mem::size_of::<Self>() as u32,
-//       cbWndExtra: std::mem::size_of::<Self>() as i32,
-//       lpszClassName: PCWSTR::from(value.name),
-//       lpfnWndProc: Some(procedure::window_procedure),
-//       ..Default::default()
-//     }
-//   }
-// }
-
-// impl<W: WindowProcedure> From<WindowClassBuilder<HasWindowClassName>> for WindowClass<W> {
-//   fn from(value: WindowClassBuilder<HasWindowClassName>) -> Self {
-//     value.build()
-//   }
-// }
-
-// pub struct HasWindowClassName(String);
-// pub struct NoWindowClassName;
-
-// pub struct WindowClassBuilder<Name> {
-//   name: Name,
-// }
-
-// impl Default for WindowClassBuilder<NoWindowClassName> {
-//   fn default() -> Self {
-//     WindowClassBuilder {
-//       name: NoWindowClassName,
-//     }
-//   }
-// }
-
-// impl WindowClassBuilder<NoWindowClassName> {
-//   pub fn with_name(
-//     self,
-//     name: impl Into<String>,
-//   ) -> WindowClassBuilder<HasWindowClassName> {
-//     WindowClassBuilder {
-//       name: HasWindowClassName(name.into()),
-//     }
-//   }
-// }
-
-// impl WindowClassBuilder<HasWindowClassName> {
-//   pub fn build<W: WindowProcedure>(self) -> WindowClass<W> {
-//     WindowClass { name: self.name.0 }
-//   }
-// }

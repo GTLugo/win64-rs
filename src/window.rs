@@ -10,7 +10,7 @@ use crate::{
   flag::{ExtendedWindowStyle, WindowStyle},
   handle::Handle,
   procedure::{CreateInfo, WindowProcedure},
-  types::{Position, Size, WindowClass2},
+  types::{Position, Size, WindowClass},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -52,7 +52,7 @@ impl Window {
   }
 
   pub fn new(
-    class: WindowClass2,
+    class: WindowClass,
     desc: WindowDescriptor<impl 'static + WindowProcedure>,
   ) -> Result<Self, windows::core::Error> {
     let title: HSTRING = desc.title.into();
@@ -61,13 +61,8 @@ impl Window {
     };
     let position = desc.position.unwrap_or(Position::AUTO);
     let size = desc.size.unwrap_or(Size::AUTO);
-    let (instance, class_name) = match &class {
-      WindowClass2::Descriptor(class) => {
-        class.register()?;
-        (HINSTANCE::from(class.instance), HSTRING::from(class.name.clone()))
-      }
-      WindowClass2::Handle { instance, name } => (HINSTANCE::from(*instance), HSTRING::from(name.clone())),
-    };
+    let instance = HINSTANCE::from(*class.instance());
+    let class_name = HSTRING::from(class.name());
 
     unsafe {
       CreateWindowExW(

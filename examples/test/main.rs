@@ -2,7 +2,7 @@ use win64::{
   flag::{WindowClassStyle, WindowStyle},
   message::Message,
   procedure::WindowProcedure,
-  types::{WindowClass2, WindowClassDescriptor},
+  types::{WindowClass, WindowClassDescriptor},
   window::{Window, WindowDescriptor},
   GetMessageResult,
 };
@@ -10,9 +10,9 @@ use windows::Win32::UI::WindowsAndMessaging;
 
 fn main() {
   Window::new(
-    WindowClass2::Descriptor(WindowClassDescriptor {
+    WindowClass::new(&WindowClassDescriptor {
       style: WindowClassStyle::HorizontalRedraw | WindowClassStyle::VerticalRedraw,
-      ..WindowClassDescriptor::try_default().unwrap()
+      ..Default::default()
     }),
     WindowDescriptor {
       title: "Test".to_owned(),
