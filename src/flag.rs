@@ -1,6 +1,6 @@
 use bitflags::bitflags;
 use windows::Win32::UI::WindowsAndMessaging::{
-  self, PEEK_MESSAGE_REMOVE_TYPE, WINDOW_EX_STYLE, WINDOW_STYLE,
+  self, PEEK_MESSAGE_REMOVE_TYPE, WINDOW_EX_STYLE, WINDOW_STYLE, WNDCLASS_STYLES,
 };
 
 bitflags! {
@@ -37,6 +37,12 @@ bitflags! {
     const ParentDeviceContext = WindowsAndMessaging::CS_PARENTDC.0;
     const SaveBits = WindowsAndMessaging::CS_SAVEBITS.0;
     const VerticalRedraw = WindowsAndMessaging::CS_VREDRAW.0;
+  }
+}
+
+impl From<WindowClassStyle> for WNDCLASS_STYLES {
+  fn from(value: WindowClassStyle) -> Self {
+    WNDCLASS_STYLES(value.bits())
   }
 }
 

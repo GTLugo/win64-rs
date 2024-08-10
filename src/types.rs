@@ -1,10 +1,11 @@
+use cursor_icon::CursorIcon;
 use windows::{
   core::{HSTRING, PCWSTR},
   Win32::{
     Foundation::HINSTANCE,
     UI::WindowsAndMessaging::{
-      GetClassInfoExW, RegisterClassExW, UnregisterClassW, CW_USEDEFAULT, WNDCLASSEXW,
-      WNDCLASS_STYLES,
+      self, GetClassInfoExW, LoadCursorW, RegisterClassExW, UnregisterClassW,
+      CW_USEDEFAULT, HCURSOR, WNDCLASSEXW,
     },
   },
 };
@@ -31,7 +32,10 @@ impl WindowClass {
       hInstance: desc.instance.into(),
       lpszClassName: PCWSTR(name.as_ptr()),
       lpfnWndProc: Some(procedure::window_procedure),
-      style: WNDCLASS_STYLES(desc.style.bits()),
+      style: desc.style.into(),
+      hCursor: unsafe {
+        LoadCursorW(None, PCWSTR(desc.cursor.to_cursor().0.cast())).unwrap()
+      },
       ..Default::default()
     };
 
@@ -76,14 +80,16 @@ pub struct WindowClassDescriptor {
   pub instance: Instance,
   pub name: String,
   pub style: WindowClassStyle,
+  pub cursor: CursorIcon,
 }
 
 impl Default for WindowClassDescriptor {
   fn default() -> Self {
     Self {
-      instance: Instance::default(),
+      instance: Default::default(),
       name: "Window Class".to_owned(),
       style: WindowClassStyle::empty(),
+      cursor: Default::default(),
     }
   }
 }
@@ -133,5 +139,53 @@ impl From<[i32; 2]> for Position {
 impl From<(i32, i32)> for Position {
   fn from((x, y): (i32, i32)) -> Self {
     Self { x, y }
+  }
+}
+
+trait ToHCURSOR {
+  fn to_cursor(&self) -> HCURSOR;
+}
+
+impl ToHCURSOR for CursorIcon {
+  fn to_cursor(&self) -> HCURSOR {
+    match self {
+      CursorIcon::Default => {
+        HCURSOR(WindowsAndMessaging::IDC_ARROW.as_ptr().cast_mut().cast())
+      }
+      CursorIcon::ContextMenu => todo!(),
+      CursorIcon::Help => todo!(),
+      CursorIcon::Pointer => todo!(),
+      CursorIcon::Progress => todo!(),
+      CursorIcon::Wait => todo!(),
+      CursorIcon::Cell => todo!(),
+      CursorIcon::Crosshair => todo!(),
+      CursorIcon::Text => todo!(),
+      CursorIcon::VerticalText => todo!(),
+      CursorIcon::Alias => todo!(),
+      CursorIcon::Copy => todo!(),
+      CursorIcon::Move => todo!(),
+      CursorIcon::NoDrop => todo!(),
+      CursorIcon::NotAllowed => todo!(),
+      CursorIcon::Grab => todo!(),
+      CursorIcon::Grabbing => todo!(),
+      CursorIcon::EResize => todo!(),
+      CursorIcon::NResize => todo!(),
+      CursorIcon::NeResize => todo!(),
+      CursorIcon::NwResize => todo!(),
+      CursorIcon::SResize => todo!(),
+      CursorIcon::SeResize => todo!(),
+      CursorIcon::SwResize => todo!(),
+      CursorIcon::WResize => todo!(),
+      CursorIcon::EwResize => todo!(),
+      CursorIcon::NsResize => todo!(),
+      CursorIcon::NeswResize => todo!(),
+      CursorIcon::NwseResize => todo!(),
+      CursorIcon::ColResize => todo!(),
+      CursorIcon::RowResize => todo!(),
+      CursorIcon::AllScroll => todo!(),
+      CursorIcon::ZoomIn => todo!(),
+      CursorIcon::ZoomOut => todo!(),
+      _ => todo!(),
+    }
   }
 }
