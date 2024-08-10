@@ -8,11 +8,9 @@ use win64::prelude::*;
 fn main() {
   Window::new(
     &WindowClass::new(&WindowClassDescriptor::default()),
-    &WindowDescriptor {
-      title: "Test".to_owned(),
-      size: Some((800, 500).into()),
-      ..Default::default()
-    },
+    &WindowDescriptor::default()
+      .with_title("Test")
+      .with_size(Some((800, 500))),
     UserData::new(),
   )
   .unwrap();

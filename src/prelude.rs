@@ -2,6 +2,7 @@ pub use crate::{
   flag::{PeekMessageFlags, WindowClassStyle, WindowStyle},
   message::{Message, MessagePump},
   procedure::WindowProcedure,
+  types::{Position, Size},
   types::{WindowClass, WindowClassDescriptor},
   window::{Window, WindowDescriptor},
   GetMessageResult, PeekMessageResult, ProcedureResult,

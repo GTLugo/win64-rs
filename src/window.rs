@@ -36,6 +36,31 @@ impl Default for WindowDescriptor {
   }
 }
 
+impl WindowDescriptor {
+  pub fn with_title(self, title: impl Into<String>) -> Self {
+    Self {
+      title: title.into(),
+      ..self
+    }
+  }
+
+  pub fn with_position(self, position: Option<impl Into<Position>>) -> Self {
+    Self { position: position.map(Into::into), ..self }
+  }
+
+  pub fn with_size(self, size: Option<impl Into<Size>>) -> Self {
+    Self { size: size.map(Into::into), ..self }
+  }
+
+  pub fn with_style(self, style: WindowStyle) -> Self {
+    Self { style, ..self }
+  }
+  
+  pub fn with_ext_style(self, ext_style: ExtendedWindowStyle) -> Self {
+    Self { ext_style, ..self }
+  }
+}
+
 impl Window {
   pub fn as_handle(&self) -> HWND {
     (*self).into()

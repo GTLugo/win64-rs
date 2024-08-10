@@ -8,11 +8,9 @@ use self::win32::SetWindowTextW;
 fn main() {
   let window = Window::new(
     &WindowClass::new(&WindowClassDescriptor::default()),
-    &WindowDescriptor {
-      title: "Test".to_owned(),
-      size: Some((800, 500).into()),
-      ..Default::default()
-    },
+    &WindowDescriptor::default()
+      .with_title("Test")
+      .with_size(Some((800, 500))),
     UserData::new(),
   )
   .unwrap();

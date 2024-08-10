@@ -94,6 +94,27 @@ impl Default for WindowClassDescriptor {
   }
 }
 
+impl WindowClassDescriptor {
+  pub fn with_instance(self, instance: Instance) -> Self {
+    Self { instance, ..self }
+  }
+
+  pub fn with_name(self, name: impl Into<String>) -> Self {
+    Self {
+      name: name.into(),
+      ..self
+    }
+  }
+
+  pub fn with_style(self, style: WindowClassStyle) -> Self {
+    Self { style, ..self }
+  }
+
+  pub fn with_cursor(self, cursor: CursorIcon) -> Self {
+    Self { cursor, ..self }
+  }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Size {
   pub width: i32,
