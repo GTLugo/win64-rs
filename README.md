@@ -1,3 +1,8 @@
+# `win64`
+
+## An opinionated modernization of the Win32 windowing library for Rust
+
+```rust
 use win64::prelude::*;
 
 fn main() {
@@ -41,3 +46,4 @@ impl WindowProcedure for UserData {
     self.default_window_procedure(window, message)
   }
 }
+```
