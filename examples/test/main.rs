@@ -20,8 +20,6 @@ fn main() {
   let mut timer = Duration::ZERO;
   let period = Duration::from_secs_f64(0.2);
 
-  // convert to a method chain iteration builder struct thing
-
   MessagePump::poll().for_each(|_| {
     let now = Instant::now();
     delta = now - then;

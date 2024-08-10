@@ -51,6 +51,13 @@ impl Instance {
     .map(|value| HINSTANCE(value.0).into())
   }
 
+  /// # Safety
+  /// 
+  /// Raw pointers are scary
+  pub unsafe fn as_ptr(&self) -> *mut core::ffi::c_void {
+    self.0.as_ptr()
+  }
+
   pub fn is_null(&self) -> bool {
     self.0.is_null()
   }
