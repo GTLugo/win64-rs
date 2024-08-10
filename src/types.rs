@@ -88,12 +88,13 @@ impl Default for WindowClassDescriptor {
     Self {
       instance: Default::default(),
       name: "Window Class".to_owned(),
-      style: WindowClassStyle::empty(),
+      style: WindowClassStyle::HorizontalRedraw | WindowClassStyle::VerticalRedraw,
       cursor: Default::default(),
     }
   }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Size {
   pub width: i32,
   pub height: i32,
@@ -118,6 +119,7 @@ impl From<(i32, i32)> for Size {
   }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Position {
   pub x: i32,
   pub y: i32,

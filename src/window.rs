@@ -30,7 +30,7 @@ impl Default for WindowDescriptor {
       title: "Window".to_owned(),
       position: Default::default(),
       size: Default::default(),
-      style: WindowStyle::empty(),
+      style: WindowStyle::OverlappedWindow | WindowStyle::Visible,
       ext_style: ExtendedWindowStyle::empty(),
     }
   }
@@ -54,16 +54,16 @@ impl Window {
   }
 
   pub fn new<Procedure: 'static + WindowProcedure>(
-    class: WindowClass,
-    desc: WindowDescriptor,
+    class: &WindowClass,
+    desc: &WindowDescriptor,
     procedure: Procedure,
   ) -> Result<Self, windows::core::Error> {
-    let title: HSTRING = desc.title.into();
+    let title = HSTRING::from(desc.title.clone());
     let mut create_info = CreateInfo {
       user_state: Some(Box::new(procedure)),
     };
-    let position = desc.position.unwrap_or(Position::AUTO);
-    let size = desc.size.unwrap_or(Size::AUTO);
+    let position = desc.position.clone().unwrap_or(Position::AUTO);
+    let size = desc.size.clone().unwrap_or(Size::AUTO);
     let instance = HINSTANCE::from(*class.instance());
     let class_name = HSTRING::from(class.name());
 

@@ -7,14 +7,10 @@ use self::win32::SetWindowTextW;
 
 fn main() {
   let window = Window::new(
-    WindowClass::new(&WindowClassDescriptor {
-      style: WindowClassStyle::HorizontalRedraw | WindowClassStyle::VerticalRedraw,
-      ..Default::default()
-    }),
-    WindowDescriptor {
+    &WindowClass::new(&WindowClassDescriptor::default()),
+    &WindowDescriptor {
       title: "Test".to_owned(),
       size: Some((800, 500).into()),
-      style: WindowStyle::OverlappedWindow | WindowStyle::Visible,
       ..Default::default()
     },
     UserData::new(),
@@ -61,15 +57,11 @@ fn main() {
   }
 }
 
-struct UserData {
-  
-}
+struct UserData {}
 
 impl UserData {
   fn new() -> Self {
-    Self {
-      
-    }
+    Self {}
   }
 }
 

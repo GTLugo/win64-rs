@@ -7,17 +7,13 @@ use win64::prelude::*;
 
 fn main() {
   Window::new(
-    WindowClass::new(&WindowClassDescriptor {
-      style: WindowClassStyle::HorizontalRedraw | WindowClassStyle::VerticalRedraw,
-      ..Default::default()
-    }),
-    WindowDescriptor {
+    &WindowClass::new(&WindowClassDescriptor::default()),
+    &WindowDescriptor {
       title: "Test".to_owned(),
-      size: Some((800, 600).into()),
-      style: WindowStyle::OverlappedWindow | WindowStyle::Visible,
+      size: Some((800, 500).into()),
       ..Default::default()
     },
-    UserData,
+    UserData::new(),
   )
   .unwrap();
 
@@ -28,7 +24,7 @@ fn main() {
         msg.dispatch();
       }
       GetMessageResult::Quit => break,
-      GetMessageResult::Error(e) => eprintln!("ERROR: {e}"),
+      _ => (),
     }
   }
 }
