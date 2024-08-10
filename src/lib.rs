@@ -67,7 +67,7 @@ pub enum PeekMessageResult {
 
 fn get_message(
   hwnd: Option<Window>,
-  filter: Option<RangeInclusive<u32>>,
+  filter: &Option<RangeInclusive<u32>>,
 ) -> GetMessageResult {
   let (min, max) = match filter {
     Some(filter) => (*filter.start(), *filter.end()),
@@ -89,7 +89,7 @@ fn get_message(
 
 fn peek_message(
   hwnd: Option<Window>,
-  filter: Option<RangeInclusive<u32>>,
+  filter: &Option<RangeInclusive<u32>>,
   flags: PeekMessageFlags,
 ) -> PeekMessageResult {
   let (min, max) = match filter {

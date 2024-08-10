@@ -17,16 +17,7 @@ fn main() {
   )
   .unwrap();
 
-  loop {
-    match Message::get(None, None) {
-      GetMessageResult::Message(msg) => {
-        msg.translate();
-        msg.dispatch();
-      }
-      GetMessageResult::Quit => break,
-      _ => (),
-    }
-  }
+  MessagePump::wait().run();
 }
 
 struct UserData;

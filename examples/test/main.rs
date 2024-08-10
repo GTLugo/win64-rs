@@ -18,32 +18,16 @@ fn main() {
   .unwrap();
 
   let mut then = Instant::now();
-  let mut delta;
+  let mut delta = Duration::ZERO;
   let mut timer = Duration::ZERO;
   let period = Duration::from_secs_f64(0.2);
 
-  loop {
-    // match Message::get(None, None) {
-    //   GetMessageResult::Message(msg) => {
-    //     msg.translate();
-    //     msg.dispatch();
-    //   }
-    //   GetMessageResult::Quit => break,
-    //   GetMessageResult::Error(e) => eprintln!("ERROR: {e}"),
-    // }
-    match Message::peek(None, None, PeekMessageFlags::Remove) {
-      PeekMessageResult::Message(msg) => {
-        msg.translate();
-        msg.dispatch();
-      }
-      PeekMessageResult::Quit => break,
-      _ => (),
-    }
+  // convert to a method chain iteration builder struct thing
 
+  MessagePump::poll().for_each(|_| {
     let now = Instant::now();
     delta = now - then;
     then = now;
-
     timer += delta;
     if timer > period {
       let _ = unsafe {
@@ -54,7 +38,7 @@ fn main() {
       };
       timer = Duration::ZERO;
     }
-  }
+  });
 }
 
 struct UserData {}

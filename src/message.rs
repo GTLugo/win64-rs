@@ -1,4 +1,4 @@
-use std::ops::RangeInclusive;
+use std::{marker::PhantomData, ops::RangeInclusive};
 
 use windows::Win32::{
   Foundation::{self, LPARAM, WPARAM},
@@ -6,75 +6,157 @@ use windows::Win32::{
 };
 
 use crate::{
-  flag::PeekMessageFlags, get_message, peek_message, window::Window, GetMessageResult, PeekMessageResult, ProcedureResult
+  flag::PeekMessageFlags, get_message, peek_message, window::Window, GetMessageResult,
+  PeekMessageResult, ProcedureResult,
 };
 
-// #[derive(Debug, Clone, PartialEq)]
-// pub struct ThreadMessage {
-//   msg: Message,
-//   metadata: Metadata,
+// pub enum PumpType {
+//   Wait,
+//   Poll,
 // }
 
-// impl ThreadMessage {
-//   pub fn get(
-//     hwnd: Option<Window>,
-//     filter: Option<RangeInclusive<u32>>,
-//   ) -> Result<Self, windows::core::Error> {
-//     get_message(hwnd, filter)
-//   }
+pub struct Wait;
+pub struct Poll;
 
-//   pub fn translate(&self) -> bool {
-//     let msg = MSG::from(self.clone());
-//     unsafe { TranslateMessage(&msg) }.as_bool()
-//   }
+pub struct MessagePump<PumpType = Wait> {
+  ty: PhantomData<PumpType>,
+  hwnd: Option<Window>,
+  filter: Option<RangeInclusive<u32>>,
+  flags: PeekMessageFlags,
+  translate: bool,
+}
 
-//   pub fn dispatch(&self) -> ProcedureResult {
-//     let msg = MSG::from(self.clone());
-//     unsafe { DispatchMessageW(&msg) }.into()
-//   }
+impl MessagePump<Wait> {
+  pub fn wait() -> Self {
+    Self {
+      ty: PhantomData,
+      hwnd: None,
+      filter: None,
+      flags: PeekMessageFlags::empty(),
+      translate: true,
+    }
+  }
 
-//   pub fn hwnd(&self) -> Window {
-//     self.metadata.hwnd
-//   }
+  pub fn with_window(self, window: Window) -> Self {
+    Self {
+      hwnd: Some(window),
+      ..self
+    }
+  }
 
-//   pub fn message(&self) -> &Message {
-//     &self.msg
-//   }
+  pub fn with_filter(self, filter: RangeInclusive<u32>) -> Self {
+    Self {
+      filter: Some(filter),
+      ..self
+    }
+  }
 
-//   pub fn time(&self) -> u32 {
-//     self.metadata.time
-//   }
+  pub fn with_translation(self, enable: bool) -> Self {
+    Self {
+      translate: enable,
+      ..self
+    }
+  }
 
-//   pub fn point(&self) -> Foundation::POINT {
-//     self.metadata.pt
-//   }
-// }
+  pub fn run(&self) {
+    loop {
+      match get_message(self.hwnd, &self.filter) {
+        GetMessageResult::Message(msg) => {
+          if self.translate {
+            msg.translate();
+          }
+          msg.dispatch();
+        }
+        GetMessageResult::Quit => break,
+        GetMessageResult::Error(e) => tracing::error!("{e}"),
+      }
+    }
+  }
 
-// impl From<ThreadMessage> for MSG {
-//   fn from(msg: ThreadMessage) -> Self {
-//     Self {
-//       hwnd: msg.hwnd().into(),
-//       message: msg.message().id,
-//       wParam: WPARAM(msg.message().w),
-//       lParam: LPARAM(msg.message().l),
-//       time: msg.time(),
-//       pt: msg.point(),
-//     }
-//   }
-// }
+  pub fn for_each(&self, mut f: impl FnMut(Message<Metadata>)) {
+    loop {
+      match get_message(self.hwnd, &self.filter) {
+        GetMessageResult::Message(msg) => {
+          if self.translate {
+            msg.translate();
+          }
+          msg.dispatch();
+          f(msg);
+        }
+        GetMessageResult::Quit => break,
+        GetMessageResult::Error(e) => tracing::error!("{e}"),
+      }
+    }
+  }
+}
 
-// impl From<MSG> for ThreadMessage {
-//   fn from(msg: MSG) -> Self {
-//     Self {
-//       msg: msg.into(),
-//       metadata: Metadata {
-//         hwnd: msg.hwnd.into(),
-//         time: msg.time,
-//         pt: msg.pt,
-//       },
-//     }
-//   }
-// }
+impl MessagePump<Poll> {
+  pub fn poll() -> Self {
+    Self {
+      ty: PhantomData,
+      hwnd: None,
+      filter: None,
+      flags: PeekMessageFlags::Remove,
+      translate: true,
+    }
+  }
+
+  pub fn with_window(self, window: Window) -> Self {
+    Self {
+      hwnd: Some(window),
+      ..self
+    }
+  }
+
+  pub fn with_filter(self, filter: RangeInclusive<u32>) -> Self {
+    Self {
+      filter: Some(filter),
+      ..self
+    }
+  }
+
+  pub fn with_flags(self, flags: PeekMessageFlags) -> Self {
+    Self { flags, ..self }
+  }
+
+  pub fn with_translation(self, enable: bool) -> Self {
+    Self {
+      translate: enable,
+      ..self
+    }
+  }
+
+  pub fn run(&self) {
+    loop {
+      match peek_message(self.hwnd, &self.filter, self.flags) {
+        PeekMessageResult::Message(msg) => {
+          if self.translate {
+            msg.translate();
+          }
+          msg.dispatch();
+        }
+        PeekMessageResult::Quit => break,
+        PeekMessageResult::None => (),
+      }
+    }
+  }
+
+  pub fn for_each(&self, mut f: impl FnMut(Option<Message<Metadata>>)) {
+    loop {
+      match peek_message(self.hwnd, &self.filter, self.flags) {
+        PeekMessageResult::Message(msg) => {
+          if self.translate {
+            msg.translate();
+          }
+          msg.dispatch();
+          f(Some(msg));
+        }
+        PeekMessageResult::Quit => break,
+        PeekMessageResult::None => f(None),
+      }
+    }
+  }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Metadata {
@@ -157,7 +239,7 @@ impl Message<Metadata> {
     hwnd: Option<Window>,
     filter: Option<RangeInclusive<u32>>,
   ) -> GetMessageResult {
-    get_message(hwnd, filter)
+    get_message(hwnd, &filter)
   }
 
   pub fn peek(
@@ -165,7 +247,7 @@ impl Message<Metadata> {
     filter: Option<RangeInclusive<u32>>,
     flags: PeekMessageFlags,
   ) -> PeekMessageResult {
-    peek_message(hwnd, filter, flags)
+    peek_message(hwnd, &filter, flags)
   }
 
   pub fn translate(&self) -> bool {

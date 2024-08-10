@@ -1,6 +1,6 @@
 pub use crate::{
   flag::{PeekMessageFlags, WindowClassStyle, WindowStyle},
-  message::Message,
+  message::{Message, MessagePump},
   procedure::WindowProcedure,
   types::{WindowClass, WindowClassDescriptor},
   window::{Window, WindowDescriptor},
