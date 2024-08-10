@@ -10,8 +10,9 @@ fn main() {
       title: "Test".to_owned(),
       size: Some((800, 600).into()),
       style: WindowStyle::OverlappedWindow | WindowStyle::Visible,
-      ..WindowDescriptor::new(UserData)
+      ..Default::default()
     },
+    UserData,
   )
   .unwrap();
 

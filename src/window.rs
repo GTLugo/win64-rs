@@ -16,24 +16,22 @@ use crate::{
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Window(Handle);
 
-pub struct WindowDescriptor<Procedure: 'static + WindowProcedure> {
+pub struct WindowDescriptor {
   pub title: String,
   pub position: Option<Position>,
   pub size: Option<Size>,
   pub style: WindowStyle,
   pub ext_style: ExtendedWindowStyle,
-  pub procedure: Procedure,
 }
 
-impl<Procedure: 'static + WindowProcedure> WindowDescriptor<Procedure> {
-  pub fn new(procedure: Procedure) -> Self {
+impl Default for WindowDescriptor {
+  fn default() -> Self {
     Self {
       title: "Window".to_owned(),
       position: Default::default(),
       size: Default::default(),
       style: WindowStyle::empty(),
       ext_style: ExtendedWindowStyle::empty(),
-      procedure,
     }
   }
 }
@@ -51,13 +49,14 @@ impl Window {
     unsafe { PostQuitMessage(exit_code) };
   }
 
-  pub fn new(
+  pub fn new<Procedure: 'static + WindowProcedure> (
     class: WindowClass,
-    desc: WindowDescriptor<impl 'static + WindowProcedure>,
+    desc: WindowDescriptor,
+    procedure: Procedure,
   ) -> Result<Self, windows::core::Error> {
     let title: HSTRING = desc.title.into();
     let mut create_info = CreateInfo {
-      user_state: Some(Box::new(desc.procedure)),
+      user_state: Some(Box::new(procedure)),
     };
     let position = desc.position.unwrap_or(Position::AUTO);
     let size = desc.size.unwrap_or(Size::AUTO);
