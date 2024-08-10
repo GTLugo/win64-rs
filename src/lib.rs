@@ -3,7 +3,7 @@ use std::{io, ops::RangeInclusive};
 use thiserror::Error;
 use windows::Win32::{
   Foundation::{HWND, LRESULT},
-  UI::WindowsAndMessaging::{GetMessageW, PeekMessageW, MSG},
+  UI::WindowsAndMessaging::{self, GetMessageW, PeekMessageW, MSG},
 };
 
 use self::{
@@ -15,10 +15,10 @@ use self::{
 pub mod flag;
 pub mod handle;
 pub mod message;
+pub mod prelude;
 pub mod procedure;
 pub mod types;
 pub mod window;
-pub mod prelude;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct ProcedureResult(pub isize);
@@ -58,8 +58,11 @@ pub enum GetMessageResult {
   Error(windows::core::Error),
 }
 
-impl GetMessageResult {
-  
+#[derive(Debug)]
+pub enum PeekMessageResult {
+  Message(Message<Metadata>),
+  Quit,
+  None,
 }
 
 fn get_message(
@@ -88,7 +91,7 @@ fn peek_message(
   hwnd: Option<Window>,
   filter: Option<RangeInclusive<u32>>,
   flags: PeekMessageFlags,
-) -> Option<Message<Metadata>> {
+) -> PeekMessageResult {
   let (min, max) = match filter {
     Some(filter) => (*filter.start(), *filter.end()),
     None => (0, 0),
@@ -102,9 +105,10 @@ fn peek_message(
   };
   // If a message is available, the return value is nonzero.
   // If no messages are available, the return value is zero.
-  match result.as_bool() {
-    true => Some(Message::from(msg)),
-    false => None,
+  match (result.as_bool(), msg.message) {
+    (true, WindowsAndMessaging::WM_QUIT) => PeekMessageResult::Quit,
+    (true, _) => PeekMessageResult::Message(Message::from(msg)),
+    (false, _) => PeekMessageResult::None,
   }
 }
 

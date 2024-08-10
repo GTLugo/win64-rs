@@ -6,7 +6,7 @@ use windows::Win32::{
 };
 
 use crate::{
-  flag::PeekMessageFlags, get_message, peek_message, window::Window, GetMessageResult, ProcedureResult
+  flag::PeekMessageFlags, get_message, peek_message, window::Window, GetMessageResult, PeekMessageResult, ProcedureResult
 };
 
 // #[derive(Debug, Clone, PartialEq)]
@@ -164,7 +164,7 @@ impl Message<Metadata> {
     hwnd: Option<Window>,
     filter: Option<RangeInclusive<u32>>,
     flags: PeekMessageFlags,
-  ) -> Option<Self> {
+  ) -> PeekMessageResult {
     peek_message(hwnd, filter, flags)
   }
 

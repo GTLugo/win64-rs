@@ -37,11 +37,8 @@ struct UserData;
 
 impl WindowProcedure for UserData {
   fn on_message(&mut self, window: Window, message: Message) -> ProcedureResult {
-    match message.id() {
-      win32::WM_DESTROY => window.quit(),
-      _ => {
-        println!("{message:?}");
-      }
+    if let win32::WM_DESTROY = message.id() {
+      window.quit()
     }
 
     self.default_window_procedure(window, message)

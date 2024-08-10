@@ -37,6 +37,10 @@ impl Default for WindowDescriptor {
 }
 
 impl Window {
+  pub fn as_handle(&self) -> HWND {
+    (*self).into()
+  }
+
   pub fn is_invalid(&self) -> bool {
     self.0.is_null()
   }
@@ -49,7 +53,7 @@ impl Window {
     unsafe { PostQuitMessage(exit_code) };
   }
 
-  pub fn new<Procedure: 'static + WindowProcedure> (
+  pub fn new<Procedure: 'static + WindowProcedure>(
     class: WindowClass,
     desc: WindowDescriptor,
     procedure: Procedure,
