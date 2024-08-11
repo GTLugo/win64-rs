@@ -117,7 +117,7 @@ impl Window {
     .map(Into::into)
   }
 
-  pub fn set_text(&self, text: impl Into<String>) -> windows::core::Result<()> {
+  pub fn set_window_text(&self, text: impl Into<String>) -> windows::core::Result<()> {
     let text = HSTRING::from(text.into());
     unsafe { SetWindowTextW(self.as_handle(), &text) }
   }

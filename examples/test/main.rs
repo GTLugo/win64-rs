@@ -23,7 +23,8 @@ fn main() {
     then = now;
     timer += delta;
     if timer > period {
-      let _ = window.set_text(format!("{:?} fps", 1. / (delta.as_secs_f64() * 1000.)));
+      let _ =
+        window.set_window_text(format!("{:?} fps", 1. / (delta.as_secs_f64() * 1000.)));
       timer = Duration::ZERO;
     }
   });
