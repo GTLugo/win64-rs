@@ -2,7 +2,7 @@ use windows::{
   core::HSTRING,
   Win32::{
     Foundation::{HINSTANCE, HWND},
-    UI::WindowsAndMessaging::{CreateWindowExW, PostQuitMessage},
+    UI::WindowsAndMessaging::{CreateWindowExW, PostQuitMessage, SetWindowTextW},
   },
 };
 
@@ -115,6 +115,11 @@ impl Window {
       )
     }
     .map(Into::into)
+  }
+
+  pub fn set_text(&self, text: impl Into<String>) -> windows::core::Result<()> {
+    let text = HSTRING::from(text.into());
+    unsafe { SetWindowTextW(self.as_handle(), &text) }
   }
 }
 

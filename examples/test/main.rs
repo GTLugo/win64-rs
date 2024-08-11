@@ -1,9 +1,6 @@
 use std::time::{Duration, Instant};
 
 use win64::prelude::*;
-use windows::core::HSTRING;
-
-use self::win32::SetWindowTextW;
 
 fn main() {
   let window = Window::new(
@@ -26,12 +23,7 @@ fn main() {
     then = now;
     timer += delta;
     if timer > period {
-      let _ = unsafe {
-        SetWindowTextW(
-          window.as_handle(),
-          &HSTRING::from(format!("{:?} fps", 1. / (delta.as_secs_f64() * 1000.))),
-        )
-      };
+      let _ = window.set_text(format!("{:?} fps", 1. / (delta.as_secs_f64() * 1000.)));
       timer = Duration::ZERO;
     }
   });
