@@ -5,7 +5,11 @@ use windows::Win32::{
   },
 };
 
-use crate::{handle::{window::Window, Handle}, message::{Message, NoMetadata}, ProcedureResult};
+use crate::{
+  handle::{window::Window, Handle},
+  message::{Message, NoMetadata},
+  ProcedureResult,
+};
 
 pub trait WindowProcedure {
   fn default_window_procedure(
@@ -14,12 +18,21 @@ pub trait WindowProcedure {
     message: Message<NoMetadata>,
   ) -> ProcedureResult {
     unsafe {
-      DefWindowProcW(HWND::from(window), message.id(), WPARAM(message.w()), LPARAM(message.l()))
+      DefWindowProcW(
+        HWND::from(window),
+        message.id(),
+        WPARAM(message.w()),
+        LPARAM(message.l()),
+      )
     }
     .into()
   }
 
-  fn on_message(&mut self, window: Handle<Window>, message: Message<NoMetadata>) -> ProcedureResult {
+  fn on_message(
+    &mut self,
+    window: Handle<Window>,
+    message: Message<NoMetadata>,
+  ) -> ProcedureResult {
     self.default_window_procedure(window, message)
   }
 }
@@ -42,15 +55,7 @@ pub unsafe extern "system" fn window_procedure(
 ) -> LRESULT {
   let state_ptr = unsafe { GetWindowLongPtrW(hwnd, WindowsAndMessaging::GWLP_USERDATA) };
   let state = unsafe { (state_ptr as *mut WindowState).as_mut() };
-
-  match (state, msg) {
-    (None, WindowsAndMessaging::WM_NCCREATE) => on_nccreate(hwnd, msg, w_param, l_param),
-    (Some(state), _) => state
-      .user_state
-      .on_message(hwnd.into(), Message::new(msg, w_param, l_param))
-      .into(),
-    _ => unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) },
-  }
+  on_message(hwnd, msg, w_param, l_param, state)
 }
 
 fn on_nccreate(hwnd: HWND, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
@@ -76,4 +81,36 @@ fn on_nccreate(hwnd: HWND, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LRESUL
     .on_message(hwnd.into(), Message::new(msg, w_param, l_param));
 
   unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) }
+}
+
+fn on_message(
+  hwnd: HWND,
+  msg: u32,
+  w_param: WPARAM,
+  l_param: LPARAM,
+  state: Option<&mut WindowState>,
+) -> LRESULT {
+  match (state, msg) {
+    (None, WindowsAndMessaging::WM_NCCREATE) => on_nccreate(hwnd, msg, w_param, l_param),
+    (Some(state), WindowsAndMessaging::WM_NCDESTROY) => {
+      let state_ptr =
+        unsafe { GetWindowLongPtrW(hwnd, WindowsAndMessaging::GWLP_USERDATA) };
+      let _state = unsafe { Box::from_raw(state_ptr as *mut WindowState) }; // keep it alive until the end of the block
+      if unsafe { SetWindowLongPtrW(hwnd, WindowsAndMessaging::GWLP_USERDATA, 0) } == 0 {
+        eprintln!("Error: {}", windows::core::Error::from_win32());
+      }
+      state
+        .user_state
+        .on_message(hwnd.into(), Message::new(msg, w_param, l_param))
+        .into()
+    }
+    (Some(state), _) => {
+      // ...
+      state
+        .user_state
+        .on_message(hwnd.into(), Message::new(msg, w_param, l_param))
+        .into()
+    }
+    _ => unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) },
+  }
 }
