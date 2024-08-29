@@ -22,7 +22,7 @@ struct UserData;
 
 impl WindowProcedure for UserData {
   fn on_message(&mut self, window: Window, message: Message) -> ProcedureResult {
-    if let win32::WM_DESTROY = message.id() {
+    if message.quit_requested() {
       window.quit()
     }
 

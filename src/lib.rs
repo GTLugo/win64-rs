@@ -2,23 +2,23 @@ use std::{io, ops::RangeInclusive};
 
 use thiserror::Error;
 use windows::Win32::{
-  Foundation::{HWND, LRESULT},
+  Foundation::LRESULT,
   UI::WindowsAndMessaging::{self, GetMessageW, PeekMessageW, MSG},
 };
 
 use self::{
   flag::PeekMessageFlags,
+  handle::{window::Window, Handle, Win32Type},
   message::{Message, Metadata},
-  window::Window,
 };
 
+pub mod descriptor;
 pub mod flag;
 pub mod handle;
 pub mod message;
 pub mod prelude;
 pub mod procedure;
 pub mod types;
-pub mod window;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct ProcedureResult(pub isize);
@@ -66,7 +66,7 @@ pub enum PeekMessageResult {
 }
 
 fn get_message(
-  hwnd: Option<Window>,
+  hwnd: Option<Handle<Window>>,
   filter: &Option<RangeInclusive<u32>>,
 ) -> GetMessageResult {
   let (min, max) = match filter {
@@ -75,7 +75,7 @@ fn get_message(
   };
   let mut msg = MSG::default();
   let result = match hwnd {
-    Some(hwnd) => unsafe { GetMessageW(&mut msg, HWND::from(hwnd), min, max) },
+    Some(hwnd) => unsafe { GetMessageW(&mut msg, hwnd.to_win32(), min, max) },
     None => unsafe { GetMessageW(&mut msg, None, min, max) },
   };
   // WM_QUIT sends return value of zero, causing BOOL to be false. This is still valid though.
@@ -88,7 +88,7 @@ fn get_message(
 }
 
 fn peek_message(
-  hwnd: Option<Window>,
+  hwnd: Option<Handle<Window>>,
   filter: &Option<RangeInclusive<u32>>,
   flags: PeekMessageFlags,
 ) -> PeekMessageResult {
@@ -99,7 +99,7 @@ fn peek_message(
   let mut msg = MSG::default();
   let result = match hwnd {
     Some(hwnd) => unsafe {
-      PeekMessageW(&mut msg, HWND::from(hwnd), min, max, flags.into())
+      PeekMessageW(&mut msg, hwnd.to_win32(), min, max, flags.into())
     },
     None => unsafe { PeekMessageW(&mut msg, None, min, max, flags.into()) },
   };

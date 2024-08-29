@@ -5,12 +5,12 @@ use windows::Win32::{
   },
 };
 
-use crate::{message::{Message, NoMetadata}, window::Window, ProcedureResult};
+use crate::{handle::{window::Window, Handle}, message::{Message, NoMetadata}, ProcedureResult};
 
 pub trait WindowProcedure {
   fn default_window_procedure(
     &mut self,
-    window: Window,
+    window: Handle<Window>,
     message: Message<NoMetadata>,
   ) -> ProcedureResult {
     unsafe {
@@ -19,8 +19,8 @@ pub trait WindowProcedure {
     .into()
   }
 
-  fn on_message(&mut self, window_handle: Window, message: Message<NoMetadata>) -> ProcedureResult {
-    self.default_window_procedure(window_handle, message)
+  fn on_message(&mut self, window: Handle<Window>, message: Message<NoMetadata>) -> ProcedureResult {
+    self.default_window_procedure(window, message)
   }
 }
 
@@ -33,7 +33,7 @@ struct WindowState {
 }
 
 /// # Safety
-/// Window procedure is inherently unsafe cause Win32
+/// Window procedure is inherently unsafe because Win32
 pub unsafe extern "system" fn window_procedure(
   hwnd: HWND,
   msg: u32,
@@ -45,9 +45,6 @@ pub unsafe extern "system" fn window_procedure(
 
   match (state, msg) {
     (None, WindowsAndMessaging::WM_NCCREATE) => on_nccreate(hwnd, msg, w_param, l_param),
-    // (Some(state), WindowsAndMessaging::WM_CREATE) => {
-    //   on_create(hwnd, msg, w_param, l_param, state)
-    // }
     (Some(state), _) => state
       .user_state
       .on_message(hwnd.into(), Message::new(msg, w_param, l_param))
@@ -80,16 +77,3 @@ fn on_nccreate(hwnd: HWND, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LRESUL
 
   unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) }
 }
-
-// fn on_create(
-//   hwnd: HWND,
-//   msg: u32,
-//   w_param: WPARAM,
-//   l_param: LPARAM,
-//   state: &mut WindowState,
-// ) -> LRESULT {
-//   state
-//     .user_state
-//     .on_message(hwnd.into(), Message::new(msg, w_param, l_param))
-//     .into()
-// }

@@ -1,18 +1,15 @@
 use cursor_icon::CursorIcon;
 use windows::{
   core::{HSTRING, PCWSTR},
-  Win32::{
-    Foundation::HINSTANCE,
-    UI::WindowsAndMessaging::{
-      self, GetClassInfoExW, LoadCursorW, RegisterClassExW, UnregisterClassW,
-      CW_USEDEFAULT, HCURSOR, WNDCLASSEXW,
-    },
+  Win32::UI::WindowsAndMessaging::{
+    self, GetClassInfoExW, LoadCursorW, RegisterClassExW, UnregisterClassW,
+    CW_USEDEFAULT, HCURSOR, WNDCLASSEXW,
   },
 };
 
 use crate::{
   flag::WindowClassStyle,
-  handle::Instance,
+  handle::{instance::Instance, Handle, Win32Type},
   procedure::{self},
 };
 
@@ -20,7 +17,7 @@ pub struct Registered;
 pub struct Unregistered;
 
 pub struct WindowClass {
-  instance: Instance,
+  instance: Handle<Instance>,
   name: String,
 }
 
@@ -29,7 +26,7 @@ impl WindowClass {
     let name = HSTRING::from(desc.name.clone());
     let wc = WNDCLASSEXW {
       cbSize: core::mem::size_of::<WNDCLASSEXW>() as _,
-      hInstance: desc.instance.into(),
+      hInstance: desc.instance.to_win32(),
       lpszClassName: PCWSTR(name.as_ptr()),
       lpfnWndProc: Some(procedure::window_procedure),
       style: desc.style.into(),
@@ -47,11 +44,13 @@ impl WindowClass {
     }
   }
 
-  pub fn get(instance: &Instance, name: String) -> Result<Self, windows::core::Error> {
+  pub fn get(
+    instance: &Handle<Instance>,
+    name: String,
+  ) -> Result<Self, windows::core::Error> {
     let hstring = HSTRING::from(name.clone());
     let mut class = WNDCLASSEXW::default();
-    let result =
-      unsafe { GetClassInfoExW(HINSTANCE::from(*instance), &hstring, &mut class) };
+    let result = unsafe { GetClassInfoExW(instance.to_win32(), &hstring, &mut class) };
     result.map(|_| Self {
       instance: *instance,
       name,
@@ -60,9 +59,7 @@ impl WindowClass {
 
   pub fn unregister(self) -> Result<(), windows::core::Error> {
     let hstring = HSTRING::from(self.name);
-    unsafe {
-      UnregisterClassW(PCWSTR(hstring.as_ptr()), HINSTANCE::from(self.instance))
-    }?;
+    unsafe { UnregisterClassW(PCWSTR(hstring.as_ptr()), self.instance.to_win32()) }?;
 
     Ok(())
   }
@@ -71,13 +68,13 @@ impl WindowClass {
     &self.name
   }
 
-  pub fn instance(&self) -> &Instance {
+  pub fn instance(&self) -> &Handle<Instance> {
     &self.instance
   }
 }
 
 pub struct WindowClassDescriptor {
-  pub instance: Instance,
+  pub instance: Handle<Instance>,
   pub name: String,
   pub style: WindowClassStyle,
   pub cursor: CursorIcon,
@@ -95,7 +92,7 @@ impl Default for WindowClassDescriptor {
 }
 
 impl WindowClassDescriptor {
-  pub fn with_instance(self, instance: Instance) -> Self {
+  pub fn with_instance(self, instance: Handle<Instance>) -> Self {
     Self { instance, ..self }
   }
 

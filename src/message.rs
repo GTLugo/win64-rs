@@ -6,8 +6,10 @@ use windows::Win32::{
 };
 
 use crate::{
-  flag::PeekMessageFlags, get_message, peek_message, window::Window, GetMessageResult,
-  PeekMessageResult, ProcedureResult,
+  flag::PeekMessageFlags,
+  get_message,
+  handle::{window::Window, Handle, Win32Type},
+  peek_message, GetMessageResult, PeekMessageResult, ProcedureResult,
 };
 
 // pub enum PumpType {
@@ -18,9 +20,9 @@ use crate::{
 pub struct Wait;
 pub struct Poll;
 
-pub struct MessagePump<PumpType = Wait> {
+pub struct MessagePump<PumpType> {
   ty: PhantomData<PumpType>,
-  hwnd: Option<Window>,
+  hwnd: Option<Handle<Window>>,
   filter: Option<RangeInclusive<u32>>,
   flags: PeekMessageFlags,
   translate: bool,
@@ -37,7 +39,7 @@ impl MessagePump<Wait> {
     }
   }
 
-  pub fn with_window(self, window: Window) -> Self {
+  pub fn with_window(self, window: Handle<Window>) -> Self {
     Self {
       hwnd: Some(window),
       ..self
@@ -58,19 +60,24 @@ impl MessagePump<Wait> {
     }
   }
 
-  pub fn run(&self) {
-    loop {
-      match get_message(self.hwnd, &self.filter) {
-        GetMessageResult::Message(msg) => {
-          if self.translate {
-            msg.translate();
-          }
-          msg.dispatch();
+  /// returns false when Quit message is sent
+  pub fn run_once(&self) -> bool {
+    match get_message(self.hwnd, &self.filter) {
+      GetMessageResult::Message(msg) => {
+        if self.translate {
+          msg.translate();
         }
-        GetMessageResult::Quit => break,
-        GetMessageResult::Error(e) => tracing::error!("{e}"),
+        msg.dispatch();
       }
+      GetMessageResult::Quit => return false,
+      GetMessageResult::Error(e) => tracing::error!("{e}"),
     }
+
+    true
+  }
+
+  pub fn run(&self) {
+    while self.run_once() {}
   }
 
   pub fn for_each(&self, mut f: impl FnMut(Message<Metadata>)) {
@@ -101,7 +108,7 @@ impl MessagePump<Poll> {
     }
   }
 
-  pub fn with_window(self, window: Window) -> Self {
+  pub fn with_window(self, window: Handle<Window>) -> Self {
     Self {
       hwnd: Some(window),
       ..self
@@ -126,19 +133,24 @@ impl MessagePump<Poll> {
     }
   }
 
-  pub fn run(&self) {
-    loop {
-      match peek_message(self.hwnd, &self.filter, self.flags) {
-        PeekMessageResult::Message(msg) => {
-          if self.translate {
-            msg.translate();
-          }
-          msg.dispatch();
+  /// returns false when Quit message is sent
+  pub fn run_once(&self) -> bool {
+    match peek_message(self.hwnd, &self.filter, self.flags) {
+      PeekMessageResult::Message(msg) => {
+        if self.translate {
+          msg.translate();
         }
-        PeekMessageResult::Quit => break,
-        PeekMessageResult::None => (),
+        msg.dispatch();
       }
+      PeekMessageResult::Quit => return false,
+      PeekMessageResult::None => (),
     }
+
+    true
+  }
+
+  pub fn run(&self) {
+    while self.run_once() {}
   }
 
   pub fn for_each(&self, mut f: impl FnMut(Option<Message<Metadata>>)) {
@@ -160,7 +172,7 @@ impl MessagePump<Poll> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Metadata {
-  hwnd: Window,
+  hwnd: Handle<Window>,
   time: u32,
   pt: Foundation::POINT,
 }
@@ -196,7 +208,7 @@ impl From<MSG> for Message<Metadata> {
 impl From<Message<Metadata>> for MSG {
   fn from(msg: Message<Metadata>) -> Self {
     Self {
-      hwnd: (*msg.window()).into(),
+      hwnd: msg.window().to_win32(),
       message: msg.id(),
       wParam: WPARAM(msg.w()),
       lParam: LPARAM(msg.l()),
@@ -221,6 +233,10 @@ impl<M> Message<M> {
   pub fn l(&self) -> isize {
     self.l
   }
+
+  pub fn quit_requested(&self) -> bool {
+    self.id == Self::DESTROY
+  }
 }
 
 impl Message<NoMetadata> {
@@ -236,14 +252,14 @@ impl Message<NoMetadata> {
 
 impl Message<Metadata> {
   pub fn get(
-    hwnd: Option<Window>,
+    hwnd: Option<Handle<Window>>,
     filter: Option<RangeInclusive<u32>>,
   ) -> GetMessageResult {
     get_message(hwnd, &filter)
   }
 
   pub fn peek(
-    hwnd: Option<Window>,
+    hwnd: Option<Handle<Window>>,
     filter: Option<RangeInclusive<u32>>,
     flags: PeekMessageFlags,
   ) -> PeekMessageResult {
@@ -260,7 +276,7 @@ impl Message<Metadata> {
     unsafe { DispatchMessageW(&msg) }.into()
   }
 
-  pub fn window(&self) -> &Window {
+  pub fn window(&self) -> &Handle<Window> {
     &self.metadata.hwnd
   }
 
