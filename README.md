@@ -11,7 +11,7 @@ fn main() {
     WindowDescriptor::default()
       .with_title("Test")
       .with_size((800, 500)),
-    WindowState::new(),
+    WindowState,
   )
   .unwrap();
 
