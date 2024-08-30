@@ -14,6 +14,8 @@ use crate::{
 
 use super::{Handle, Win32Type};
 
+pub type WindowHandle = Handle<Window>;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Window;
 

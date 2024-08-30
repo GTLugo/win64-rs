@@ -5,6 +5,8 @@ use windows::{
 
 use super::{Handle, Win32Type};
 
+pub type InstanceHandle = Handle<Instance>;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Instance;
 
