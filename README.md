@@ -10,18 +10,18 @@ fn main() {
     &WindowClass::new(&WindowClassDescriptor::default()),
     &WindowDescriptor::default()
       .with_title("Test")
-      .with_size(Some((800, 500))),
-    UserData::new(),
+      .with_size((800, 500)),
+    WindowState::new(),
   )
   .unwrap();
 
   MessagePump::wait().run();
 }
 
-struct UserData;
+struct WindowState;
 
-impl WindowProcedure for UserData {
-  fn on_message(&mut self, window: Window, message: Message) -> ProcedureResult {
+impl WindowProcedure for WindowState {
+  fn on_message(&mut self, window: Handle<Window>, message: Message) -> ProcedureResult {
     if message.quit_requested() {
       window.quit()
     }
