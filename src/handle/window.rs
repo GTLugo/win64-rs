@@ -20,14 +20,14 @@ pub type WindowHandle = Handle<Window>;
 pub struct Window;
 
 impl Window {
-  pub fn new<Procedure: 'static + WindowProcedure>(
+  pub fn new(
     class: &WindowClass,
     desc: &WindowDescriptor,
-    procedure: Procedure,
+    window_state: impl 'static + WindowProcedure,
   ) -> Result<Handle<Window>, windows::core::Error> {
     let title = HSTRING::from(desc.title.clone());
     let mut create_info = CreateInfo {
-      user_state: Some(Box::new(procedure)),
+      state: Some(Box::new(window_state)),
     };
     let position = desc.position.clone().unwrap_or(Position::AUTO);
     let size = desc.size.clone().unwrap_or(Size::AUTO);

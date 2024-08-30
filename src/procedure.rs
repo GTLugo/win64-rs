@@ -38,11 +38,11 @@ pub trait WindowProcedure {
 }
 
 pub(crate) struct CreateInfo {
-  pub user_state: Option<Box<dyn WindowProcedure>>,
+  pub state: Option<Box<dyn WindowProcedure>>,
 }
 
 struct WindowState {
-  user_state: Box<dyn WindowProcedure>,
+  state: Box<dyn WindowProcedure>,
 }
 
 /// # Safety
@@ -67,7 +67,7 @@ fn on_nccreate(hwnd: HWND, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LRESUL
   };
 
   let state = WindowState {
-    user_state: create_info.user_state.take().unwrap(),
+    state: create_info.state.take().unwrap(),
   };
   let state_ptr = Box::into_raw(Box::new(state));
   unsafe {
@@ -77,7 +77,7 @@ fn on_nccreate(hwnd: HWND, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LRESUL
 
   state
     .unwrap()
-    .user_state
+    .state
     .on_message(hwnd.into(), Message::new(msg, w_param, l_param));
 
   unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) }
@@ -100,14 +100,14 @@ fn on_message(
         eprintln!("Error: {}", windows::core::Error::from_win32());
       }
       state
-        .user_state
+        .state
         .on_message(hwnd.into(), Message::new(msg, w_param, l_param))
         .into()
     }
     (Some(state), _) => {
       // ...
       state
-        .user_state
+        .state
         .on_message(hwnd.into(), Message::new(msg, w_param, l_param))
         .into()
     }

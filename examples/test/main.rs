@@ -9,7 +9,7 @@ fn main() {
     WindowDescriptor::default()
       .with_title("Test")
       .with_size((800, 500)),
-    UserData::new(),
+    WindowState::new(),
   )
   .unwrap();
 
@@ -26,15 +26,15 @@ fn main() {
   });
 }
 
-struct UserData {}
+struct WindowState {}
 
-impl UserData {
+impl WindowState {
   fn new() -> Self {
     Self {}
   }
 }
 
-impl WindowProcedure for UserData {
+impl WindowProcedure for WindowState {
   fn on_message(&mut self, window: Handle<Window>, message: Message) -> ProcedureResult {
     if message.quit_requested() {
       window.quit()
