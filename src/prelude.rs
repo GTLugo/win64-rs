@@ -5,7 +5,7 @@ pub use crate::{
   message::{Message, MessagePump},
   procedure::WindowProcedure,
   types::{Position, Size, WindowClass, WindowClassDescriptor},
-  GetMessageResult, PeekMessageResult, ProcedureResult,
+  ProcedureResult,
 };
 
 pub use windows::Win32::UI::WindowsAndMessaging as win32;

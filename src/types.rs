@@ -92,23 +92,24 @@ impl Default for WindowClassDescriptor {
 }
 
 impl WindowClassDescriptor {
-  pub fn with_instance(self, instance: Handle<Instance>) -> Self {
-    Self { instance, ..self }
+  pub fn with_instance(&mut self, instance: Handle<Instance>) -> &mut Self {
+    self.instance = instance;
+    self
   }
 
-  pub fn with_name(self, name: impl Into<String>) -> Self {
-    Self {
-      name: name.into(),
-      ..self
-    }
+  pub fn with_name(&mut self, name: impl Into<String>) -> &mut Self {
+    self.name = name.into();
+    self
   }
 
-  pub fn with_style(self, style: WindowClassStyle) -> Self {
-    Self { style, ..self }
+  pub fn with_style(&mut self, style: WindowClassStyle) -> &mut Self {
+    self.style = style;
+    self
   }
 
-  pub fn with_cursor(self, cursor: CursorIcon) -> Self {
-    Self { cursor, ..self }
+  pub fn with_cursor(&mut self, cursor: CursorIcon) -> &mut Self {
+    self.cursor = cursor;
+    self
   }
 }
 

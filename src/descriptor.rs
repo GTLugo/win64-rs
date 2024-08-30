@@ -24,33 +24,29 @@ impl Default for WindowDescriptor {
 }
 
 impl WindowDescriptor {
-  pub fn with_title(self, title: impl Into<String>) -> Self {
-    Self {
-      title: title.into(),
-      ..self
-    }
+  pub fn with_title(&mut self, title: impl Into<String>) -> &mut Self {
+    self.title = title.into();
+    self
   }
 
-  pub fn with_position(self, position: impl Into<Position>) -> Self {
-    Self {
-      position: Some(position.into()),
-      ..self
-    }
+  pub fn with_position(&mut self, position: impl Into<Position>) -> &mut Self {
+    self.position = Some(position.into());
+    self
   }
 
-  pub fn with_size(self, size: impl Into<Size>) -> Self {
-    Self {
-      size: Some(size.into()),
-      ..self
-    }
+  pub fn with_size(&mut self, size: impl Into<Size>) -> &mut Self {
+    self.size = Some(size.into());
+    self
   }
 
-  pub fn with_style(self, style: WindowStyle) -> Self {
-    Self { style, ..self }
+  pub fn with_style(&mut self, style: WindowStyle) -> &mut Self {
+    self.style = style;
+    self
   }
 
-  pub fn with_ext_style(self, ext_style: ExtendedWindowStyle) -> Self {
-    Self { ext_style, ..self }
+  pub fn with_ext_style(&mut self, ext_style: ExtendedWindowStyle) -> &mut Self {
+    self.ext_style = ext_style;
+    self
   }
 }
 
