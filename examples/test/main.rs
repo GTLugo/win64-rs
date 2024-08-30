@@ -8,7 +8,7 @@ fn main() {
     &WindowDescriptor::default()
       .with_title("Test")
       .with_size((800, 500)),
-    UserData::new(/*sender*/),
+    UserData::new(),
   )
   .unwrap();
 
