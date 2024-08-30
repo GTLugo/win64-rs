@@ -40,6 +40,6 @@ impl WindowProcedure for WindowState {
       window.quit()
     }
 
-    self.default_window_procedure(window, message)
+    window.default_procedure(message)
   }
 }

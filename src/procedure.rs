@@ -12,28 +12,12 @@ use crate::{
 };
 
 pub trait WindowProcedure {
-  fn default_window_procedure(
-    &mut self,
-    window: Handle<Window>,
-    message: Message<NoMetadata>,
-  ) -> ProcedureResult {
-    unsafe {
-      DefWindowProcW(
-        HWND::from(window),
-        message.id(),
-        WPARAM(message.w()),
-        LPARAM(message.l()),
-      )
-    }
-    .into()
-  }
-
   fn on_message(
     &mut self,
     window: Handle<Window>,
     message: Message<NoMetadata>,
   ) -> ProcedureResult {
-    self.default_window_procedure(window, message)
+    window.default_procedure(message)
   }
 }
 

@@ -1,15 +1,13 @@
 use windows::{
   core::HSTRING,
   Win32::{
-    Foundation::{HINSTANCE, HWND},
-    UI::WindowsAndMessaging::{CreateWindowExW, PostQuitMessage, SetWindowTextW},
+    Foundation::{HINSTANCE, HWND, LPARAM, WPARAM},
+    UI::WindowsAndMessaging::{CreateWindowExW, DefWindowProcW, PostQuitMessage, SetWindowTextW},
   },
 };
 
 use crate::{
-  prelude::{WindowDescriptor, WindowProcedure},
-  procedure::CreateInfo,
-  types::{Position, Size, WindowClass},
+  message::{Message, NoMetadata}, prelude::{WindowDescriptor, WindowProcedure}, procedure::CreateInfo, types::{Position, Size, WindowClass}, ProcedureResult
 };
 
 use super::{Handle, Win32Type};
@@ -63,6 +61,21 @@ impl Win32Type for Handle<Window> {
 }
 
 impl Handle<Window> {
+  pub fn default_procedure(
+    &self,
+    message: Message<NoMetadata>,
+  ) -> ProcedureResult {
+    unsafe {
+      DefWindowProcW(
+        self.to_win32(),
+        message.id(),
+        WPARAM(message.w()),
+        LPARAM(message.l()),
+      )
+    }
+    .into()
+  }
+
   pub fn quit(&self) {
     self.quit_with_code(0)
   }
