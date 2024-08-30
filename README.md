@@ -8,7 +8,7 @@ use win64::prelude::*;
 fn main() {
   Window::new(
     &WindowClass::new(&WindowClassDescriptor::default()),
-    &WindowDescriptor::default()
+    WindowDescriptor::default()
       .with_title("Test")
       .with_size((800, 500)),
     WindowState::new(),
