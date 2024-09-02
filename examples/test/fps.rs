@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+#[allow(unused)]
 pub struct FPSCounter {
   then: Instant,
   delta: Duration,
@@ -13,6 +14,7 @@ impl Default for FPSCounter {
   }
 }
 
+#[allow(unused)]
 impl FPSCounter {
   pub fn new() -> Self {
     Self {

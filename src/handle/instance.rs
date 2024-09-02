@@ -1,22 +1,26 @@
 use windows::{
   core::{HSTRING, PCWSTR},
-  Win32::{Foundation::HINSTANCE, System::LibraryLoader::GetModuleHandleW},
+  Win32::{
+    Foundation::{HINSTANCE, HMODULE},
+    System::LibraryLoader::{
+      GetModuleHandleExW, GetModuleHandleW, GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+      GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+    },
+  },
 };
 
 use super::{Handle, Win32Type};
 
-pub type InstanceHandle = Handle<Instance>;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Instance;
+pub struct InstanceId(Option<*mut usize>);
 
-impl Default for Handle<Instance> {
+impl Default for InstanceId {
   fn default() -> Self {
-    Instance::get_exe()
+    Self::get_current()
   }
 }
 
-impl Win32Type for Handle<Instance> {
+impl Win32Type for InstanceId {
   type Type = HINSTANCE;
 
   fn to_win32(&self) -> Self::Type {
@@ -24,15 +28,13 @@ impl Win32Type for Handle<Instance> {
   }
 }
 
-impl Instance {
-  #[inline]
-  pub fn get_exe() -> Handle<Self> {
-    Self::get(None::<&str>).unwrap() // shouldn't fail, right?
-  }
+impl InstanceId {
+  // #[inline]
+  // pub fn get_exe() -> Handle<Self> {
+  //   Self::get(None::<&str>).unwrap() // shouldn't fail, right?
+  // }
 
-  pub fn get(
-    module: Option<impl Into<String>>,
-  ) -> Result<Handle<Self>, windows::core::Error> {
+  pub fn get(module: Option<impl Into<String>>) -> Result<InstanceId, windows::core::Error> {
     unsafe {
       GetModuleHandleW(
         module
@@ -43,16 +45,51 @@ impl Instance {
     }
     .map(|value| HINSTANCE(value.0).into())
   }
+
+  pub fn get_current() -> InstanceId {
+    // https://stackoverflow.com/questions/557081/how-do-i-get-the-hmodule-for-the-currently-executing-code
+    let mut h_module = HMODULE::default();
+
+    if let Err(e) = unsafe {
+      GetModuleHandleExW(
+        GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+        PCWSTR::from_raw(Self::get_current as *const u16),
+        &mut h_module,
+      )
+    } {
+      eprintln!("get_current_module error: {e}");
+    }
+
+    HINSTANCE(h_module.0).into()
+  }
 }
 
-impl From<Handle<Instance>> for HINSTANCE {
-  fn from(value: Handle<Instance>) -> Self {
+impl From<InstanceId> for HINSTANCE {
+  fn from(value: InstanceId) -> Self {
     Self(value.as_ptr())
   }
 }
 
-impl From<HINSTANCE> for Handle<Instance> {
+impl From<HINSTANCE> for InstanceId {
   fn from(value: HINSTANCE) -> Self {
-    unsafe { Self::from_raw(value.0) }
+    unsafe { Self::from_ptr(value.0) }
+  }
+}
+
+impl Handle for InstanceId {
+  fn as_ptr(&self) -> *mut core::ffi::c_void {
+    self.0.map_or(core::ptr::null_mut(), |ptr| ptr.cast())
+  }
+
+  unsafe fn from_ptr(ptr: *mut core::ffi::c_void) -> Self {
+    let ptr: *mut usize = ptr.cast();
+    Self(match ptr.is_null() {
+      true => None,
+      false => Some(ptr),
+    })
+  }
+
+  fn is_valid(&self) -> bool {
+    self.0.is_some()
   }
 }

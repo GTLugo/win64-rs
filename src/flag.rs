@@ -1,7 +1,44 @@
 use bitflags::bitflags;
 use windows::Win32::UI::WindowsAndMessaging::{
-  self, PEEK_MESSAGE_REMOVE_TYPE, WINDOW_EX_STYLE, WINDOW_STYLE, WNDCLASS_STYLES,
+  self, PEEK_MESSAGE_REMOVE_TYPE, WINDOW_EX_STYLE, WINDOW_LONG_PTR_INDEX, WINDOW_STYLE, WNDCLASS_STYLES,
 };
+
+use crate::handle::Win32Type;
+
+// pub const GWLP_HINSTANCE: WINDOW_LONG_PTR_INDEX = WINDOW_LONG_PTR_INDEX(-6i32);
+// pub const GWLP_HWNDPARENT: WINDOW_LONG_PTR_INDEX = WINDOW_LONG_PTR_INDEX(-8i32);
+// pub const GWLP_ID: WINDOW_LONG_PTR_INDEX = WINDOW_LONG_PTR_INDEX(-12i32);
+// pub const GWLP_USERDATA: WINDOW_LONG_PTR_INDEX = WINDOW_LONG_PTR_INDEX(-21i32);
+// pub const GWLP_WNDPROC: WINDOW_LONG_PTR_INDEX = WINDOW_LONG_PTR_INDEX(-4i32);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(i32)]
+pub enum LongPointerIndex {
+  Instance,
+  Parent,
+  Id,
+  UserData,
+  WndProc,
+}
+
+impl From<LongPointerIndex> for WINDOW_LONG_PTR_INDEX {
+  fn from(value: LongPointerIndex) -> Self {
+    match value {
+      LongPointerIndex::Instance => WindowsAndMessaging::GWLP_HINSTANCE,
+      LongPointerIndex::Parent => WindowsAndMessaging::GWLP_HWNDPARENT,
+      LongPointerIndex::Id => WindowsAndMessaging::GWLP_ID,
+      LongPointerIndex::UserData => WindowsAndMessaging::GWLP_USERDATA,
+      LongPointerIndex::WndProc => WindowsAndMessaging::GWLP_WNDPROC,
+    }
+  }
+}
+
+impl Win32Type for LongPointerIndex {
+  type Type = WINDOW_LONG_PTR_INDEX;
+
+  fn to_win32(&self) -> Self::Type {
+    (*self).into()
+  }
+}
 
 bitflags! {
   #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

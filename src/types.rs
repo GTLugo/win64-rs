@@ -2,22 +2,20 @@ use cursor_icon::CursorIcon;
 use windows::{
   core::{HSTRING, PCWSTR},
   Win32::UI::WindowsAndMessaging::{
-    self, GetClassInfoExW, LoadCursorW, RegisterClassExW, UnregisterClassW,
-    CW_USEDEFAULT, HCURSOR, WNDCLASSEXW,
+    self, CreateWindowExW, GetClassInfoExW, LoadCursorW, RegisterClassExW, UnregisterClassW, CW_USEDEFAULT, HCURSOR,
+    WNDCLASSEXW,
   },
 };
 
 use crate::{
   flag::WindowClassStyle,
-  handle::{instance::Instance, Handle, Win32Type},
-  procedure::{self},
+  handle::{instance::InstanceId, window::WindowId, Win32Type},
+  prelude::{WindowDescriptor, WindowProcedure},
+  procedure::{self, CreateInfo},
 };
 
-pub struct Registered;
-pub struct Unregistered;
-
 pub struct WindowClass {
-  instance: Handle<Instance>,
+  instance: InstanceId,
   name: String,
 }
 
@@ -30,9 +28,7 @@ impl WindowClass {
       lpszClassName: PCWSTR(name.as_ptr()),
       lpfnWndProc: Some(procedure::window_procedure),
       style: desc.style.into(),
-      hCursor: unsafe {
-        LoadCursorW(None, PCWSTR(desc.cursor.to_cursor().0.cast())).unwrap()
-      },
+      hCursor: unsafe { LoadCursorW(None, PCWSTR(desc.cursor.to_cursor().0.cast())).unwrap() },
       ..Default::default()
     };
 
@@ -44,10 +40,7 @@ impl WindowClass {
     }
   }
 
-  pub fn get(
-    instance: &Handle<Instance>,
-    name: String,
-  ) -> Result<Self, windows::core::Error> {
+  pub fn get(instance: &InstanceId, name: String) -> Result<Self, windows::core::Error> {
     let hstring = HSTRING::from(name.clone());
     let mut class = WNDCLASSEXW::default();
     let result = unsafe { GetClassInfoExW(instance.to_win32(), &hstring, &mut class) };
@@ -68,13 +61,46 @@ impl WindowClass {
     &self.name
   }
 
-  pub fn instance(&self) -> &Handle<Instance> {
+  pub fn instance(&self) -> &InstanceId {
     &self.instance
+  }
+
+  pub fn spawn(
+    &self,
+    desc: &WindowDescriptor,
+    window_state: impl 'static + WindowProcedure,
+  ) -> Result<WindowId, windows::core::Error> {
+    let title = HSTRING::from(desc.title.clone());
+    let mut create_info = CreateInfo {
+      state: Some(Box::new(window_state)),
+    };
+    let position = desc.position.clone().unwrap_or(Position::AUTO);
+    let size = desc.size.clone().unwrap_or(Size::AUTO);
+    let instance = self.instance.to_win32();
+    let class_name = HSTRING::from(self.name());
+
+    unsafe {
+      CreateWindowExW(
+        desc.ext_style.into(),
+        &class_name,
+        &title,
+        desc.style.into(),
+        position.x,
+        position.y,
+        size.width,
+        size.height,
+        None,
+        None,
+        instance,
+        Some(std::ptr::addr_of_mut!(create_info).cast()),
+      )
+    }
+    .map(Into::into)
   }
 }
 
 pub struct WindowClassDescriptor {
-  pub instance: Handle<Instance>,
+  pub instance: InstanceId,
   pub name: String,
   pub style: WindowClassStyle,
   pub cursor: CursorIcon,
@@ -92,7 +118,7 @@ impl Default for WindowClassDescriptor {
 }
 
 impl WindowClassDescriptor {
-  pub fn with_instance(&mut self, instance: Handle<Instance>) -> &mut Self {
+  pub fn with_instance(&mut self, instance: InstanceId) -> &mut Self {
     self.instance = instance;
     self
   }
@@ -170,9 +196,7 @@ trait ToHCURSOR {
 impl ToHCURSOR for CursorIcon {
   fn to_cursor(&self) -> HCURSOR {
     match self {
-      CursorIcon::Default => {
-        HCURSOR(WindowsAndMessaging::IDC_ARROW.as_ptr().cast_mut().cast())
-      }
+      CursorIcon::Default => HCURSOR(WindowsAndMessaging::IDC_ARROW.as_ptr().cast_mut().cast()),
       CursorIcon::ContextMenu => todo!(),
       CursorIcon::Help => todo!(),
       CursorIcon::Pointer => todo!(),

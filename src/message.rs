@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::RangeInclusive};
+use std::ops::RangeInclusive;
 
 use windows::Win32::{
   Foundation::{self, LPARAM, WPARAM},
@@ -8,171 +8,23 @@ use windows::Win32::{
 use crate::{
   flag::PeekMessageFlags,
   get_message,
-  handle::{window::Window, Handle, Win32Type},
+  handle::{window::WindowId, Win32Type},
   peek_message, GetMessageResult, PeekMessageResult, ProcedureResult,
 };
+
+use self::input::KeyboardMessage;
+
+pub mod input;
+pub mod pump;
 
 // pub enum PumpType {
 //   Wait,
 //   Poll,
 // }
 
-pub struct Wait;
-pub struct Poll;
-
-pub struct MessagePump<PumpType> {
-  ty: PhantomData<PumpType>,
-  hwnd: Option<Handle<Window>>,
-  filter: Option<RangeInclusive<u32>>,
-  flags: PeekMessageFlags,
-  translate: bool,
-}
-
-impl MessagePump<Wait> {
-  pub fn wait() -> Self {
-    Self {
-      ty: PhantomData,
-      hwnd: None,
-      filter: None,
-      flags: PeekMessageFlags::empty(),
-      translate: true,
-    }
-  }
-
-  pub fn with_window(self, window: Handle<Window>) -> Self {
-    Self {
-      hwnd: Some(window),
-      ..self
-    }
-  }
-
-  pub fn with_filter(self, filter: RangeInclusive<u32>) -> Self {
-    Self {
-      filter: Some(filter),
-      ..self
-    }
-  }
-
-  pub fn with_translation(self, enable: bool) -> Self {
-    Self {
-      translate: enable,
-      ..self
-    }
-  }
-
-  /// returns false when Quit message is sent
-  pub fn run_once(&self) -> bool {
-    match get_message(self.hwnd, &self.filter) {
-      GetMessageResult::Message(msg) => {
-        if self.translate {
-          msg.translate();
-        }
-        msg.dispatch();
-      }
-      GetMessageResult::Quit => return false,
-      GetMessageResult::Error(e) => tracing::error!("{e}"),
-    }
-
-    true
-  }
-
-  pub fn run(&self) {
-    while self.run_once() {}
-  }
-
-  pub fn for_each(&self, mut f: impl FnMut(Message<Metadata>)) {
-    loop {
-      match get_message(self.hwnd, &self.filter) {
-        GetMessageResult::Message(msg) => {
-          if self.translate {
-            msg.translate();
-          }
-          msg.dispatch();
-          f(msg);
-        }
-        GetMessageResult::Quit => break,
-        GetMessageResult::Error(e) => tracing::error!("{e}"),
-      }
-    }
-  }
-}
-
-impl MessagePump<Poll> {
-  pub fn poll() -> Self {
-    Self {
-      ty: PhantomData,
-      hwnd: None,
-      filter: None,
-      flags: PeekMessageFlags::Remove,
-      translate: true,
-    }
-  }
-
-  pub fn with_window(self, window: Handle<Window>) -> Self {
-    Self {
-      hwnd: Some(window),
-      ..self
-    }
-  }
-
-  pub fn with_filter(self, filter: RangeInclusive<u32>) -> Self {
-    Self {
-      filter: Some(filter),
-      ..self
-    }
-  }
-
-  pub fn with_flags(self, flags: PeekMessageFlags) -> Self {
-    Self { flags, ..self }
-  }
-
-  pub fn with_translation(self, enable: bool) -> Self {
-    Self {
-      translate: enable,
-      ..self
-    }
-  }
-
-  /// returns false when Quit message is sent
-  pub fn run_once(&self) -> bool {
-    match peek_message(self.hwnd, &self.filter, self.flags) {
-      PeekMessageResult::Message(msg) => {
-        if self.translate {
-          msg.translate();
-        }
-        msg.dispatch();
-      }
-      PeekMessageResult::Quit => return false,
-      PeekMessageResult::None => (),
-    }
-
-    true
-  }
-
-  pub fn run(&self) {
-    while self.run_once() {}
-  }
-
-  pub fn for_each(&self, mut f: impl FnMut(Option<Message<Metadata>>)) {
-    loop {
-      match peek_message(self.hwnd, &self.filter, self.flags) {
-        PeekMessageResult::Message(msg) => {
-          if self.translate {
-            msg.translate();
-          }
-          msg.dispatch();
-          f(Some(msg));
-        }
-        PeekMessageResult::Quit => break,
-        PeekMessageResult::None => f(None),
-      }
-    }
-  }
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Metadata {
-  hwnd: Handle<Window>,
+  hwnd: WindowId,
   time: u32,
   pt: Foundation::POINT,
 }
@@ -181,7 +33,7 @@ pub struct Metadata {
 pub struct NoMetadata;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Message<M = NoMetadata> {
+pub struct RawMessage<M = NoMetadata> {
   id: u32,
   w: usize,
   l: isize,
@@ -190,7 +42,7 @@ pub struct Message<M = NoMetadata> {
 
 // make new() method for both With and Without and getters for the fields
 
-impl From<MSG> for Message<Metadata> {
+impl From<MSG> for RawMessage<Metadata> {
   fn from(value: MSG) -> Self {
     Self {
       id: value.message,
@@ -205,8 +57,8 @@ impl From<MSG> for Message<Metadata> {
   }
 }
 
-impl From<Message<Metadata>> for MSG {
-  fn from(msg: Message<Metadata>) -> Self {
+impl From<RawMessage<Metadata>> for MSG {
+  fn from(msg: RawMessage<Metadata>) -> Self {
     Self {
       hwnd: msg.window().to_win32(),
       message: msg.id(),
@@ -218,7 +70,7 @@ impl From<Message<Metadata>> for MSG {
   }
 }
 
-impl<M> Message<M> {
+impl<M> RawMessage<M> {
   pub const QUIT: u32 = WindowsAndMessaging::WM_QUIT;
   pub const DESTROY: u32 = WindowsAndMessaging::WM_DESTROY;
 
@@ -239,7 +91,7 @@ impl<M> Message<M> {
   }
 }
 
-impl Message<NoMetadata> {
+impl RawMessage<NoMetadata> {
   pub fn new(msg: u32, w: WPARAM, l: LPARAM) -> Self {
     Self {
       id: msg,
@@ -248,18 +100,19 @@ impl Message<NoMetadata> {
       metadata: NoMetadata,
     }
   }
+
+  pub fn parse<F: FromMessage>(&self) -> Result<F, F::Err> {
+    FromMessage::from_message(self)
+  }
 }
 
-impl Message<Metadata> {
-  pub fn get(
-    hwnd: Option<Handle<Window>>,
-    filter: Option<RangeInclusive<u32>>,
-  ) -> GetMessageResult {
+impl RawMessage<Metadata> {
+  pub fn get(hwnd: Option<WindowId>, filter: Option<RangeInclusive<u32>>) -> GetMessageResult {
     get_message(hwnd, &filter)
   }
 
   pub fn peek(
-    hwnd: Option<Handle<Window>>,
+    hwnd: Option<WindowId>,
     filter: Option<RangeInclusive<u32>>,
     flags: PeekMessageFlags,
   ) -> PeekMessageResult {
@@ -276,7 +129,7 @@ impl Message<Metadata> {
     unsafe { DispatchMessageW(&msg) }.into()
   }
 
-  pub fn window(&self) -> &Handle<Window> {
+  pub fn window(&self) -> &WindowId {
     &self.metadata.hwnd
   }
 
@@ -286,5 +139,61 @@ impl Message<Metadata> {
 
   pub fn point(&self) -> &Foundation::POINT {
     &self.metadata.pt
+  }
+}
+
+pub trait FromMessage: Sized {
+  type Err;
+
+  fn from_message(msg: &RawMessage) -> Result<Self, Self::Err>;
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Message {
+  Other(RawMessage),
+  CloseRequested,
+  Keyboard { message: KeyboardMessage, raw: RawMessage },
+}
+
+impl Message {
+  pub fn new(msg: u32, w: WPARAM, l: LPARAM) -> Self {
+    RawMessage::new(msg, w, l).into()
+  }
+
+  pub fn id(&self) -> u32 {
+    match self {
+      Message::Other(msg) => msg.id,
+      Message::CloseRequested => WindowsAndMessaging::WM_CLOSE,
+      Message::Keyboard { raw, .. } => raw.id(),
+    }
+  }
+
+  pub fn w(&self) -> usize {
+    match self {
+      Message::Other(msg) => msg.w,
+      Message::CloseRequested => 0,
+      Message::Keyboard { raw, .. } => raw.w(),
+    }
+  }
+
+  pub fn l(&self) -> isize {
+    match self {
+      Message::Other(msg) => msg.l,
+      Message::CloseRequested => 0,
+      Message::Keyboard { raw, .. } => raw.l(),
+    }
+  }
+}
+
+impl From<RawMessage> for Message {
+  fn from(value: RawMessage) -> Self {
+    match value.id() {
+      WindowsAndMessaging::WM_CLOSE => Self::CloseRequested,
+      WindowsAndMessaging::WM_KEYFIRST..=WindowsAndMessaging::WM_KEYLAST => Self::Keyboard {
+        message: value.parse::<KeyboardMessage>().unwrap(),
+        raw: value,
+      },
+      _ => Self::Other(value),
+    }
   }
 }

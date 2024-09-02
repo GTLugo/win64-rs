@@ -8,8 +8,8 @@ use windows::Win32::{
 
 use self::{
   flag::PeekMessageFlags,
-  handle::{window::Window, Handle, Win32Type},
-  message::{Message, Metadata},
+  handle::{window::WindowId, Win32Type},
+  message::{Metadata, RawMessage},
 };
 
 pub mod descriptor;
@@ -53,22 +53,19 @@ pub enum Error {
 
 #[derive(Debug)]
 pub enum GetMessageResult {
-  Message(Message<Metadata>),
+  Message(RawMessage<Metadata>),
   Quit,
   Error(windows::core::Error),
 }
 
 #[derive(Debug)]
 pub enum PeekMessageResult {
-  Message(Message<Metadata>),
+  Message(RawMessage<Metadata>),
   Quit,
   None,
 }
 
-fn get_message(
-  hwnd: Option<Handle<Window>>,
-  filter: &Option<RangeInclusive<u32>>,
-) -> GetMessageResult {
+fn get_message(hwnd: Option<WindowId>, filter: &Option<RangeInclusive<u32>>) -> GetMessageResult {
   let (min, max) = match filter {
     Some(filter) => (*filter.start(), *filter.end()),
     None => (0, 0),
@@ -83,12 +80,12 @@ fn get_message(
   match result.0 {
     0 => GetMessageResult::Quit,
     -1 => GetMessageResult::Error(result.ok().unwrap_err()),
-    _ => GetMessageResult::Message(Message::from(msg)),
+    _ => GetMessageResult::Message(RawMessage::from(msg)),
   }
 }
 
 fn peek_message(
-  hwnd: Option<Handle<Window>>,
+  hwnd: Option<WindowId>,
   filter: &Option<RangeInclusive<u32>>,
   flags: PeekMessageFlags,
 ) -> PeekMessageResult {
@@ -98,16 +95,14 @@ fn peek_message(
   };
   let mut msg = MSG::default();
   let result = match hwnd {
-    Some(hwnd) => unsafe {
-      PeekMessageW(&mut msg, hwnd.to_win32(), min, max, flags.into())
-    },
+    Some(hwnd) => unsafe { PeekMessageW(&mut msg, hwnd.to_win32(), min, max, flags.into()) },
     None => unsafe { PeekMessageW(&mut msg, None, min, max, flags.into()) },
   };
   // If a message is available, the return value is nonzero.
   // If no messages are available, the return value is zero.
   match (result.as_bool(), msg.message) {
     (true, WindowsAndMessaging::WM_QUIT) => PeekMessageResult::Quit,
-    (true, _) => PeekMessageResult::Message(Message::from(msg)),
+    (true, _) => PeekMessageResult::Message(RawMessage::from(msg)),
     (false, _) => PeekMessageResult::None,
   }
 }

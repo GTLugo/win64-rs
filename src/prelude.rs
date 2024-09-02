@@ -1,8 +1,11 @@
 pub use crate::{
   descriptor::WindowDescriptor,
   flag::{PeekMessageFlags, WindowClassStyle, WindowStyle},
-  handle::{instance::Instance, window::Window, Handle},
-  message::{Message, MessagePump},
+  handle::window::WindowId,
+  message::{
+    pump::{MessagePump, PumpStrategy},
+    Message,
+  },
   procedure::WindowProcedure,
   types::{Position, Size, WindowClass, WindowClassDescriptor},
   ProcedureResult,
