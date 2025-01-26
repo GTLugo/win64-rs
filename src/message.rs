@@ -12,9 +12,10 @@ use crate::{
   peek_message, GetMessageResult, PeekMessageResult, ProcedureResult,
 };
 
-use self::input::KeyboardMessage;
+use self::{keyboard::KeyboardMessage, mouse::MouseMessage};
 
-pub mod input;
+pub mod mouse;
+pub mod keyboard;
 pub mod pump;
 
 // pub enum PumpType {
@@ -145,7 +146,7 @@ impl RawMessage<Metadata> {
 pub trait FromMessage: Sized {
   type Err;
   const ID_LOWER_BOUND: u32;
-  const ID_UPPER_BOUND: u32;
+  const ID_UPPER_BOUND: u32 = Self::ID_LOWER_BOUND;
 
   fn from_message(msg: &RawMessage) -> Result<Self, Self::Err>;
 
@@ -159,6 +160,7 @@ pub enum Message {
   Other(RawMessage),
   CloseRequested,
   Keyboard { message: KeyboardMessage, raw: RawMessage },
+  Mouse { message: MouseMessage, raw: RawMessage },
 }
 
 impl Message {
@@ -171,6 +173,7 @@ impl Message {
       Message::Other(msg) => msg.id,
       Message::CloseRequested => WindowsAndMessaging::WM_CLOSE,
       Message::Keyboard { raw, .. } => raw.id(),
+      Message::Mouse { raw, .. } => raw.id(),
     }
   }
 
@@ -179,6 +182,7 @@ impl Message {
       Message::Other(msg) => msg.w,
       Message::CloseRequested => 0,
       Message::Keyboard { raw, .. } => raw.w(),
+      Message::Mouse { raw, .. } => raw.w(),
     }
   }
 
@@ -187,6 +191,7 @@ impl Message {
       Message::Other(msg) => msg.l,
       Message::CloseRequested => 0,
       Message::Keyboard { raw, .. } => raw.l(),
+      Message::Mouse { raw, .. } => raw.l(),
     }
   }
 }
@@ -197,6 +202,10 @@ impl From<RawMessage> for Message {
       WindowsAndMessaging::WM_CLOSE => Self::CloseRequested,
       KeyboardMessage::ID_LOWER_BOUND..=KeyboardMessage::ID_UPPER_BOUND => Self::Keyboard {
         message: value.parse::<KeyboardMessage>().unwrap(),
+        raw: value,
+      },
+      MouseMessage::ID_LOWER_BOUND..=MouseMessage::ID_UPPER_BOUND => Self::Mouse {
+        message: value.parse::<MouseMessage>().unwrap(),
         raw: value,
       },
       _ => Self::Other(value),
