@@ -3,7 +3,7 @@ use win64::prelude::*;
 mod fps;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-  let class = WindowClass::new(&WindowClassDescriptor::default());
+  let class = WindowClass::default();
 
   class.spawn(WindowDescriptor::default().with_title("Test").with_size((800, 500)), WindowState::new())?;
 

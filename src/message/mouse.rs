@@ -1,5 +1,4 @@
-use windows::Win32::UI::WindowsAndMessaging;
-
+use crate::WM;
 use super::{FromMessage, RawMessage};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -10,8 +9,8 @@ impl MouseMessage {}
 impl FromMessage for MouseMessage {
   type Err = ();
   
-  const ID_LOWER_BOUND: u32 = WindowsAndMessaging::WM_MOUSEFIRST;
-  const ID_UPPER_BOUND: u32 = WindowsAndMessaging::WM_MOUSELAST;
+  const ID_LOWER_BOUND: u32 = WM::WM_MOUSEFIRST;
+  const ID_UPPER_BOUND: u32 = WM::WM_MOUSELAST;
 
   fn from_message(msg: &RawMessage) -> Result<Self, Self::Err> {
     match msg.id() {

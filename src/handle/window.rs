@@ -70,12 +70,12 @@ impl WindowId {
     unsafe { SetWindowTextW(self.to_win32(), &text) }
   }
 
-  pub fn get_window_long(hwnd: HWND, index: LongPointerIndex) -> isize {
-    unsafe { GetWindowLongPtrW(hwnd, index.to_win32()) }
+  pub fn get_window_long(&self, index: LongPointerIndex) -> isize {
+    unsafe { GetWindowLongPtrW(self.to_win32(), index.to_win32()) }
   }
 
-  pub fn set_window_long(hwnd: HWND, index: LongPointerIndex, dwnewlong: isize) -> isize {
-    unsafe { SetWindowLongPtrW(hwnd, index.to_win32(), dwnewlong) }
+  pub fn set_window_long(&self, index: LongPointerIndex, dwnewlong: isize) -> isize {
+    unsafe { SetWindowLongPtrW(self.to_win32(), index.to_win32(), dwnewlong) }
   }
 }
 

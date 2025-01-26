@@ -99,6 +99,12 @@ impl WindowClass {
   }
 }
 
+impl Default for WindowClass {
+  fn default() -> Self {
+    Self::new(&WindowClassDescriptor::default())
+  }
+}
+
 pub struct WindowClassDescriptor {
   pub instance: InstanceId,
   pub name: String,

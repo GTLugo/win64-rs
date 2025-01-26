@@ -7,7 +7,7 @@
 use win64::prelude::*;
 
 fn main() {
-  let class = WindowClass::new(&WindowClassDescriptor::default());
+  let class = WindowClass::default();
 
   class.spawn(
     WindowDescriptor::default()
