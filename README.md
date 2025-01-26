@@ -24,7 +24,7 @@ struct WindowState;
 
 impl WindowProcedure for WindowState {
   fn on_message(&mut self, window: WindowId, message: Message) -> ProcedureResult {
-    if let Message::Quit = message {
+    if let Message::CloseRequested = message {
       window.quit();
     }
 
