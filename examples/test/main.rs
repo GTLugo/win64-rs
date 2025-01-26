@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   class.spawn(WindowDescriptor::default().with_title("Test").with_size((800, 500)), WindowState::new())?;
 
-  MessagePump::default().with_strategy(PumpStrategy::Poll).run();
+  MessagePump::default().with_mode(PollingMode::Poll).run();
 
   Ok(())
 }

@@ -144,8 +144,14 @@ impl RawMessage<Metadata> {
 
 pub trait FromMessage: Sized {
   type Err;
+  const ID_LOWER_BOUND: u32;
+  const ID_UPPER_BOUND: u32;
 
   fn from_message(msg: &RawMessage) -> Result<Self, Self::Err>;
+
+  fn ids() -> RangeInclusive<u32> {
+    Self::ID_LOWER_BOUND..=Self::ID_UPPER_BOUND
+  }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -189,7 +195,7 @@ impl From<RawMessage> for Message {
   fn from(value: RawMessage) -> Self {
     match value.id() {
       WindowsAndMessaging::WM_CLOSE => Self::CloseRequested,
-      WindowsAndMessaging::WM_KEYFIRST..=WindowsAndMessaging::WM_KEYLAST => Self::Keyboard {
+      KeyboardMessage::ID_LOWER_BOUND..=KeyboardMessage::ID_UPPER_BOUND => Self::Keyboard {
         message: value.parse::<KeyboardMessage>().unwrap(),
         raw: value,
       },

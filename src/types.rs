@@ -43,7 +43,7 @@ impl WindowClass {
   pub fn get(instance: &InstanceId, name: String) -> Result<Self, windows::core::Error> {
     let hstring = HSTRING::from(name.clone());
     let mut class = WNDCLASSEXW::default();
-    let result = unsafe { GetClassInfoExW(instance.to_win32(), &hstring, &mut class) };
+    let result = unsafe { GetClassInfoExW(Some(instance.to_win32()), &hstring, &mut class) };
     result.map(|_| Self {
       instance: *instance,
       name,
@@ -52,7 +52,7 @@ impl WindowClass {
 
   pub fn unregister(self) -> Result<(), windows::core::Error> {
     let hstring = HSTRING::from(self.name);
-    unsafe { UnregisterClassW(PCWSTR(hstring.as_ptr()), self.instance.to_win32()) }?;
+    unsafe { UnregisterClassW(PCWSTR(hstring.as_ptr()), Some(self.instance.to_win32())) }?;
 
     Ok(())
   }
@@ -91,7 +91,7 @@ impl WindowClass {
         size.height,
         None,
         None,
-        instance,
+        Some(instance),
         Some(std::ptr::addr_of_mut!(create_info).cast()),
       )
     }

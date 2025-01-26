@@ -1,14 +1,14 @@
 pub use crate::{
+  ProcedureResult,
   descriptor::WindowDescriptor,
   flag::{PeekMessageFlags, WindowClassStyle, WindowStyle},
   handle::window::WindowId,
   message::{
-    pump::{MessagePump, PumpStrategy},
     Message,
+    pump::{MessagePump, PollingMode},
   },
   procedure::WindowProcedure,
   types::{Position, Size, WindowClass, WindowClassDescriptor},
-  ProcedureResult,
 };
 
 pub use windows::Win32::UI::WindowsAndMessaging as win32;

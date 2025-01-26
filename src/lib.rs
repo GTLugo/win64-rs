@@ -72,7 +72,7 @@ fn get_message(hwnd: Option<WindowId>, filter: &Option<RangeInclusive<u32>>) -> 
   };
   let mut msg = MSG::default();
   let result = match hwnd {
-    Some(hwnd) => unsafe { GetMessageW(&mut msg, hwnd.to_win32(), min, max) },
+    Some(hwnd) => unsafe { GetMessageW(&mut msg, Some(hwnd.to_win32()), min, max) },
     None => unsafe { GetMessageW(&mut msg, None, min, max) },
   };
   // WM_QUIT sends return value of zero, causing BOOL to be false. This is still valid though.
@@ -95,7 +95,7 @@ fn peek_message(
   };
   let mut msg = MSG::default();
   let result = match hwnd {
-    Some(hwnd) => unsafe { PeekMessageW(&mut msg, hwnd.to_win32(), min, max, flags.into()) },
+    Some(hwnd) => unsafe { PeekMessageW(&mut msg, Some(hwnd.to_win32()), min, max, flags.into()) },
     None => unsafe { PeekMessageW(&mut msg, None, min, max, flags.into()) },
   };
   // If a message is available, the return value is nonzero.

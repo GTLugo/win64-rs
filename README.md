@@ -1,6 +1,6 @@
 # `win64`
 
-## An opinionated modernization of the Win32 windowing library for Rust
+## An opinionated modernization of the Win32 windowing API for Rust
 
 ```rust
 // WindowsAndMessaging from windows-rs is re-exported as `win32` for grabbing any unimplemented flags
@@ -32,6 +32,10 @@ impl WindowProcedure for WindowState {
   }
 }
 ```
+
+## Version Warning
+
+`win64` is still in its infancy and as such is currently targeting whatever is the latest version of Rust. This means you may run into many breaking changes and/or require updating your local toolchain in order to use it. Only once the API is close to major version 1.0 will a minimum version of Rust be established.
 
 ## Credit
 
