@@ -12,6 +12,7 @@ use self::{
   message::{Metadata, RawMessage},
 };
 
+// not really sure if I'm gonna stick with this.
 pub(crate) use WindowsAndMessaging as WM;
 
 pub mod descriptor;
