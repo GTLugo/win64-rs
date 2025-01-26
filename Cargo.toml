@@ -1,13 +1,13 @@
 [package]
+edition     = "2024"
 name        = "win64"
 description = "An opinionated modernization of the Win32 windowing library"
 version     = "0.0.1"
-edition     = "2021"
-authors     = ["Gabriel Lugo <dev.gabriel.lugo@gmail.com>"]
-license     = "MIT OR Apache-2.0"
 readme      = "README.md"
 keywords    = ["win32", "windows", "windowing"]
 categories  = ["game-development", "rendering", "gui"]
+authors     = ["Gabriel Lugo <dev.gabriel.lugo@gmail.com>"]
+license     = "MIT OR Apache-2.0"
 repository  = "https://github.com/GTLugo/win64"
 
 [profile.dev]
@@ -17,16 +17,15 @@ opt-level = 0
 opt-level = 3
 
 [dependencies]
-thiserror = "1.0"
-tracing   = { version = "0.1", default-features = false }
+thiserror = "2.0.x"
 
-bitflags = "2.6"
-cursor-icon = "1.1"
+bitflags = "2.8.x"
+cursor-icon = "1.1.x"
 
 [dependencies.windows]
-version  = "0.58"
+version  = "0.59.x"
 features = [
-  "UI_ViewManagement", 
+  # "UI_ViewManagement", 
   "Win32_Devices_HumanInterfaceDevice", 
   "Win32_Foundation", 
   "Win32_Security", 
@@ -45,6 +44,3 @@ features = [
   "Win32_UI_Shell_Common", 
   "Win32_UI_Shell_PropertiesSystem"
 ]
-
-[dev-dependencies]
-tracing-subscriber = { version = "0.3" }

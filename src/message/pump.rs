@@ -1,7 +1,7 @@
 use std::ops::RangeInclusive;
 
 use crate::{
-  flag::PeekMessageFlags, get_message, handle::window::WindowId, peek_message, GetMessageResult, PeekMessageResult,
+  GetMessageResult, PeekMessageResult, flag::PeekMessageFlags, get_message, handle::window::WindowId, peek_message,
 };
 
 use super::{Metadata, RawMessage};
@@ -9,13 +9,13 @@ use super::{Metadata, RawMessage};
 pub struct Wait;
 pub struct Poll;
 
-pub enum PumpStrategy {
+pub enum PollingMode {
   Wait,
   Poll,
 }
 
 pub struct MessagePump {
-  strat: PumpStrategy,
+  mode: PollingMode,
   hwnd: Option<WindowId>,
   filter: Option<RangeInclusive<u32>>,
   flags: PeekMessageFlags,
@@ -25,7 +25,7 @@ pub struct MessagePump {
 impl Default for MessagePump {
   fn default() -> Self {
     Self {
-      strat: PumpStrategy::Wait,
+      mode: PollingMode::Wait,
       hwnd: None,
       filter: None,
       flags: PeekMessageFlags::Remove,
@@ -35,8 +35,8 @@ impl Default for MessagePump {
 }
 
 impl MessagePump {
-  pub fn with_strategy(&mut self, strat: PumpStrategy) -> &mut Self {
-    self.strat = strat;
+  pub fn with_mode(&mut self, strat: PollingMode) -> &mut Self {
+    self.mode = strat;
     self
   }
 
@@ -56,16 +56,16 @@ impl MessagePump {
   }
 
   pub fn run(&self) {
-    match self.strat {
-      PumpStrategy::Wait => while self.wait_once() {},
-      PumpStrategy::Poll => while self.poll_once() {},
+    match self.mode {
+      PollingMode::Wait => while self.wait_once() {},
+      PollingMode::Poll => while self.poll_once() {},
     }
   }
 
   pub fn run_once(&self) -> bool {
-    match self.strat {
-      PumpStrategy::Wait => self.wait_once(),
-      PumpStrategy::Poll => self.poll_once(),
+    match self.mode {
+      PollingMode::Wait => self.wait_once(),
+      PollingMode::Poll => self.poll_once(),
     }
   }
 
@@ -79,7 +79,7 @@ impl MessagePump {
         msg.dispatch();
       }
       GetMessageResult::Quit => return false,
-      GetMessageResult::Error(e) => tracing::error!("{e}"),
+      GetMessageResult::Error(e) => eprintln!("{e}"),
     }
 
     true
@@ -102,9 +102,9 @@ impl MessagePump {
   }
 
   pub fn for_each(&self, f: impl FnMut(Option<RawMessage<Metadata>>)) {
-    match self.strat {
-      PumpStrategy::Wait => self.wait_for_each(f),
-      PumpStrategy::Poll => self.poll_for_each(f),
+    match self.mode {
+      PollingMode::Wait => self.wait_for_each(f),
+      PollingMode::Poll => self.poll_for_each(f),
     }
   }
 
@@ -119,7 +119,7 @@ impl MessagePump {
           f(Some(msg));
         }
         GetMessageResult::Quit => break,
-        GetMessageResult::Error(e) => tracing::error!("{e}"),
+        GetMessageResult::Error(e) => eprintln!("{e}"),
       }
     }
   }

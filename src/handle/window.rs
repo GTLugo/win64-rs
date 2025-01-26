@@ -1,12 +1,14 @@
+use std::ptr::NonNull;
+
 use windows::{
-  core::HSTRING,
   Win32::{
     Foundation::{HWND, LPARAM, WPARAM},
     UI::WindowsAndMessaging::{DefWindowProcW, GetWindowLongPtrW, PostQuitMessage, SetWindowLongPtrW, SetWindowTextW},
   },
+  core::HSTRING,
 };
 
-use crate::{flag::LongPointerIndex, message::Message, ProcedureResult};
+use crate::{ProcedureResult, flag::LongPointerIndex, message::Message};
 
 use super::{Handle, Win32Type};
 
@@ -15,25 +17,26 @@ pub struct WindowId
 where
   Self: Send + Sync,
 {
-  hwnd: Option<*mut usize>,
+  hwnd: Option<NonNull<usize>>,
 }
 
 unsafe impl Send for WindowId {}
 unsafe impl Sync for WindowId {}
 
+type Void = core::ffi::c_void;
+
 impl Handle for WindowId {
-  fn as_ptr(&self) -> *mut core::ffi::c_void {
-    self.hwnd.map_or(core::ptr::null_mut(), |ptr| ptr.cast())
+  fn as_ptr(&self) -> *mut Void {
+    self.hwnd.map_or(core::ptr::null_mut(), |ptr| ptr.as_ptr().cast())
   }
 
-  unsafe fn from_ptr(ptr: *mut core::ffi::c_void) -> Self {
+  unsafe fn from_ptr(ptr: *mut Void) -> Self {
     let ptr: *mut usize = ptr.cast();
-    Self {
-      hwnd: match ptr.is_null() {
-        true => None,
-        false => Some(ptr),
-      },
-    }
+    let hwnd = match ptr.is_null() {
+      true => None,
+      false => Some(unsafe { NonNull::new_unchecked(ptr) }),
+    };
+    Self { hwnd }
   }
 
   fn is_valid(&self) -> bool {
