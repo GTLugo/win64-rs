@@ -13,7 +13,7 @@ impl FromMessage for MouseMessage {
   const ID_UPPER_BOUND: u32 = WM::WM_MOUSELAST;
 
   fn from_message(msg: &RawMessage) -> Result<Self, Self::Err> {
-    match msg.id() {
+    match msg.id {
       Self::ID_LOWER_BOUND..=Self::ID_UPPER_BOUND => Ok(Self {}),
       _ => Err(()),
     }

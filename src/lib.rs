@@ -22,6 +22,7 @@ pub mod message;
 pub mod prelude;
 pub mod procedure;
 pub mod types;
+pub mod class;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct ProcedureResult(pub isize);
