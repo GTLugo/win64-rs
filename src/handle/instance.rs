@@ -1,3 +1,5 @@
+use std::ptr::NonNull;
+
 use windows::{
   core::{HSTRING, PCWSTR},
   Win32::{
@@ -12,7 +14,7 @@ use windows::{
 use super::{Handle, Win32Type};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct InstanceId(Option<*mut usize>);
+pub struct InstanceId(Option<NonNull<usize>>);
 
 impl Default for InstanceId {
   fn default() -> Self {
@@ -78,14 +80,14 @@ impl From<HINSTANCE> for InstanceId {
 
 impl Handle for InstanceId {
   fn as_ptr(&self) -> *mut core::ffi::c_void {
-    self.0.map_or(core::ptr::null_mut(), |ptr| ptr.cast())
+    self.0.map_or(core::ptr::null_mut(), |ptr| ptr.as_ptr().cast())
   }
 
   unsafe fn from_ptr(ptr: *mut core::ffi::c_void) -> Self {
     let ptr: *mut usize = ptr.cast();
     Self(match ptr.is_null() {
       true => None,
-      false => Some(ptr),
+      false => Some(unsafe { NonNull::new_unchecked(ptr) }),
     })
   }
 

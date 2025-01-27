@@ -7,22 +7,22 @@
 use win64::prelude::*;
 
 fn main() {
-  let class = WindowClass::new(&WindowClassDescriptor::default());
+  let class = WindowClass::default();
 
   class.spawn(
     WindowDescriptor::default()
       .with_title("Test")
       .with_size((800, 500)),
-    WindowState,
+    App,
   )
   .unwrap();
 
   MessagePump::default().run();
 }
 
-struct WindowState;
+struct App;
 
-impl WindowProcedure for WindowState {
+impl WindowProcedure for App {
   fn on_message(&mut self, window: WindowId, message: Message) -> ProcedureResult {
     if let Message::CloseRequested = message {
       window.quit();

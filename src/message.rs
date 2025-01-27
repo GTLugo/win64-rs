@@ -1,7 +1,7 @@
 use std::ops::RangeInclusive;
 
 use windows::Win32::{
-  Foundation::{self, LPARAM, WPARAM},
+  Foundation::{LPARAM, WPARAM, POINT},
   UI::WindowsAndMessaging::{self, DispatchMessageW, TranslateMessage, MSG},
 };
 
@@ -12,9 +12,10 @@ use crate::{
   peek_message, GetMessageResult, PeekMessageResult, ProcedureResult,
 };
 
-use self::input::KeyboardMessage;
+use self::{keyboard::KeyboardMessage, mouse::MouseMessage};
 
-pub mod input;
+pub mod mouse;
+pub mod keyboard;
 pub mod pump;
 
 // pub enum PumpType {
@@ -26,17 +27,17 @@ pub mod pump;
 pub struct Metadata {
   hwnd: WindowId,
   time: u32,
-  pt: Foundation::POINT,
+  pt: POINT,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct NoMetadata;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct RawMessage<M = NoMetadata> {
-  id: u32,
-  w: usize,
-  l: isize,
+  pub id: u32,
+  pub w: usize,
+  pub l: isize,
   metadata: M,
 }
 
@@ -61,11 +62,11 @@ impl From<RawMessage<Metadata>> for MSG {
   fn from(msg: RawMessage<Metadata>) -> Self {
     Self {
       hwnd: msg.window().to_win32(),
-      message: msg.id(),
-      wParam: WPARAM(msg.w()),
-      lParam: LPARAM(msg.l()),
+      message: msg.id,
+      wParam: WPARAM(msg.w),
+      lParam: LPARAM(msg.l),
       time: msg.time(),
-      pt: *msg.point(),
+      pt: msg.point(),
     }
   }
 }
@@ -73,18 +74,6 @@ impl From<RawMessage<Metadata>> for MSG {
 impl<M> RawMessage<M> {
   pub const QUIT: u32 = WindowsAndMessaging::WM_QUIT;
   pub const DESTROY: u32 = WindowsAndMessaging::WM_DESTROY;
-
-  pub fn id(&self) -> u32 {
-    self.id
-  }
-
-  pub fn w(&self) -> usize {
-    self.w
-  }
-
-  pub fn l(&self) -> isize {
-    self.l
-  }
 
   pub fn quit_requested(&self) -> bool {
     self.id == Self::DESTROY
@@ -129,23 +118,23 @@ impl RawMessage<Metadata> {
     unsafe { DispatchMessageW(&msg) }.into()
   }
 
-  pub fn window(&self) -> &WindowId {
-    &self.metadata.hwnd
+  pub fn window(&self) -> WindowId {
+    self.metadata.hwnd
   }
 
   pub fn time(&self) -> u32 {
     self.metadata.time
   }
 
-  pub fn point(&self) -> &Foundation::POINT {
-    &self.metadata.pt
+  pub fn point(&self) -> POINT {
+    self.metadata.pt
   }
 }
 
 pub trait FromMessage: Sized {
   type Err;
   const ID_LOWER_BOUND: u32;
-  const ID_UPPER_BOUND: u32;
+  const ID_UPPER_BOUND: u32 = Self::ID_LOWER_BOUND;
 
   fn from_message(msg: &RawMessage) -> Result<Self, Self::Err>;
 
@@ -159,6 +148,7 @@ pub enum Message {
   Other(RawMessage),
   CloseRequested,
   Keyboard { message: KeyboardMessage, raw: RawMessage },
+  Mouse { message: MouseMessage, raw: RawMessage },
 }
 
 impl Message {
@@ -170,7 +160,8 @@ impl Message {
     match self {
       Message::Other(msg) => msg.id,
       Message::CloseRequested => WindowsAndMessaging::WM_CLOSE,
-      Message::Keyboard { raw, .. } => raw.id(),
+      Message::Keyboard { raw, .. } => raw.id,
+      Message::Mouse { raw, .. } => raw.id,
     }
   }
 
@@ -178,7 +169,8 @@ impl Message {
     match self {
       Message::Other(msg) => msg.w,
       Message::CloseRequested => 0,
-      Message::Keyboard { raw, .. } => raw.w(),
+      Message::Keyboard { raw, .. } => raw.w,
+      Message::Mouse { raw, .. } => raw.w,
     }
   }
 
@@ -186,17 +178,22 @@ impl Message {
     match self {
       Message::Other(msg) => msg.l,
       Message::CloseRequested => 0,
-      Message::Keyboard { raw, .. } => raw.l(),
+      Message::Keyboard { raw, .. } => raw.l,
+      Message::Mouse { raw, .. } => raw.l,
     }
   }
 }
 
 impl From<RawMessage> for Message {
   fn from(value: RawMessage) -> Self {
-    match value.id() {
+    match value.id {
       WindowsAndMessaging::WM_CLOSE => Self::CloseRequested,
       KeyboardMessage::ID_LOWER_BOUND..=KeyboardMessage::ID_UPPER_BOUND => Self::Keyboard {
         message: value.parse::<KeyboardMessage>().unwrap(),
+        raw: value,
+      },
+      MouseMessage::ID_LOWER_BOUND..=MouseMessage::ID_UPPER_BOUND => Self::Mouse {
+        message: value.parse::<MouseMessage>().unwrap(),
         raw: value,
       },
       _ => Self::Other(value),

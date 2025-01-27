@@ -1,73 +1,89 @@
 use windows::Win32::{
   Foundation::{HWND, LPARAM, LRESULT, WPARAM},
-  UI::WindowsAndMessaging::{self, DefWindowProcW, GetWindowLongPtrW, SetWindowLongPtrW, CREATESTRUCTW},
+  UI::WindowsAndMessaging::{self, CREATESTRUCTW},
 };
 
-use crate::{handle::window::WindowId, message::Message, ProcedureResult};
+use crate::{
+  handle::window::WindowId, message::{Message, RawMessage}, ProcedureResult
+};
 
 pub trait WindowProcedure {
   fn on_message(&mut self, window: WindowId, message: Message) -> ProcedureResult {
     window.default_procedure(message)
   }
+
+  // fn on_create(&mut self, window: WindowId, message: Message) {}
+
+  // fn on_keyboard(&mut self, window: WindowId, message: KeyboardMessage) {}
+
+  // fn on_mouse(&mut self, window: WindowId, message: MouseMessage) {}
 }
 
 pub(crate) struct CreateInfo {
   pub state: Option<Box<dyn WindowProcedure>>,
 }
 
-struct WindowState {
-  state: Box<dyn WindowProcedure>,
+impl CreateInfo {
+  pub fn new(window_state: impl 'static + WindowProcedure) -> Self {
+    Self {
+      state: Some(Box::new(window_state)),
+    }
+  }
+}
+
+impl From<RawMessage> for CreateInfo {
+  fn from(message: RawMessage) -> Self {
+    let create_struct = unsafe { (message.l as *mut CREATESTRUCTW).as_mut() }.unwrap();
+    let create_info = unsafe { Box::from_raw(create_struct.lpCreateParams as *mut CreateInfo) };
+    *create_info
+  }
+}
+
+pub(crate) struct WindowData {
+  proc: Box<dyn WindowProcedure>,
+}
+
+impl WindowData {
+  pub fn new(mut create_info: CreateInfo) -> Self {
+    Self {
+      proc: create_info.state.take().unwrap(),
+    }
+  }
 }
 
 /// # Safety
 /// Window procedure is inherently unsafe because Win32
 pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-  let state_ptr = unsafe { GetWindowLongPtrW(hwnd, WindowsAndMessaging::GWLP_USERDATA) };
-  let state = unsafe { (state_ptr as *mut WindowState).as_mut() };
-  on_message(hwnd, msg, w_param, l_param, state)
+  let window: WindowId = hwnd.into();
+  let message = RawMessage::new(msg, w_param, l_param);
+  on_message(window, message, window.data())
 }
 
-fn on_nccreate(hwnd: HWND, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-  let create_struct = unsafe { (l_param.0 as *mut CREATESTRUCTW).as_mut().unwrap() };
-  let create_info = unsafe { (create_struct.lpCreateParams as *mut CreateInfo).as_mut().unwrap() };
+fn on_nccreate(window: WindowId, raw_message: RawMessage) -> LRESULT {
+  let create_info: CreateInfo = raw_message.into();
 
-  let state = WindowState {
-    state: create_info.state.take().unwrap(),
-  };
-  let state_ptr = Box::into_raw(Box::new(state));
+  window.initialize_data(create_info);
 
-  unsafe { SetWindowLongPtrW(hwnd, WindowsAndMessaging::GWLP_USERDATA, state_ptr as isize) };
-  let state = unsafe { state_ptr.as_mut() };
+  let message: Message = raw_message.into();
+  if let Some(data) = window.data() {
+    data.proc.on_message(window, message.clone());
+  }
 
-  state
-    .unwrap()
-    .state
-    .on_message(hwnd.into(), Message::new(msg, w_param, l_param));
-
-  unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) }
+  window.default_procedure(message).into()
 }
 
-fn on_message(hwnd: HWND, msg: u32, w_param: WPARAM, l_param: LPARAM, state: Option<&mut WindowState>) -> LRESULT {
-  match (state, msg) {
-    (None, WindowsAndMessaging::WM_NCCREATE) => on_nccreate(hwnd, msg, w_param, l_param),
-    (Some(state), WindowsAndMessaging::WM_NCDESTROY) => {
-      let state_ptr = unsafe { GetWindowLongPtrW(hwnd, WindowsAndMessaging::GWLP_USERDATA) };
-      let _state = unsafe { Box::from_raw(state_ptr as *mut WindowState) }; // keep it alive until the end of the block
-      if unsafe { SetWindowLongPtrW(hwnd, WindowsAndMessaging::GWLP_USERDATA, 0) } == 0 {
-        eprintln!("Error: {}", windows::core::Error::from_win32());
-      }
-      state
-        .state
-        .on_message(hwnd.into(), Message::new(msg, w_param, l_param))
-        .into()
+fn on_message(window: WindowId, raw_message: RawMessage, data: Option<&mut WindowData>) -> LRESULT {
+  let message: Message = raw_message.into();
+  match (data, raw_message.id) {
+    (None, WindowsAndMessaging::WM_NCCREATE) => on_nccreate(window, raw_message),
+    (Some(_), WindowsAndMessaging::WM_NCDESTROY) => {
+      let mut data = window.take_data(); // take ownership so it drops at end of block
+      data.proc.on_message(window, message).into()
     }
-    (Some(state), _) => {
+    (Some(data), _) => {
       // ...
-      state
-        .state
-        .on_message(hwnd.into(), Message::new(msg, w_param, l_param))
-        .into()
+      data.proc.on_message(window, message).into()
     }
-    _ => unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) },
+    _ => window.default_procedure(message).into(),
   }
 }

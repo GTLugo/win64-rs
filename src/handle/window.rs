@@ -2,13 +2,18 @@ use std::ptr::NonNull;
 
 use windows::{
   Win32::{
-    Foundation::{HWND, LPARAM, WPARAM},
+    Foundation::{HWND, LPARAM, SetLastError, WIN32_ERROR, WPARAM},
     UI::WindowsAndMessaging::{DefWindowProcW, GetWindowLongPtrW, PostQuitMessage, SetWindowLongPtrW, SetWindowTextW},
   },
-  core::HSTRING,
+  core::{HRESULT, HSTRING},
 };
 
-use crate::{ProcedureResult, flag::LongPointerIndex, message::Message};
+use crate::{
+  ProcedureResult,
+  flag::LongPointerIndex,
+  message::Message,
+  procedure::{CreateInfo, WindowData},
+};
 
 use super::{Handle, Win32Type};
 
@@ -70,12 +75,36 @@ impl WindowId {
     unsafe { SetWindowTextW(self.to_win32(), &text) }
   }
 
-  pub fn get_window_long(hwnd: HWND, index: LongPointerIndex) -> isize {
-    unsafe { GetWindowLongPtrW(hwnd, index.to_win32()) }
+  // TODO: Migrate these functions to use conditionals for diff ptr widths
+  pub(crate) fn get_window_long(&self, index: LongPointerIndex) -> isize {
+    unsafe { GetWindowLongPtrW(self.to_win32(), index.to_win32()) }
   }
 
-  pub fn set_window_long(hwnd: HWND, index: LongPointerIndex, dwnewlong: isize) -> isize {
-    unsafe { SetWindowLongPtrW(hwnd, index.to_win32(), dwnewlong) }
+  pub(crate) fn set_window_long(&self, index: LongPointerIndex, value: isize) -> Option<isize> {
+    unsafe { SetLastError(WIN32_ERROR::default()) }; // clear error
+    let result = unsafe { SetWindowLongPtrW(self.to_win32(), index.to_win32(), value) };
+    let error = windows::core::Error::from_win32();
+    match result == 0 && error.code() != HRESULT(0) {
+      true => {
+        eprintln!("Error: {}", windows::core::Error::from_win32());
+        None
+      }
+      false => Some(result),
+    }
+  }
+
+  pub(crate) fn initialize_data(&self, create_info: CreateInfo) {
+    let data = WindowData::new(create_info);
+    let data_ptr = Box::into_raw(Box::new(data));
+    self.set_window_long(LongPointerIndex::UserData, data_ptr as isize);
+  }
+
+  pub(crate) fn data(&self) -> Option<&mut WindowData> {
+    unsafe { (self.get_window_long(LongPointerIndex::UserData) as *mut WindowData).as_mut() }
+  }
+
+  pub(crate) fn take_data(&self) -> Box<WindowData> {
+    unsafe { Box::from_raw(self.get_window_long(LongPointerIndex::UserData) as *mut WindowData) }
   }
 }
 

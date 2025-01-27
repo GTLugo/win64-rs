@@ -12,6 +12,9 @@ use self::{
   message::{Metadata, RawMessage},
 };
 
+// not really sure if I'm gonna stick with this.
+pub(crate) use WindowsAndMessaging as WM;
+
 pub mod descriptor;
 pub mod flag;
 pub mod handle;
@@ -19,6 +22,7 @@ pub mod message;
 pub mod prelude;
 pub mod procedure;
 pub mod types;
+pub mod class;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct ProcedureResult(pub isize);
