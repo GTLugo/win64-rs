@@ -5,22 +5,22 @@ mod fps;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
   let class = WindowClass::default();
 
-  class.spawn(WindowDescriptor::default().with_title("Test").with_size((800, 500)), WindowState::new())?;
+  class.spawn(WindowDescriptor::default().with_title("Test").with_size((800, 500)), App::new())?;
 
   MessagePump::default().with_mode(PollingMode::Poll).run();
 
   Ok(())
 }
 
-struct WindowState {}
+struct App {}
 
-impl WindowState {
+impl App {
   fn new() -> Self {
     Self {}
   }
 }
 
-impl WindowProcedure for WindowState {
+impl WindowProcedure for App {
   fn on_message(&mut self, window: WindowId, message: Message) -> ProcedureResult {
     match message {
       Message::CloseRequested => window.quit(),
