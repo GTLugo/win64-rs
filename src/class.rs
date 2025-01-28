@@ -77,7 +77,7 @@ impl WindowClass {
     let class_name = HSTRING::from(self.name());
 
     let create_info = Box::into_raw(Box::new(CreateInfo::new(window_state)));
-    
+
     unsafe {
       CreateWindowExW(
         desc.ext_style.into(),
