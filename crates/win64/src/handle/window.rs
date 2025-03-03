@@ -55,6 +55,12 @@ impl Win32Type for WindowId {
 }
 
 impl WindowId {
+  pub fn send_message(&self, ) {
+    // TODO: somehow ensure these are always sent to the correct thread, even when called from a different thread.
+    // maybe do it by storing the thread id?
+    todo!()
+  }
+
   pub fn default_procedure(&self, message: Message) -> ProcedureResult {
     unsafe { DefWindowProcW(self.to_win32(), message.id().to_u32(), WPARAM(message.raw().w), LPARAM(message.raw().l)) }
       .into()
