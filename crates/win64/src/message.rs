@@ -263,6 +263,14 @@ pub enum Message {
 }
 
 impl Message {
+  pub const fn is_key(&self) -> bool {
+    self.id().is_key()
+  }
+
+  pub const fn is_mouse(&self) -> bool {
+    self.id().is_mouse()
+  }
+
   pub fn from_raw(msg: MessageId, raw: MessageData) -> Self {
     match msg {
       MessageId::Activate => Self::Activate { raw },

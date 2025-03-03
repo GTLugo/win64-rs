@@ -1,3 +1,5 @@
+use std::ops::RangeInclusive;
+
 use win64_macro::Id;
 use windows::Win32::UI::WindowsAndMessaging;
 
@@ -502,4 +504,19 @@ pub enum MessageId {
   XButtonDown,
   #[id(WindowsAndMessaging::WM_XBUTTONUP)]
   XButtonUp,
+}
+
+impl MessageId {
+  pub const KEYS: RangeInclusive<u32> = WindowsAndMessaging::WM_KEYFIRST..=WindowsAndMessaging::WM_KEYLAST;
+  pub const MOUSES: RangeInclusive<u32> = WindowsAndMessaging::WM_MOUSEFIRST..=WindowsAndMessaging::WM_MOUSELAST;
+
+  pub const fn is_key(&self) -> bool {
+    let key = self.to_u32();
+    !(WindowsAndMessaging::WM_KEYFIRST > key || WindowsAndMessaging::WM_KEYLAST < key)
+  }
+
+  pub const fn is_mouse(&self) -> bool {
+    let mouse = self.to_u32();
+    !(WindowsAndMessaging::WM_MOUSEFIRST > mouse || WindowsAndMessaging::WM_MOUSELAST < mouse)
+  }
 }
