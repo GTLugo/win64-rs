@@ -22,11 +22,12 @@ impl App {
 
 impl WindowProcedure for App {
   fn on_message(&mut self, window: WindowId, message: Message) -> ProcedureResult {
-    match message {
+    match &message {
       Message::Destroy { .. } => window.quit(),
-      _ => {
-        println!("{message:?}");
+      msg if msg.is_key() => {
+        println!("{msg:?}");
       }
+      _ => {}
     }
 
     window.default_procedure(message)
