@@ -3,18 +3,16 @@ use std::{io, ops::RangeInclusive};
 use thiserror::Error;
 use windows::Win32::{
   Foundation::LRESULT,
-  UI::WindowsAndMessaging::{self, GetMessageW, PeekMessageW, MSG},
+  UI::WindowsAndMessaging::{self, GetMessageW, MSG, PeekMessageW},
 };
 
 use self::{
   flag::PeekMessageFlags,
-  handle::{window::WindowId, Win32Type},
-  message::{Metadata, RawMessage},
+  handle::{Win32Type, window::WindowId},
+  message::thread::ThreadMessage,
 };
 
-// not really sure if I'm gonna stick with this.
-pub(crate) use WindowsAndMessaging as WM;
-
+pub mod class;
 pub mod descriptor;
 pub mod flag;
 pub mod handle;
@@ -22,7 +20,6 @@ pub mod message;
 pub mod prelude;
 pub mod procedure;
 pub mod types;
-pub mod class;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct ProcedureResult(pub isize);
@@ -57,14 +54,14 @@ pub enum Error {
 
 #[derive(Debug)]
 pub enum GetMessageResult {
-  Message(RawMessage<Metadata>),
+  Message(ThreadMessage),
   Quit,
   Error(windows::core::Error),
 }
 
 #[derive(Debug)]
 pub enum PeekMessageResult {
-  Message(RawMessage<Metadata>),
+  Message(ThreadMessage),
   Quit,
   None,
 }
@@ -84,7 +81,7 @@ fn get_message(hwnd: Option<WindowId>, filter: &Option<RangeInclusive<u32>>) -> 
   match result.0 {
     0 => GetMessageResult::Quit,
     -1 => GetMessageResult::Error(result.ok().unwrap_err()),
-    _ => GetMessageResult::Message(RawMessage::from(msg)),
+    _ => GetMessageResult::Message(ThreadMessage::from(msg)),
   }
 }
 
@@ -106,7 +103,7 @@ fn peek_message(
   // If no messages are available, the return value is zero.
   match (result.as_bool(), msg.message) {
     (true, WindowsAndMessaging::WM_QUIT) => PeekMessageResult::Quit,
-    (true, _) => PeekMessageResult::Message(RawMessage::from(msg)),
+    (true, _) => PeekMessageResult::Message(ThreadMessage::from(msg)),
     (false, _) => PeekMessageResult::None,
   }
 }

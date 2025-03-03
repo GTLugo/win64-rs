@@ -4,7 +4,7 @@ use crate::{
   GetMessageResult, PeekMessageResult, flag::PeekMessageFlags, get_message, handle::window::WindowId, peek_message,
 };
 
-use super::{Metadata, RawMessage};
+use super::thread::ThreadMessage;
 
 pub struct Wait;
 pub struct Poll;
@@ -101,14 +101,14 @@ impl MessagePump {
     true
   }
 
-  pub fn for_each(&self, f: impl FnMut(Option<RawMessage<Metadata>>)) {
+  pub fn for_each(&self, f: impl FnMut(Option<ThreadMessage>)) {
     match self.mode {
       PollingMode::Wait => self.wait_for_each(f),
       PollingMode::Poll => self.poll_for_each(f),
     }
   }
 
-  fn wait_for_each(&self, mut f: impl FnMut(Option<RawMessage<Metadata>>)) {
+  fn wait_for_each(&self, mut f: impl FnMut(Option<ThreadMessage>)) {
     loop {
       match get_message(self.hwnd, &self.filter) {
         GetMessageResult::Message(msg) => {
@@ -124,7 +124,7 @@ impl MessagePump {
     }
   }
 
-  fn poll_for_each(&self, mut f: impl FnMut(Option<RawMessage<Metadata>>)) {
+  fn poll_for_each(&self, mut f: impl FnMut(Option<ThreadMessage>)) {
     loop {
       match peek_message(self.hwnd, &self.filter, self.flags) {
         PeekMessageResult::Message(msg) => {

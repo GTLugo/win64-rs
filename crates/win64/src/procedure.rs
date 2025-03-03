@@ -1,10 +1,13 @@
 use windows::Win32::{
   Foundation::{HWND, LPARAM, LRESULT, WPARAM},
-  UI::WindowsAndMessaging::{self, CREATESTRUCTW},
+  UI::WindowsAndMessaging::CREATESTRUCTW,
 };
 
 use crate::{
-  handle::window::WindowId, message::{Message, RawMessage}, ProcedureResult
+  handle::window::WindowId, message::{
+    data::MessageData,
+    id::MessageId, Message,
+  }, ProcedureResult
 };
 
 pub trait WindowProcedure {
@@ -29,11 +32,9 @@ impl CreateInfo {
       state: Some(Box::new(window_state)),
     }
   }
-}
 
-impl From<RawMessage> for CreateInfo {
-  fn from(message: RawMessage) -> Self {
-    let create_struct = unsafe { (message.l as *mut CREATESTRUCTW).as_mut() }.unwrap();
+  pub fn parse(message: Message) -> Self {
+    let create_struct = unsafe { (message.raw().l as *mut CREATESTRUCTW).as_mut() }.unwrap();
     let create_info = unsafe { Box::from_raw(create_struct.lpCreateParams as *mut CreateInfo) };
     *create_info
   }
@@ -55,16 +56,19 @@ impl WindowData {
 /// Window procedure is inherently unsafe because Win32
 pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
   let window: WindowId = hwnd.into();
-  let message = RawMessage::new(msg, w_param, l_param);
+  let data = MessageData {
+    w: w_param.0,
+    l: l_param.0,
+  };
+  let message = Message::from_raw(msg.into(), data);
   on_message(window, message, window.data())
 }
 
-fn on_nccreate(window: WindowId, raw_message: RawMessage) -> LRESULT {
-  let create_info: CreateInfo = raw_message.into();
+fn on_nccreate(window: WindowId, message: Message) -> LRESULT {
+  let create_info = CreateInfo::parse(message.clone());
 
   window.initialize_data(create_info);
 
-  let message: Message = raw_message.into();
   if let Some(data) = window.data() {
     data.proc.on_message(window, message.clone());
   }
@@ -72,11 +76,10 @@ fn on_nccreate(window: WindowId, raw_message: RawMessage) -> LRESULT {
   window.default_procedure(message).into()
 }
 
-fn on_message(window: WindowId, raw_message: RawMessage, data: Option<&mut WindowData>) -> LRESULT {
-  let message: Message = raw_message.into();
-  match (data, raw_message.id) {
-    (None, WindowsAndMessaging::WM_NCCREATE) => on_nccreate(window, raw_message),
-    (Some(_), WindowsAndMessaging::WM_NCDESTROY) => {
+fn on_message(window: WindowId, message: Message, data: Option<&mut WindowData>) -> LRESULT {
+  match (data, message.id()) {
+    (None, MessageId::NcCreate) => on_nccreate(window, message),
+    (Some(_), MessageId::NcDestroy) => {
       let mut data = window.take_data(); // take ownership so it drops at end of block
       data.proc.on_message(window, message).into()
     }
