@@ -3,7 +3,6 @@
 ## An opinionated modernization of the Win32 windowing API for Rust
 
 ```rust
-// WindowsAndMessaging from windows-rs is re-exported as `win32` for grabbing any unimplemented flags
 use win64::prelude::*;
 
 fn main() {
