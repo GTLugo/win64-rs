@@ -21,12 +21,12 @@ impl App {
 }
 
 impl WindowProcedure for App {
-  fn on_message(&mut self, window: WindowId, message: Message) -> ProcedureResult {
+  fn on_message(&mut self, window: WindowId, message: &Message) -> Response {
     match &message {
       Message::Destroy { .. } => window.quit(),
-      _ => println!("{message:?}")
+      _ => println!("{message:?}"),
     }
 
-    window.default_procedure(message)
+    Default::default()
   }
 }

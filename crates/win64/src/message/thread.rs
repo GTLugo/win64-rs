@@ -6,11 +6,12 @@ use windows::Win32::{
 };
 
 use crate::{
-  GetMessageResult, PeekMessageResult, ProcedureResult,
+  GetMessageResult, PeekMessageResult,
   flag::PeekMessageFlags,
   get_message,
   handle::{Win32Type, window::WindowId},
   peek_message,
+  prelude::Response,
 };
 
 use super::{Message, data::MessageData, id::MessageId};
@@ -84,9 +85,9 @@ impl ThreadMessage {
     unsafe { TranslateMessage(&msg) }.as_bool()
   }
 
-  pub fn dispatch(&self) -> ProcedureResult {
+  pub fn dispatch(&self) -> Response {
     let msg = MSG::from(self.clone());
-    unsafe { DispatchMessageW(&msg) }.into()
+    Response::Code(unsafe { DispatchMessageW(&msg) }.0)
   }
 
   pub fn window(&self) -> WindowId {

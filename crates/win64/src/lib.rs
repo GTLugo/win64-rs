@@ -1,10 +1,7 @@
 use std::{io, ops::RangeInclusive};
 
 use thiserror::Error;
-use windows::Win32::{
-  Foundation::LRESULT,
-  UI::WindowsAndMessaging::{self, GetMessageW, MSG, PeekMessageW},
-};
+use windows::Win32::UI::WindowsAndMessaging::{self, GetMessageW, MSG, PeekMessageW};
 
 use self::{
   flag::PeekMessageFlags,
@@ -20,21 +17,6 @@ pub mod message;
 pub mod prelude;
 pub mod procedure;
 pub mod types;
-
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub struct ProcedureResult(pub isize);
-
-impl From<ProcedureResult> for LRESULT {
-  fn from(value: ProcedureResult) -> Self {
-    Self(value.0)
-  }
-}
-
-impl From<LRESULT> for ProcedureResult {
-  fn from(value: LRESULT) -> Self {
-    Self(value.0)
-  }
-}
 
 #[derive(Error, Debug)]
 pub enum Error {
