@@ -87,7 +87,7 @@ impl ThreadMessage {
 
   pub fn dispatch(&self) -> Response {
     let msg = MSG::from(self.clone());
-    Response::Code(unsafe { DispatchMessageW(&msg) }.0)
+    Response(unsafe { DispatchMessageW(&msg) }.0)
   }
 
   pub fn window(&self) -> WindowId {

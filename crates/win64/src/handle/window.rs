@@ -61,12 +61,8 @@ impl WindowId {
   }
 
   pub fn default_procedure(&self, message: &Message) -> Response {
-    Response::Code(
-      unsafe {
-        DefWindowProcW(self.to_win32(), message.id().to_u32(), WPARAM(message.raw().w), LPARAM(message.raw().l))
-      }
-      .0,
-    )
+    unsafe { DefWindowProcW(self.to_win32(), message.id().to_u32(), WPARAM(message.raw().w), LPARAM(message.raw().l)) }
+      .into()
   }
 
   pub fn quit(&self) {

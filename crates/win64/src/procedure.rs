@@ -24,29 +24,24 @@ use crate::{
 // }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub enum Response {
-  #[default]
-  Default,
-  Code(isize),
-}
+#[repr(transparent)]
+pub struct Response(pub isize);
 
-impl Response {
-  pub(crate) fn resolve(&self, window: WindowId, message: &Message) -> LRESULT {
-    match self {
-      Response::Default => {
-        let Response::Code(code) = window.default_procedure(message) else {
-          unreachable!()
-        };
-        LRESULT(code)
-      }
-      Response::Code(code) => LRESULT(*code),
-    }
+impl From<Response> for LRESULT {
+  fn from(value: Response) -> Self {
+    Self(value.0)
+  }
+}
+impl From<LRESULT> for Response {
+  fn from(value: LRESULT) -> Self {
+    Self(value.0)
   }
 }
 
 pub trait WindowProcedure {
-  fn on_message(&mut self, window: WindowId, message: &Message) -> Response {
-    window.default_procedure(message)
+  #[allow(unused_variables)]
+  fn on_message(&mut self, window: WindowId, message: &Message) -> Option<Response> {
+    None
   }
 
   // fn on_create(&mut self, window: WindowId, message: Message) {}
@@ -107,7 +102,7 @@ fn on_nccreate(window: WindowId, message: &Message) -> LRESULT {
     data.proc.on_message(window, message);
   }
 
-  Response::default().resolve(window, message)
+  window.default_procedure(message).into()
 }
 
 fn on_message(window: WindowId, message: &Message, data: Option<&mut WindowData>) -> LRESULT {
@@ -115,12 +110,20 @@ fn on_message(window: WindowId, message: &Message, data: Option<&mut WindowData>
     (None, MessageId::NcCreate) => on_nccreate(window, message),
     (Some(_), MessageId::NcDestroy) => {
       let mut data = window.take_data(); // take ownership so it drops at end of block
-      data.proc.on_message(window, message).resolve(window, message)
+      data
+        .proc
+        .on_message(window, message)
+        .unwrap_or_else(|| window.default_procedure(message))
+        .into()
     }
     (Some(data), _) => {
       // ...
-      data.proc.on_message(window, message).resolve(window, message)
+      data
+        .proc
+        .on_message(window, message)
+        .unwrap_or_else(|| window.default_procedure(message))
+        .into()
     }
-    _ => Response::default().resolve(window, message),
+    _ => window.default_procedure(message).into(),
   }
 }

@@ -21,12 +21,12 @@ impl App {
 }
 
 impl WindowProcedure for App {
-  fn on_message(&mut self, window: WindowId, message: &Message) -> Response {
+  fn on_message(&mut self, window: WindowId, message: &Message) -> Option<Response> {
     match &message {
       Message::Destroy { .. } => window.quit(),
       _ => println!("{message:?}"),
     }
 
-    Default::default()
+    None
   }
 }

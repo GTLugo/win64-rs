@@ -22,12 +22,12 @@ fn main() {
 struct App;
 
 impl WindowProcedure for App {
-  fn on_message(&mut self, window: WindowId, message: Message) -> ProcedureResult {
+  fn on_message(&mut self, window: WindowId, message: Message) -> Option<Response> {
     if let Message::Destroy { .. } = message {
       window.quit();
     }
 
-    window.default_procedure(message)
+    None
   }
 }
 ```
