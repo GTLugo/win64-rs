@@ -30,3 +30,5 @@ impl WindowProcedure for App {
     None
   }
 }
+
+// TODO: Message sending
