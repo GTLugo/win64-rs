@@ -9,21 +9,17 @@ use windows::{
 };
 
 use crate::{
-  ProcedureResult,
   flag::LongPointerIndex,
   message::Message,
-  procedure::{CreateInfo, WindowData},
+  procedure::{CreateInfo, Response, WindowData},
 };
 
 use super::{Handle, Win32Type};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct WindowId
+pub struct WindowId(Option<NonNull<usize>>)
 where
-  Self: Send + Sync,
-{
-  hwnd: Option<NonNull<usize>>,
-}
+  Self: Send + Sync;
 
 unsafe impl Send for WindowId {}
 unsafe impl Sync for WindowId {}
@@ -32,7 +28,7 @@ type Void = core::ffi::c_void;
 
 impl Handle for WindowId {
   fn as_ptr(&self) -> *mut Void {
-    self.hwnd.map_or(core::ptr::null_mut(), |ptr| ptr.as_ptr().cast())
+    self.0.map_or(core::ptr::null_mut(), |ptr| ptr.as_ptr().cast())
   }
 
   unsafe fn from_ptr(ptr: *mut Void) -> Self {
@@ -41,11 +37,11 @@ impl Handle for WindowId {
       true => None,
       false => Some(unsafe { NonNull::new_unchecked(ptr) }),
     };
-    Self { hwnd }
+    Self(hwnd)
   }
 
   fn is_valid(&self) -> bool {
-    self.hwnd.is_some()
+    self.0.is_some()
   }
 }
 
@@ -58,8 +54,15 @@ impl Win32Type for WindowId {
 }
 
 impl WindowId {
-  pub fn default_procedure(&self, message: Message) -> ProcedureResult {
-    unsafe { DefWindowProcW(self.to_win32(), message.id(), WPARAM(message.w()), LPARAM(message.l())) }.into()
+  pub fn send_message(&self) {
+    // TODO: somehow ensure these are always sent to the correct thread, even when called from a different thread.
+    // maybe do it by storing the thread id?
+    todo!()
+  }
+
+  pub fn default_procedure(&self, message: &Message) -> Response {
+    unsafe { DefWindowProcW(self.to_win32(), message.id().to_u32(), WPARAM(message.raw().w), LPARAM(message.raw().l)) }
+      .into()
   }
 
   pub fn quit(&self) {

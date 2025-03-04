@@ -1,5 +1,4 @@
 pub use crate::{
-  ProcedureResult,
   class::{WindowClass, WindowClassDescriptor},
   descriptor::WindowDescriptor,
   flag::{PeekMessageFlags, WindowClassStyle, WindowStyle},
@@ -8,7 +7,7 @@ pub use crate::{
     Message,
     pump::{MessagePump, PollingMode},
   },
-  procedure::WindowProcedure,
+  procedure::{Response, WindowProcedure},
   types::{Position, Size},
 };
 

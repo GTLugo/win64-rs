@@ -3,7 +3,6 @@
 ## An opinionated modernization of the Win32 windowing API for Rust
 
 ```rust
-// WindowsAndMessaging from windows-rs is re-exported as `win32` for grabbing any unimplemented flags
 use win64::prelude::*;
 
 fn main() {
@@ -23,12 +22,12 @@ fn main() {
 struct App;
 
 impl WindowProcedure for App {
-  fn on_message(&mut self, window: WindowId, message: Message) -> ProcedureResult {
-    if let Message::CloseRequested = message {
+  fn on_message(&mut self, window: WindowId, message: &Message) -> Option<Response> {
+    if message.quit_requested() {
       window.quit();
     }
 
-    window.default_procedure(message)
+    None
   }
 }
 ```

@@ -1,1 +1,2 @@
-toolchain = { channel = "beta" }
+[toolchain]
+channel = "stable"
