@@ -23,7 +23,7 @@ struct App;
 
 impl WindowProcedure for App {
   fn on_message(&mut self, window: WindowId, message: &Message) -> Option<Response> {
-    if let Message::Destroy { .. } = message {
+    if message.quit_requested() {
       window.quit();
     }
 

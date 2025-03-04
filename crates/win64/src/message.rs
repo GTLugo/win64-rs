@@ -272,6 +272,10 @@ impl Message {
     self.id().is_mouse()
   }
 
+  pub const fn quit_requested(&self) -> bool {
+    matches!(self, Message::Destroy { .. })
+  }
+
   pub fn from_raw(msg: MessageId, raw: MessageData) -> Self {
     match msg {
       MessageId::Reserved(_) => Self::Reserved { id: msg, raw },
