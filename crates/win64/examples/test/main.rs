@@ -24,10 +24,7 @@ impl WindowProcedure for App {
   fn on_message(&mut self, window: WindowId, message: Message) -> ProcedureResult {
     match &message {
       Message::Destroy { .. } => window.quit(),
-      msg if msg.is_key() => {
-        println!("{msg:?}");
-      }
-      _ => {}
+      _ => println!("{message:?}")
     }
 
     window.default_procedure(message)

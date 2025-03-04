@@ -2,5 +2,5 @@
 members = [
   "crates/*"
 ]
-default-member = "win64"
+default-members = ["crates/win64"]
 resolver = "3"

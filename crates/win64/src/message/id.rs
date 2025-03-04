@@ -5,7 +5,17 @@ use windows::Win32::UI::WindowsAndMessaging;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Id)]
 pub enum MessageId {
+  #[id(WindowsAndMessaging::WM_NULL)]
+  Null,
+  Reserved(u32),
+  #[id(0xC000..0xFFFF)]
   Other(u32),
+  #[id(WindowsAndMessaging::WM_USER..WindowsAndMessaging::WM_APP)]
+  User(u32),
+  #[id(WindowsAndMessaging::WM_APP..=0xBFFF)]
+  App(u32),
+  #[id(WindowsAndMessaging::WM_QUIT)]
+  Quit,
   #[id(WindowsAndMessaging::WM_ACTIVATE)]
   Activate,
   #[id(WindowsAndMessaging::WM_ACTIVATEAPP)]
@@ -14,8 +24,6 @@ pub enum MessageId {
   AfxFirst,
   #[id(WindowsAndMessaging::WM_AFXLAST)]
   AfxLast,
-  #[id(WindowsAndMessaging::WM_APP)]
-  App,
   #[id(WindowsAndMessaging::WM_APPCOMMAND)]
   AppCommand,
   #[id(WindowsAndMessaging::WM_ASKCBFORMATNAME)]
@@ -330,8 +338,6 @@ pub enum MessageId {
   Notify,
   #[id(WindowsAndMessaging::WM_NOTIFYFORMAT)]
   NotifyFormat,
-  #[id(WindowsAndMessaging::WM_NULL)]
-  Null,
   #[id(WindowsAndMessaging::WM_PAINT)]
   Paint,
   #[id(WindowsAndMessaging::WM_PAINTCLIPBOARD)]
@@ -400,8 +406,6 @@ pub enum MessageId {
   QueryUiState,
   #[id(WindowsAndMessaging::WM_QUEUESYNC)]
   QueueSync,
-  #[id(WindowsAndMessaging::WM_QUIT)]
-  Quit,
   #[id(WindowsAndMessaging::WM_RBUTTONDBLCLK)]
   RButtonDblClk,
   #[id(WindowsAndMessaging::WM_RBUTTONDOWN)]
@@ -482,8 +486,6 @@ pub enum MessageId {
   UninitMenuPopup,
   #[id(WindowsAndMessaging::WM_UPDATEUISTATE)]
   UpdateUiState,
-  #[id(WindowsAndMessaging::WM_USER)]
-  User,
   #[id(WindowsAndMessaging::WM_USERCHANGED)]
   UserChanged,
   #[id(WindowsAndMessaging::WM_VKEYTOITEM)]

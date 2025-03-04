@@ -2,9 +2,31 @@ use convert_case::Casing;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-use syn::{DeriveInput, Expr, ExprTuple, Ident, Variant, parse_macro_input};
+use syn::{Data, DeriveInput, Expr, ExprTuple, Ident, Variant, parse_macro_input};
 
-fn wm_const(variant: &Variant) -> proc_macro2::TokenStream {
+fn collect_variants(data: Data) -> Option<Vec<Variant>> {
+  match data {
+    syn::Data::Enum(e) => Some(e.variants.into_iter().collect()),
+    _ => None,
+  }
+}
+
+fn filter_variants(data: Data) -> Option<Vec<Variant>> {
+  collect_variants(data).map(|v| {
+    v.into_iter()
+      .filter(|v| {
+        !matches!(v.ident.to_string().as_str(), "Reserved") // Skip this one as it is a special case
+      })
+      .collect()
+  })
+}
+
+// enum Id {
+//   Single(proc_macro2::TokenStream),
+//   Range(proc_macro2::TokenStream),
+// }
+
+fn id_expr(variant: &Variant) -> proc_macro2::TokenStream {
   // let wm = Ident::new(&id, Span::call_site());
   let wm = match variant.attrs.iter().find(|a| {
     let ident = a.path().get_ident().unwrap();
@@ -17,7 +39,6 @@ fn wm_const(variant: &Variant) -> proc_macro2::TokenStream {
       quote! { windows::Win32::UI::WindowsAndMessaging::#wm }
     }
     Some(a) => {
-      //
       let attr: Expr = a.parse_args().unwrap();
       quote! { #attr }
     }
@@ -29,32 +50,35 @@ fn wm_const(variant: &Variant) -> proc_macro2::TokenStream {
 pub fn message_id(input: TokenStream) -> TokenStream {
   let DeriveInput { ident, data, .. } = parse_macro_input!(input as DeriveInput);
 
-  let variants = if let syn::Data::Enum(e) = data {
-    e.variants
-      .into_iter()
-      .filter(|v| {
-        v.ident != "Other" // Skip this one as it is a special case
-      })
-      .collect::<Vec<_>>()
-  } else {
-    panic!("Can only derive `Getter` on enums.");
+  let Some(variants) = filter_variants(data) else {
+    panic!("Can only derive `Id` on enums.");
   };
 
   let from_u32_arms = variants.iter().map(|v| {
     let variant_ident = &v.ident;
-    let wm = wm_const(v);
-    // let wm: ItemConst = attr.parse_args().unwrap();
-    quote! {
-      #wm => Self::#variant_ident,
+    let wm = id_expr(v);
+    if v.fields.is_empty() {
+      quote! {
+        #wm => Self::#variant_ident,
+      }
+    } else {
+      quote! {
+        #wm => Self::#variant_ident(msg),
+      }
     }
   });
 
   let to_u32_arms = variants.iter().map(|v| {
     let variant_ident = &v.ident;
-    let wm = wm_const(v);
-    // let wm: ItemConst = attr.parse_args().unwrap();
-    quote! {
-      Self::#variant_ident => #wm,
+    let wm = id_expr(v);
+    if v.fields.is_empty() {
+      quote! {
+        Self::#variant_ident => #wm,
+      }
+    } else {
+      quote! {
+        Self::#variant_ident(id) => id,
+      }
     }
   });
 
@@ -63,16 +87,16 @@ pub fn message_id(input: TokenStream) -> TokenStream {
       fn from(msg: u32) -> Self {
         match msg {
           #( #from_u32_arms )*
-          id => Self::Other(id),
+          id => Self::Reserved(id),
         }
       }
     }
-    
+
     impl #ident {
       pub const fn to_u32(self) -> u32 {
         match self {
           #( #to_u32_arms )*
-          Self::Other(id) => id,
+          Self::Reserved(id) => id,
         }
       }
     }
@@ -86,23 +110,25 @@ pub fn message_id(input: TokenStream) -> TokenStream {
 pub fn get_id(input: TokenStream) -> TokenStream {
   let DeriveInput { ident, data, .. } = parse_macro_input!(input as DeriveInput);
 
-  let variants = if let syn::Data::Enum(e) = data {
-    e.variants
-      .into_iter()
-      .filter(|v| {
-        v.ident != "Other" // Skip this one as it is a special case
-      })
-      .collect::<Vec<_>>()
-  } else {
-    panic!("Can only derive `Getter` on enums.");
+  let Some(variants) = collect_variants(data) else {
+    panic!("Can only derive `GetId` on enums.");
   };
 
   let variant_arms = variants.iter().map(|v| {
     let variant_ident = &v.ident;
-    // let wm = wm_const(v);
-    // let wm: ItemConst = attr.parse_args().unwrap();
-    quote! {
-      Self::#variant_ident { .. } => MessageId::#variant_ident,
+    let id = v.fields.members().find(|m| match m {
+      syn::Member::Named(name) => name == "id",
+      _ => false,
+    });
+
+    if id.is_some() {
+      quote! {
+        Self::#variant_ident { id, .. } => *id,
+      }
+    } else {
+      quote! {
+        Self::#variant_ident { .. } => MessageId::#variant_ident,
+      }
     }
   });
 
@@ -111,7 +137,6 @@ pub fn get_id(input: TokenStream) -> TokenStream {
       pub const fn id(&self) -> MessageId {
         match self {
           #( #variant_arms )*
-          Self::Other { id, .. } => *id,
         }
       }
     }
@@ -125,14 +150,7 @@ pub fn get_id(input: TokenStream) -> TokenStream {
 pub fn from_raw_message(input: TokenStream) -> TokenStream {
   let DeriveInput { ident, data, attrs, .. } = parse_macro_input!(input as DeriveInput);
 
-  let variants = if let syn::Data::Enum(e) = data {
-    e.variants
-      .into_iter()
-      // .filter(|v| {
-      //   v.ident != "Other" // Skip this one as it is a special case
-      // })
-      .collect::<Vec<_>>()
-  } else {
+  let Some(variants) = collect_variants(data) else {
     panic!("Can only derive `Getter` on enums.");
   };
 

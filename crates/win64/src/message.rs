@@ -10,12 +10,14 @@ pub mod thread;
 #[derive(Debug, Clone, PartialEq, Eq, Getter, GetId)]
 #[getters((raw, MessageData))]
 pub enum Message {
+  Reserved { id: MessageId, raw: MessageData },
   Other { id: MessageId, raw: MessageData },
+  User { id: MessageId, raw: MessageData },
+  App { id: MessageId, raw: MessageData },
   Activate { raw: MessageData },
   ActivateApp { raw: MessageData },
   AfxFirst { raw: MessageData },
   AfxLast { raw: MessageData },
-  App { raw: MessageData },
   AppCommand { raw: MessageData },
   AskCbFormatName { raw: MessageData },
   CancelJournal { raw: MessageData },
@@ -249,7 +251,6 @@ pub enum Message {
   UniChar { raw: MessageData },
   UninitMenuPopup { raw: MessageData },
   UpdateUiState { raw: MessageData },
-  User { raw: MessageData },
   UserChanged { raw: MessageData },
   VKeyToItem { raw: MessageData },
   VScroll { raw: MessageData },
@@ -273,11 +274,12 @@ impl Message {
 
   pub fn from_raw(msg: MessageId, raw: MessageData) -> Self {
     match msg {
+      MessageId::Reserved(_) => Self::Reserved { id: msg, raw },
       MessageId::Activate => Self::Activate { raw },
       MessageId::ActivateApp => Self::ActivateApp { raw },
       MessageId::AfxFirst => Self::AfxFirst { raw },
       MessageId::AfxLast => Self::AfxLast { raw },
-      MessageId::App => Self::App { raw },
+      MessageId::App(_) => Self::App { id: msg, raw },
       MessageId::AppCommand => Self::AppCommand { raw },
       MessageId::AskCbFormatName => Self::AskCbFormatName { raw },
       MessageId::CancelJournal => Self::CancelJournal { raw },
@@ -511,7 +513,7 @@ impl Message {
       MessageId::UniChar => Self::UniChar { raw },
       MessageId::UninitMenuPopup => Self::UninitMenuPopup { raw },
       MessageId::UpdateUiState => Self::UpdateUiState { raw },
-      MessageId::User => Self::User { raw },
+      MessageId::User(_) => Self::User { id: msg, raw },
       MessageId::UserChanged => Self::UserChanged { raw },
       MessageId::VKeyToItem => Self::VKeyToItem { raw },
       MessageId::VScroll => Self::VScroll { raw },
@@ -522,7 +524,7 @@ impl Message {
       MessageId::XButtonDblClk => Self::XButtonDblClk { raw },
       MessageId::XButtonDown => Self::XButtonDown { raw },
       MessageId::XButtonUp => Self::XButtonUp { raw },
-      MessageId::Other(id) => Self::Other { id: id.into(), raw }, // yes this is redundant conversion, but it ensures this match is fully covered
+      MessageId::Other(_) => Self::Other { id: msg, raw },
     }
   }
 }
