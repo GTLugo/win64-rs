@@ -1,4 +1,4 @@
-# `win64-sys`
+# `win64`
 
 ## Hand-crafted low-level Rust wrappers for Win32
 
