@@ -1,0 +1,25 @@
+[workspace]
+resolver = "3"
+members = ["crates/examples/*", "crates/libs/*"]
+default-members = ["crates/examples/example"]
+
+[workspace.package]
+readme      = "README.md"
+edition     = "2024"
+authors     = ["Gabriel A. Lugo-Maldonado <me@gtlugo.com>"]
+license     = "MIT OR Apache-2.0"
+keywords    = ["windows", "windowing"]
+categories  = ["windows-apis", "rendering", "gui"]
+repository  = "https://github.com/GTLugo/win64"
+
+[profile.dev.package.win64]
+opt-level = 0
+
+[profile.dev.package.win64-sys]
+opt-level = 0
+
+[profile.dev.package.win64-macro]
+opt-level = 0
+
+[profile.dev.package."*"]
+opt-level = 3

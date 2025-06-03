@@ -1,0 +1,17 @@
+[package]
+name = "example"
+version = "0.1.0"
+readme.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow = "1.0"
+
+[dependencies.win64]
+version = "*"
+path = "../../libs/win64"
