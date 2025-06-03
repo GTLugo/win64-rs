@@ -1,7 +1,9 @@
-use win64_sys::{Handle, windef::Window};
+use win64_sys::{Handle, processthreadsapi::StartupInfo, windef::HWindow};
 
 fn main() -> anyhow::Result<()> {
-  let hwnd = unsafe { Window::from_raw(11) };
+  let info = StartupInfo::get();
+  println!("{info:?}");
+  let hwnd = unsafe { HWindow::from_raw(11) };
   println!("Is valid? {}", unsafe { hwnd.is_window() });
   Ok(())
 }

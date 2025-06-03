@@ -4,6 +4,7 @@ use windows_sys::Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW};
 
 use crate::pwstr_to_os;
 
+#[derive(Debug, Clone)]
 pub struct StartupInfo {
   lpDesktop: OsString,
   lpTitle: OsString,

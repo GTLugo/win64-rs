@@ -1,13 +1,13 @@
 use crate::{Handle, declare_handle};
 
 declare_handle!(
-  Window,
+  HWindow,
   alias = "HWND",
   doc = "https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#hwnd"
 );
 
 declare_handle!(
-  Instance,
+  HInstance,
   alias = "HINSTANCE",
   doc = "https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#hinstance"
 );

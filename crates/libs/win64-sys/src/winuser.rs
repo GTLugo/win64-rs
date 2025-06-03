@@ -1,8 +1,8 @@
 use windows_sys::Win32::UI::WindowsAndMessaging::{IsWindow, ShowWindow};
 
-use crate::{Handle, windef::Window};
+use crate::{Handle, windef::HWindow};
 
-impl Window {
+impl HWindow {
   /// Returns whether or not the handle identifies an existing window.
   /// # Safety
   /// A thread should not use [`WindowId::is_window`] for a window that it did not create because the window could be destroyed after this function was called. Further, because window handles are recycled the handle could even point to a different window.
@@ -20,7 +20,7 @@ pub enum ShowWindow {
   WasHidden,
 }
 
-impl Window {
+impl HWindow {
   ///
   #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-iswindow"]
   pub fn show_window(&self, cmd_show: i32) -> ShowWindow {
