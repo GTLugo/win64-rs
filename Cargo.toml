@@ -1,6 +1,0 @@
-[workspace]
-members = [
-  "crates/*"
-]
-default-members = ["crates/win64"]
-resolver = "3"
