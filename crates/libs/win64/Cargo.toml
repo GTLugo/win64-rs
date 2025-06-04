@@ -22,10 +22,10 @@ keyboard-types = "0.8"
 version = "0.1"
 path = "../win64-macro"
 
-[dependencies.windows]
-version  = "0.61"
+[dependencies.windows-sys]
+version  = "0.59"
 features = [
-  "UI_ViewManagement", 
+  # "UI_ViewManagement", # UWP api, so sadly can't use :(
   "Win32_Devices_HumanInterfaceDevice", 
   "Win32_Foundation", 
   "Win32_Security", 

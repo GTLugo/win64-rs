@@ -1,5 +1,5 @@
 [package]
-name = "win64-sys"
+name = "win64-extra"
 version = "0.1.0"
 readme.workspace = true
 edition.workspace = true
@@ -22,10 +22,10 @@ keyboard-types = "0.8"
 version = "0.1"
 path = "../win64-macro"
 
-[dependencies.windows-sys]
-version  = "0.59"
+[dependencies.windows]
+version  = "0.61"
 features = [
-  # "UI_ViewManagement", # UWP api, so sadly can't use :(
+  "UI_ViewManagement", 
   "Win32_Devices_HumanInterfaceDevice", 
   "Win32_Foundation", 
   "Win32_Security", 
