@@ -5,7 +5,7 @@ fn main() -> anyhow::Result<()> {
   eprintln!("{info:#?}");
 
   let hwnd = HWindow::null();
-  eprintln!("{hwnd:?}");
+  eprintln!("HWND: {hwnd:?}");
 
   Ok(())
 }
