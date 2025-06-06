@@ -59,7 +59,7 @@ macro_rules! declare_handle_body {
         Self::null()
       }
     }
-    impl Handle for $name {
+    impl $crate::core::Handle for $name {
       unsafe fn from_raw(raw: usize) -> Self {
         Self(raw as _)
       }

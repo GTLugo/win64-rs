@@ -28,7 +28,7 @@ fn filter_variants(data: Data) -> Option<Vec<Variant>> {
 
 fn id_expr(variant: &Variant) -> proc_macro2::TokenStream {
   // let wm = Ident::new(&id, Span::call_site());
-  
+
   match variant.attrs.iter().find(|a| {
     let ident = a.path().get_ident().unwrap();
     a.path().is_ident(&Ident::new("id", ident.span()))
