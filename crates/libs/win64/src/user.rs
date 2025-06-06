@@ -6,3 +6,6 @@ pub use hinstance::*;
 
 pub mod window_class;
 pub use window_class::*;
+
+pub mod winmain;
+pub use winmain::*;

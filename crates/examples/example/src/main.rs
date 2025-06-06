@@ -1,11 +1,10 @@
-use win64::{user::{HInstance, HWindow}, StartupInfo};
+use win64::user::{Args, HWindow};
 
 fn main() -> anyhow::Result<()> {
-  let info = StartupInfo::get();
-  eprintln!("{info:#?}");
+  let args = Args::get();
+  eprintln!("{args:#?}");
 
-  let hinstance = HInstance::get();
-  eprintln!("HINSTANCE: {hinstance:?}");
+  eprintln!("HINSTANCE: {:?}", args.hinstance);
 
   let hwnd = HWindow::null();
   eprintln!("HWND: {hwnd:?}");
