@@ -6,19 +6,24 @@
   This allows users to keep using regular guides and docs with minimal resistance.
 */
 
-pub mod handle;
 pub mod error;
-pub mod windef;
+pub mod handle;
+#[cfg(feature = "safe")]
+pub mod safe;
 pub mod user;
+pub mod windef;
 
-pub use handle::*;
 pub use error::*;
+pub use handle::*;
 
 use std::{ffi::OsString, os::windows::ffi::OsStringExt};
 
 pub use dpi;
 pub use keyboard_types;
-use windows_sys::{core::{PCWSTR, PWSTR}, Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW}};
+use windows_sys::{
+  Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW},
+  core::{PCWSTR, PWSTR},
+};
 
 /// # Safety
 /// Must be null-terminated, valid UTF16
@@ -81,4 +86,3 @@ impl StartupInfo {
     }
   }
 }
-
