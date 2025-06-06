@@ -8,6 +8,7 @@ fn main() -> anyhow::Result<()> {
 
   let hwnd = HWindow::null();
   eprintln!("HWND: {hwnd:?}");
+  eprintln!("IsWindow: {}", unsafe { hwnd.is_window() });
 
   Ok(())
 }
