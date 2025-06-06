@@ -71,7 +71,7 @@ macro_rules! declare_handle_body {
     unsafe impl Sync for $name {}
     impl $name {
       pub const fn null() -> Self {
-        Self(::core::ptr::null_mut())
+        Self(std::ptr::null_mut())
       }
 
       pub const fn is_null(&self) -> bool {
