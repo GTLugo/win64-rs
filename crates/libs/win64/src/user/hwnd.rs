@@ -21,19 +21,17 @@ impl HWindow {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ShowWindow {
+pub enum ShowWindowResult {
   WasVisible,
   WasHidden,
 }
 
 impl HWindow {
-  ///
   #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-iswindow"]
-  pub fn show_window(&self, cmd_show: i32) -> ShowWindow {
-    // check for null here is probably redundant, but allows for a short-circuit which may or may not be faster.
+  pub fn show_window(&self, cmd_show: i32) -> ShowWindowResult {
     match unsafe { ShowWindow(self.to_raw() as _, cmd_show) } {
-      0 => ShowWindow::WasHidden,
-      _ => ShowWindow::WasVisible,
+      0 => ShowWindowResult::WasHidden,
+      _ => ShowWindowResult::WasVisible,
     }
   }
 }
