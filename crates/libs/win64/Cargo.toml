@@ -9,6 +9,10 @@ keywords.workspace = true
 categories.workspace = true
 repository.workspace = true
 
+[features]
+default = []
+safe = []
+
 [dependencies]
 bitflags = "2.9"
 thiserror = "2.0"
@@ -44,3 +48,7 @@ features = [
   "Win32_UI_Shell_Common", 
   "Win32_UI_Shell_PropertiesSystem"
 ]
+
+# I would like to strip this out eventually, but error codes are a practically infinite amount of work.
+[dependencies.windows-result]
+version = "0.3"

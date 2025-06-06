@@ -10,7 +10,7 @@ pub mod handle;
 pub mod processthreadsapi;
 pub mod error;
 pub mod windef;
-pub mod winuser;
+pub mod user;
 
 pub use handle::*;
 pub use error::*;
