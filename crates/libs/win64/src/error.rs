@@ -9,3 +9,5 @@
 */
 
 pub use windows_result::HRESULT as HResult;
+
+pub mod window;

@@ -16,3 +16,5 @@ pub mod user;
 
 pub use dpi;
 pub use keyboard_types;
+
+pub mod error;
