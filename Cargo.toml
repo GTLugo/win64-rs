@@ -10,7 +10,7 @@ authors     = ["Gabriel A. Lugo-Maldonado <me@gtlugo.com>"]
 license     = "MIT OR Apache-2.0"
 keywords    = ["windows", "windowing"]
 categories  = ["windows-apis", "rendering", "gui"]
-repository  = "https://github.com/GTLugo/win64"
+repository  = "https://github.com/GTLugo/win64-rs"
 
 [profile.dev.package.win64]
 opt-level = 0

@@ -1,3 +1,5 @@
+use std::{ffi::OsString, os::windows::ffi::OsStrExt};
+
 use windows_sys::Win32::{
   Foundation::{ERROR_INVALID_PARAMETER, ERROR_MOD_NOT_FOUND},
   UI::WindowsAndMessaging::{CreateWindowExW, IsWindow, ShowWindow},
@@ -5,14 +7,16 @@ use windows_sys::Win32::{
 
 use crate::{Handle, declare_handle};
 
+use super::HInstance;
+
 declare_handle!(
   HWindow,
   alias = "HWND",
   doc = "https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#hwnd"
 );
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CreateWindowInfo {}
+// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+// pub struct CreateWindowInfo {}
 
 #[derive(thiserror::Error, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CreateWindowError {
@@ -34,32 +38,58 @@ pub enum CreateWindowError {
   For legacy reasons, this should probably take the same params as CreateWindowExW rather than a custom struct.
 */
 #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw"]
-pub fn create_window(info: &CreateWindowInfo) -> Result<HWindow, CreateWindowError> {
+pub fn create_window(
+  ex_style: u32,
+  class_name: impl Into<OsString>,
+  window_name: impl Into<OsString>,
+  style: u32,
+  position: (i32, i32),
+  size: (i32, i32),
+  parent: Option<HWindow>,
+  menu: Option<()>,
+  instance: Option<HInstance>,
+  void: Option<()>,
+) -> Result<HWindow, CreateWindowError> {
+  let class_name: Vec<u16> = class_name.into().encode_wide().collect();
+  let window_name: Vec<u16> = window_name.into().encode_wide().collect();
   let hwnd = unsafe {
     CreateWindowExW(
-      todo!(),
-      todo!(),
-      todo!(),
-      todo!(),
-      todo!(),
-      todo!(),
-      todo!(),
-      todo!(),
-      todo!(),
-      todo!(),
-      todo!(),
-      todo!(),
+      ex_style,
+      class_name.as_ptr(),
+      window_name.as_ptr(),
+      style,
+      position.0,
+      position.1,
+      size.0,
+      size.1,
+      match parent {
+        Some(p) => p.to_raw() as _,
+        None => HWindow::null().to_raw() as _,
+      },
+      match menu {
+        Some(m) => std::ptr::null_mut() as _,
+        None => std::ptr::null_mut() as _,
+      },
+      match instance {
+        Some(i) => i.to_raw() as _,
+        None => HInstance::null().to_raw() as _,
+      },
+      match void {
+        Some(v) => std::ptr::null(),
+        None => std::ptr::null(),
+      },
     )
   };
+
   match hwnd.is_null() {
     true => {
       let error = crate::Error::from_win32();
       match error {
         e if e == crate::Error::from_hresult(crate::HResult::from_win32(ERROR_INVALID_PARAMETER)) => {
-          Err(CreateWindowError::InvalidParameter(error))
+          Err(CreateWindowError::InvalidParameter(e))
         }
         e if e == crate::Error::from_hresult(crate::HResult::from_win32(ERROR_MOD_NOT_FOUND)) => {
-          Err(CreateWindowError::ModuleNotFound(error))
+          Err(CreateWindowError::ModuleNotFound(e))
         }
         error => Err(CreateWindowError::Uncommon(error)),
         _ => todo!(),
@@ -72,8 +102,19 @@ pub fn create_window(info: &CreateWindowInfo) -> Result<HWindow, CreateWindowErr
 impl HWindow {
   /// Thin wrapper around [`create_window`] function
   #[inline]
-  pub fn new(info: &CreateWindowInfo) -> Result<Self, CreateWindowError> {
-    create_window(info)
+  pub fn new(
+    ex_style: u32,
+    class_name: impl Into<OsString>,
+    window_name: impl Into<OsString>,
+    style: u32,
+    position: (i32, i32),
+    size: (i32, i32),
+    parent: Option<HWindow>,
+    menu: Option<()>,
+    instance: Option<HInstance>,
+    void: Option<()>,
+  ) -> Result<Self, CreateWindowError> {
+    create_window(ex_style, class_name, window_name, style, position, size, parent, menu, instance, void)
   }
 }
 

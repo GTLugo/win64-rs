@@ -1,4 +1,5 @@
 #![cfg(target_os = "windows")]
+#![allow(clippy::too_many_arguments)]
 
 /*
   The goal should be to keep the same general API as Win32.
