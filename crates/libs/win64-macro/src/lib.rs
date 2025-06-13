@@ -116,7 +116,7 @@ pub fn from_raw_message(input: TokenStream) -> TokenStream {
   let regular_arms = variants.iter().map(|v| {
     let variant_ident = &v.ident;
     quote! {
-      MessageType::#variant_ident => Self::#variant_ident { w, l },
+      MessageType::#variant_ident => Self::#variant_ident(w, l),
     }
   });
 
@@ -128,10 +128,10 @@ pub fn from_raw_message(input: TokenStream) -> TokenStream {
         let id = MessageType::from(msg);
         match id {
           #( #regular_arms )*
-          MessageType::Other => Self::Other { msg, w, l },
-          MessageType::User => Self::User { msg, w, l },
-          MessageType::App => Self::App { msg, w, l },
-          MessageType::Reserved => Self::Reserved { msg, w, l },
+          MessageType::Other => Self::Other(msg, w, l),
+          MessageType::User => Self::User(msg, w, l),
+          MessageType::App => Self::App(msg, w, l),
+          MessageType::Reserved => Self::Reserved(msg, w, l),
         }
       }
     }
