@@ -9,3 +9,5 @@ pub use window_class::*;
 
 pub mod winmain;
 pub use winmain::*;
+
+pub mod message;

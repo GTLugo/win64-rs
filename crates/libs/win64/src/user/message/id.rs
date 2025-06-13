@@ -1,7 +1,7 @@
 use std::ops::RangeInclusive;
 
 use win64_macro::Id;
-use windows::Win32::UI::WindowsAndMessaging;
+use windows_sys::Win32::UI::WindowsAndMessaging;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Id)]
 pub enum MessageId {

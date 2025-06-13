@@ -1,4 +1,7 @@
-use windows_sys::Win32::UI::WindowsAndMessaging::{IsWindow, ShowWindow};
+use windows_sys::Win32::{
+  Foundation::{ERROR_INVALID_PARAMETER, ERROR_MOD_NOT_FOUND},
+  UI::WindowsAndMessaging::{CreateWindowExW, IsWindow, ShowWindow},
+};
 
 use crate::{Handle, declare_handle};
 
@@ -7,6 +10,72 @@ declare_handle!(
   alias = "HWND",
   doc = "https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#hwnd"
 );
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CreateWindowInfo {}
+
+#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CreateWindowError {
+  #[error(transparent)]
+  InvalidParameter(crate::Error),
+  #[error(transparent)]
+  ModuleNotFound(crate::Error),
+  #[error(transparent)]
+  WHCBTHookFailure(crate::Error),
+  #[error(transparent)]
+  WindowProcFailure(crate::Error),
+  #[error(transparent)]
+  ControlsNotRegistered(crate::Error),
+  #[error(transparent)]
+  Uncommon(crate::Error),
+}
+
+/*
+  For legacy reasons, this should probably take the same params as CreateWindowExW rather than a custom struct.
+*/
+#[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw"]
+pub fn create_window(info: &CreateWindowInfo) -> Result<HWindow, CreateWindowError> {
+  let hwnd = unsafe {
+    CreateWindowExW(
+      todo!(),
+      todo!(),
+      todo!(),
+      todo!(),
+      todo!(),
+      todo!(),
+      todo!(),
+      todo!(),
+      todo!(),
+      todo!(),
+      todo!(),
+      todo!(),
+    )
+  };
+  match hwnd.is_null() {
+    true => {
+      let error = crate::Error::from_win32();
+      match error {
+        e if e == crate::Error::from_hresult(crate::HResult::from_win32(ERROR_INVALID_PARAMETER)) => {
+          Err(CreateWindowError::InvalidParameter(error))
+        }
+        e if e == crate::Error::from_hresult(crate::HResult::from_win32(ERROR_MOD_NOT_FOUND)) => {
+          Err(CreateWindowError::ModuleNotFound(error))
+        }
+        error => Err(CreateWindowError::Uncommon(error)),
+        _ => todo!(),
+      }
+    }
+    false => Ok(unsafe { HWindow::from_raw(hwnd as usize) }),
+  }
+}
+
+impl HWindow {
+  /// Thin wrapper around [`create_window`] function
+  #[inline]
+  pub fn new(info: &CreateWindowInfo) -> Result<Self, CreateWindowError> {
+    create_window(info)
+  }
+}
 
 impl HWindow {
   /// Returns whether or not the handle identifies an existing window.

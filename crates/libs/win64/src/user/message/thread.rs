@@ -1,6 +1,6 @@
 use std::ops::RangeInclusive;
 
-use windows::Win32::{
+use windows_sys::Win32::{
   Foundation::{LPARAM, POINT, WPARAM},
   UI::WindowsAndMessaging::{DispatchMessageW, MSG, TranslateMessage},
 };

@@ -15,6 +15,7 @@ safe = []
 
 [dependencies]
 bitflags = "2.9"
+strum = { version = "0.27", features = ["derive"] }
 thiserror = "2.0"
 
 # Standard windowing types for compatibility with other windowing libraries
@@ -27,7 +28,7 @@ version = "0.1"
 path = "../win64-macro"
 
 [dependencies.windows-sys]
-version  = "0.59"
+version  = "0.60"
 features = [
   # "UI_ViewManagement", # UWP api, so sadly can't use :(
   "Win32_Devices_HumanInterfaceDevice", 
