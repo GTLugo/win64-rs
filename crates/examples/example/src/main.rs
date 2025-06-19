@@ -11,7 +11,7 @@ fn main() -> anyhow::Result<()> {
   let hwnd = HWindow::null();
   eprintln!("HWND: {hwnd:?}");
   eprintln!("IsWindow: {}", unsafe { hwnd.is_window() });
-  
+
   let window = create_window(
     CreateWindowParams::default()
       .window_name("Window")
