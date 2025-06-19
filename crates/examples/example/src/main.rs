@@ -1,4 +1,4 @@
-use win64::user::{create_window, message::Message, Args, HWindow};
+use win64::user::{Args, HWindow, create_window, message::Message};
 
 fn main() -> anyhow::Result<()> {
   let args = Args::get();
@@ -12,7 +12,7 @@ fn main() -> anyhow::Result<()> {
   eprintln!("HWND: {hwnd:?}");
   eprintln!("IsWindow: {}", unsafe { hwnd.is_window() });
 
-  let window = create_window(0, "", "Window", 0, (0, 0), (800, 500), None, None, Some(args.hinstance), None)?;
+  let window = create_window(0, "", "Window", 0, (None, None), (None, None), None, None, Some(args.hinstance), None)?;
 
   Ok(())
 }

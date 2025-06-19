@@ -1,12 +1,12 @@
 use std::{ffi::OsString, os::windows::ffi::OsStrExt};
 
+use thiserror::Error as ThisError;
 use windows_sys::Win32::{
   Foundation::{ERROR_INVALID_PARAMETER, ERROR_MOD_NOT_FOUND},
-  UI::WindowsAndMessaging::{CreateWindowExW, IsWindow, ShowWindow},
+  UI::WindowsAndMessaging::{CW_USEDEFAULT, CreateWindowExW, IsWindow, ShowWindow},
 };
-use thiserror::Error as ThisError;
 
-use crate::{convert_error, declare_handle, Handle};
+use crate::{Handle, convert_error, declare_handle};
 
 use super::HInstance;
 
@@ -29,8 +29,8 @@ pub enum CreateWindowError {
   #[error(transparent)]
   OutOfMemory(crate::Error),
   /*
-    ...etc
-   */
+   ...etc
+  */
   #[error(transparent)]
   Other(crate::Error),
 }
@@ -44,8 +44,8 @@ pub fn create_window(
   class_name: impl Into<OsString>,
   window_name: impl Into<OsString>,
   style: u32,
-  position: (i32, i32),
-  size: (i32, i32),
+  position: (Option<i32>, Option<i32>),
+  size: (Option<i32>, Option<i32>),
   parent: Option<HWindow>,
   menu: Option<()>,
   instance: Option<HInstance>,
@@ -59,10 +59,10 @@ pub fn create_window(
       class_name.as_ptr(),
       window_name.as_ptr(),
       style,
-      position.0,
-      position.1,
-      size.0,
-      size.1,
+      position.0.unwrap_or(CW_USEDEFAULT),
+      position.1.unwrap_or(CW_USEDEFAULT),
+      size.0.unwrap_or(CW_USEDEFAULT),
+      size.1.unwrap_or(CW_USEDEFAULT),
       match parent {
         Some(p) => p.to_raw() as _,
         None => HWindow::null().to_raw() as _,
@@ -86,12 +86,8 @@ pub fn create_window(
     true => {
       let error = crate::Error::from_win32();
       match error {
-        e if e == convert_error(ERROR_INVALID_PARAMETER) => {
-          Err(CreateWindowError::InvalidParameter(e))
-        }
-        e if e == convert_error(ERROR_MOD_NOT_FOUND) => {
-          Err(CreateWindowError::InvalidModule(e))
-        }
+        e if e == convert_error(ERROR_INVALID_PARAMETER) => Err(CreateWindowError::InvalidParameter(e)),
+        e if e == convert_error(ERROR_MOD_NOT_FOUND) => Err(CreateWindowError::InvalidModule(e)),
         _ => Err(CreateWindowError::Other(error)),
       }
     }
@@ -107,8 +103,8 @@ impl HWindow {
     class_name: impl Into<OsString>,
     window_name: impl Into<OsString>,
     style: u32,
-    position: (i32, i32),
-    size: (i32, i32),
+    position: (Option<i32>, Option<i32>),
+    size: (Option<i32>, Option<i32>),
     parent: Option<HWindow>,
     menu: Option<()>,
     instance: Option<HInstance>,
