@@ -23,3 +23,8 @@ pub use keyboard_types;
 
 pub mod error;
 pub use error::*;
+
+pub mod sys {
+  pub use windows_sys::Win32::UI::WindowsAndMessaging::*;
+  pub use windows_sys::Win32::Foundation::*;
+}

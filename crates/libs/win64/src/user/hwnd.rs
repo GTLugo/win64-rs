@@ -3,7 +3,7 @@ use std::{ffi::OsString, os::windows::ffi::OsStrExt};
 use dpi::{Position, Size};
 use thiserror::Error as ThisError;
 use windows_sys::Win32::{
-  Foundation::{ERROR_INVALID_PARAMETER, ERROR_MOD_NOT_FOUND},
+  Foundation::{ERROR_CANNOT_FIND_WND_CLASS, ERROR_INVALID_PARAMETER, ERROR_MOD_NOT_FOUND, ERROR_OUTOFMEMORY},
   UI::WindowsAndMessaging::{CW_USEDEFAULT, CreateWindowExW, IsWindow, ShowWindow},
 };
 
@@ -18,23 +18,6 @@ declare_handle!(
 );
 // #[deprecated]
 // pub type HWND = HWindow;
-
-#[derive(ThisError, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum CreateWindowError {
-  #[error(transparent)]
-  InvalidParameter(crate::Error),
-  #[error(transparent)]
-  InvalidModule(crate::Error),
-  #[error(transparent)]
-  InvalidClass(crate::Error),
-  #[error(transparent)]
-  OutOfMemory(crate::Error),
-  /*
-   ...etc
-  */
-  #[error(transparent)]
-  Other(crate::Error),
-}
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CreateWindowParams {
@@ -154,12 +137,31 @@ pub fn create_window(params: CreateWindowParams) -> Result<HWindow, CreateWindow
       let error = crate::Error::from_win32();
       match error {
         e if e == convert_error(ERROR_INVALID_PARAMETER) => Err(CreateWindowError::InvalidParameter(e)),
-        e if e == convert_error(ERROR_MOD_NOT_FOUND) => Err(CreateWindowError::InvalidModule(e)),
+        e if e == convert_error(ERROR_MOD_NOT_FOUND) => Err(CreateWindowError::ModuleNotFound(e)),
+        e if e == convert_error(ERROR_CANNOT_FIND_WND_CLASS) => Err(CreateWindowError::CannotFindWindowClass(e)),
+        e if e == convert_error(ERROR_OUTOFMEMORY) => Err(CreateWindowError::OutOfMemory(e)),
         _ => Err(CreateWindowError::Other(error)),
       }
     }
     false => Ok(unsafe { HWindow::from_raw(hwnd as usize) }),
   }
+}
+
+#[derive(ThisError, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CreateWindowError {
+  #[error(transparent)]
+  InvalidParameter(crate::Error),
+  #[error(transparent)]
+  ModuleNotFound(crate::Error),
+  #[error(transparent)]
+  CannotFindWindowClass(crate::Error),
+  #[error(transparent)]
+  OutOfMemory(crate::Error),
+  /*
+   ...etc
+  */
+  #[error(transparent)]
+  Other(crate::Error),
 }
 
 impl HWindow {

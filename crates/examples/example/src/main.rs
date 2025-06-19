@@ -1,4 +1,7 @@
-use win64::user::{Args, CreateWindowParams, create_window, message::Message};
+use win64::{
+  convert_error,
+  user::{Args, CreateWindowError, CreateWindowParams, create_window, message::Message},
+};
 
 fn main() -> anyhow::Result<()> {
   let args = Args::get();
