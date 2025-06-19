@@ -484,8 +484,8 @@ pub enum MessageId {
 }
 
 impl Message {
-  pub const KEYS: RangeInclusive<u32> = WindowsAndMessaging::WM_KEYFIRST..=WindowsAndMessaging::WM_KEYLAST;
-  pub const MOUSES: RangeInclusive<u32> = WindowsAndMessaging::WM_MOUSEFIRST..=WindowsAndMessaging::WM_MOUSELAST;
+  pub const KEY_MESSAGES: RangeInclusive<u32> = WindowsAndMessaging::WM_KEYFIRST..=WindowsAndMessaging::WM_KEYLAST;
+  pub const MOUSE_MESSAGES: RangeInclusive<u32> = WindowsAndMessaging::WM_MOUSEFIRST..=WindowsAndMessaging::WM_MOUSELAST;
 
   //   pub fn is_key(&self) -> bool {
   //     let id_range = self.discriminant().to_id_range();
