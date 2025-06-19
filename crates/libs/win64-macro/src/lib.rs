@@ -181,9 +181,16 @@ pub fn message(input: TokenStream) -> TokenStream {
       }
     }
 
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub enum Message {
       #( #message_variants )*
       #fallback_ident (u32, WParam, LParam),
+    }
+
+    impl Default for Message {
+      fn default() -> Self {
+        Self::Null
+      }
     }
 
     impl Message {
@@ -193,7 +200,7 @@ pub fn message(input: TokenStream) -> TokenStream {
           #ident::#fallback_ident(msg) => Self::#fallback_ident(msg, w, l),
         }
       }
-      
+
       pub const fn id(&self) -> #ident {
         match self {
           #( #to_id_arms )*

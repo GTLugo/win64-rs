@@ -15,7 +15,7 @@ pub struct LParam(pub isize);
 
 const REGISTERED_MESSAGES: u32 = 0xC000;
 
-#[derive(win64_macro::Message, Default, Debug, Clone, PartialEq, Eq)]
+#[derive(win64_macro::Message, Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MessageId {
   #[default]
   Null,
