@@ -5,7 +5,7 @@ fn main() -> anyhow::Result<()> {
   eprintln!("{args:#?}");
 
   eprintln!("HINSTANCE: {:?}", args.hinstance);
-  
+
   eprintln!("msg size: {}", size_of_val(&Message::default()));
 
   let hwnd = create_window(
