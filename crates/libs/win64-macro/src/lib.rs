@@ -102,7 +102,7 @@ pub fn message(input: TokenStream) -> TokenStream {
           Params { w: false, l: false } => quote! {},
           Params { w: false, l: true } => quote! { (_) },
           Params { w: true, l: false } => quote! { (_) },
-          Params { w: true, l: true } => quote! { (..) },
+          Params { w: true, l: true } => quote! { (_, _) },
         };
         quote! {
           Self::#variant_ident #params => #ident::#variant_ident,
@@ -113,12 +113,80 @@ pub fn message(input: TokenStream) -> TokenStream {
           Params { w: false, l: false } => quote! { (msg) },
           Params { w: false, l: true } => quote! { (msg, _) },
           Params { w: true, l: false } => quote! { (msg, _) },
-          Params { w: true, l: true } => quote! { (msg, ..) },
+          Params { w: true, l: true } => quote! { (msg, _, _) },
         };
         quote! {
           Self::#variant_ident #params => #ident::#variant_ident(*msg),
         }
       }
+    }
+  });
+
+  let w_arms = messages.variants.iter().map(|v| {
+    let variant_ident = &v.ident;
+    match v.fields.is_empty() {
+      true => match params_attr(v) {
+        Params { w: false, l: false } => quote! {
+          Self::#variant_ident => WParam(0),
+        },
+        Params { w: false, l: true } => quote! {
+          Self::#variant_ident(_) => WParam(0),
+        },
+        Params { w: true, l: false } => quote! {
+          Self::#variant_ident(w) => *w,
+        },
+        Params { w: true, l: true } => quote! {
+          Self::#variant_ident(w, _) => *w,
+        },
+      },
+      false => match params_attr(v) {
+        Params { w: false, l: false } => quote! {
+          Self::#variant_ident(_) => WParam(0),
+        },
+        Params { w: false, l: true } => quote! {
+          Self::#variant_ident(_, _) => WParam(0),
+        },
+        Params { w: true, l: false } => quote! {
+          Self::#variant_ident(_, w) => *w,
+        },
+        Params { w: true, l: true } => quote! {
+          Self::#variant_ident(_, w, _) => *w,
+        },
+      },
+    }
+  });
+
+  let l_arms = messages.variants.iter().map(|v| {
+    let variant_ident = &v.ident;
+    match v.fields.is_empty() {
+      true => match params_attr(v) {
+        Params { w: false, l: false } => quote! {
+          Self::#variant_ident => LParam(0),
+        },
+        Params { w: false, l: true } => quote! {
+          Self::#variant_ident(l) => *l,
+        },
+        Params { w: true, l: false } => quote! {
+          Self::#variant_ident(_) => LParam(0),
+        },
+        Params { w: true, l: true } => quote! {
+          Self::#variant_ident(_, l) => *l,
+        },
+      },
+      false => match params_attr(v) {
+        Params { w: false, l: false } => quote! {
+          Self::#variant_ident(_) => LParam(0),
+        },
+        Params { w: false, l: true } => quote! {
+          Self::#variant_ident(_, l) => *l,
+        },
+        Params { w: true, l: false } => quote! {
+          Self::#variant_ident(_, _) => LParam(0),
+        },
+        Params { w: true, l: true } => quote! {
+          Self::#variant_ident(_, _, l) => *l,
+        },
+      },
     }
   });
 
@@ -205,6 +273,20 @@ pub fn message(input: TokenStream) -> TokenStream {
         match self {
           #( #to_id_arms )*
           Self::#fallback_ident(msg, w, l) => #ident::#fallback_ident(*msg),
+        }
+      }
+
+      pub const fn w(&self) -> WParam {
+        match self {
+          #( #w_arms )*
+          Self::#fallback_ident(_, w, _) => *w,
+        }
+      }
+
+      pub const fn l(&self) -> LParam {
+        match self {
+          #( #l_arms )*
+          Self::#fallback_ident(_, _, l) => *l,
         }
       }
     }
