@@ -94,6 +94,34 @@ pub fn message(input: TokenStream) -> TokenStream {
     }
   });
 
+  let to_id_arms = messages.variants.iter().map(|v| {
+    let variant_ident = &v.ident;
+    match v.fields.is_empty() {
+      true => {
+        let params = match params_attr(v) {
+          Params { w: false, l: false } => quote! {},
+          Params { w: false, l: true } => quote! { (_) },
+          Params { w: true, l: false } => quote! { (_) },
+          Params { w: true, l: true } => quote! { (..) },
+        };
+        quote! {
+          Self::#variant_ident #params => #ident::#variant_ident,
+        }
+      }
+      false => {
+        let params = match params_attr(v) {
+          Params { w: false, l: false } => quote! { (msg) },
+          Params { w: false, l: true } => quote! { (msg, _) },
+          Params { w: true, l: false } => quote! { (msg, _) },
+          Params { w: true, l: true } => quote! { (msg, ..) },
+        };
+        quote! {
+          Self::#variant_ident #params => #ident::#variant_ident(*msg),
+        }
+      }
+    }
+  });
+
   let message_variants = messages.variants.iter().map(|v| {
     let variant_ident = &v.ident;
     let params = match v.fields.is_empty() {
@@ -115,7 +143,7 @@ pub fn message(input: TokenStream) -> TokenStream {
     }
   });
 
-  let id_arms = messages.variants.iter().map(|v| {
+  let new_arms = messages.variants.iter().map(|v| {
     let variant_ident = &v.ident;
     match v.fields.is_empty() {
       true => {
@@ -161,8 +189,15 @@ pub fn message(input: TokenStream) -> TokenStream {
     impl Message {
       pub fn new(msg: u32, w: WParam, l: LParam) -> Self {
         match #ident::from(msg) {
-          #( #id_arms )*
+          #( #new_arms )*
           #ident::#fallback_ident(msg) => Self::#fallback_ident(msg, w, l),
+        }
+      }
+      
+      pub const fn id(&self) -> #ident {
+        match self {
+          #( #to_id_arms )*
+          Self::#fallback_ident(msg, w, l) => #ident::#fallback_ident(*msg),
         }
       }
     }
