@@ -11,6 +11,12 @@
 pub mod window;
 
 // Should the need arise for extensions, newtypes should be favored over ext traits.
+pub use windows_result::Error;
 pub use windows_result::HRESULT as HResult;
-pub use windows_result::Error as Error;
 
+use windows_sys::Win32::Foundation::WIN32_ERROR;
+
+#[inline]
+pub fn convert_error(error: WIN32_ERROR) -> Error {
+  crate::Error::from_hresult(crate::HResult::from_win32(error))
+}

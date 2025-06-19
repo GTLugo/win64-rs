@@ -1,4 +1,3 @@
-use win64_macro::Message;
 use windows_sys::Win32::UI::WindowsAndMessaging;
 
 pub mod data;
@@ -6,33 +5,43 @@ pub mod data;
 // pub mod pump;
 // pub mod thread;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WParam(pub usize);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LParam(pub isize);
 
-#[derive(Message, Debug, Clone, PartialEq, Eq)]
+const REGISTERED_MESSAGES: u32 = 0xC000;
+
+#[derive(win64_macro::Message, Default, Debug, Clone, PartialEq, Eq)]
 pub enum MessageId {
+  #[default]
   Null,
-  Reserved(u32), // Special hard-coded variant for uncategorized Messages
-  #[id(0xC000..=0xFFFF)]
+  #[fallback]
   #[params(w, l)]
   Other(u32),
   #[id(WindowsAndMessaging::WM_USER..WindowsAndMessaging::WM_APP)]
   #[params(w, l)]
   User(u32),
-  #[id(WindowsAndMessaging::WM_APP..=0xBFFF)]
+  #[id(WindowsAndMessaging::WM_APP..REGISTERED_MESSAGES)]
   #[params(w, l)]
   App(u32),
+  #[id(REGISTERED_MESSAGES..=0xFFFF)]
+  #[params(w, l)]
+  Registered(u32),
+  #[params(w, l)]
   Activate,
+  #[params(w, l)]
   ActivateApp,
   AfxFirst,
   AfxLast,
+  #[params(w, l)]
   AppCommand,
+  #[params(w, l)]
   AskCbFormatName,
   CancelJournal,
   CancelMode,
+  #[params(l)]
   CaptureChanged,
   ChangeCbChain,
   ChangeUiState,

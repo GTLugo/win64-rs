@@ -4,8 +4,9 @@ use windows_sys::Win32::{
   Foundation::{ERROR_INVALID_PARAMETER, ERROR_MOD_NOT_FOUND},
   UI::WindowsAndMessaging::{CreateWindowExW, IsWindow, ShowWindow},
 };
+use thiserror::Error as ThisError;
 
-use crate::{Handle, declare_handle};
+use crate::{convert_error, declare_handle, Handle};
 
 use super::HInstance;
 
@@ -14,24 +15,24 @@ declare_handle!(
   alias = "HWND",
   doc = "https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#hwnd"
 );
+// #[deprecated]
+// pub type HWND = HWindow;
 
-// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-// pub struct CreateWindowInfo {}
-
-#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(ThisError, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CreateWindowError {
   #[error(transparent)]
   InvalidParameter(crate::Error),
   #[error(transparent)]
-  ModuleNotFound(crate::Error),
+  InvalidModule(crate::Error),
   #[error(transparent)]
-  WHCBTHookFailure(crate::Error),
+  InvalidClass(crate::Error),
   #[error(transparent)]
-  WindowProcFailure(crate::Error),
+  OutOfMemory(crate::Error),
+  /*
+    ...etc
+   */
   #[error(transparent)]
-  ControlsNotRegistered(crate::Error),
-  #[error(transparent)]
-  Uncommon(crate::Error),
+  Other(crate::Error),
 }
 
 /*
@@ -85,14 +86,13 @@ pub fn create_window(
     true => {
       let error = crate::Error::from_win32();
       match error {
-        e if e == crate::Error::from_hresult(crate::HResult::from_win32(ERROR_INVALID_PARAMETER)) => {
+        e if e == convert_error(ERROR_INVALID_PARAMETER) => {
           Err(CreateWindowError::InvalidParameter(e))
         }
-        e if e == crate::Error::from_hresult(crate::HResult::from_win32(ERROR_MOD_NOT_FOUND)) => {
-          Err(CreateWindowError::ModuleNotFound(e))
+        e if e == convert_error(ERROR_MOD_NOT_FOUND) => {
+          Err(CreateWindowError::InvalidModule(e))
         }
-        error => Err(CreateWindowError::Uncommon(error)),
-        _ => todo!(),
+        _ => Err(CreateWindowError::Other(error)),
       }
     }
     false => Ok(unsafe { HWindow::from_raw(hwnd as usize) }),
