@@ -485,27 +485,28 @@ pub enum MessageId {
 
 impl Message {
   pub const KEY_MESSAGES: RangeInclusive<u32> = WindowsAndMessaging::WM_KEYFIRST..=WindowsAndMessaging::WM_KEYLAST;
-  pub const MOUSE_MESSAGES: RangeInclusive<u32> = WindowsAndMessaging::WM_MOUSEFIRST..=WindowsAndMessaging::WM_MOUSELAST;
+  pub const MOUSE_MESSAGES: RangeInclusive<u32> =
+    WindowsAndMessaging::WM_MOUSEFIRST..=WindowsAndMessaging::WM_MOUSELAST;
 
-  //   pub fn is_key(&self) -> bool {
-  //     let id_range = self.discriminant().to_id_range();
-  //     Self::KEYS.start() <= id_range.end() && id_range.start() <= Self::KEYS.end()
-  //   }
+  // pub fn is_key(&self) -> bool {
+  //   let id_range = self.discriminant().to_id_range();
+  //   Self::KEYS.start() <= id_range.end() && id_range.start() <= Self::KEYS.end()
+  // }
 
-  //   pub fn is_mouse(&self) -> bool {
-  //     let id_range = self.discriminant().to_id_range();
-  //     Self::MOUSES.start() <= id_range.end() && id_range.start() <= Self::MOUSES.end()
-  //   }
+  // pub fn is_mouse(&self) -> bool {
+  //   let id_range = self.discriminant().to_id_range();
+  //   Self::MOUSES.start() <= id_range.end() && id_range.start() <= Self::MOUSES.end()
+  // }
 
-  //   // pub const fn is_key(&self) -> bool {
-  //   //   self.id().is_key()
-  //   // }
+  // pub const fn is_key(&self) -> bool {
+  //   self.id().is_key()
+  // }
 
-  //   // pub const fn is_mouse(&self) -> bool {
-  //   //   self.id().is_mouse()
-  //   // }
+  // pub const fn is_mouse(&self) -> bool {
+  //   self.id().is_mouse()
+  // }
 
-  //   pub const fn quit_requested(&self) -> bool {
-  //     matches!(self, Message::Destroy)
-  //   }
+  // pub const fn quit_requested(&self) -> bool {
+  //   matches!(self, Message::Destroy)
+  // }
 }
