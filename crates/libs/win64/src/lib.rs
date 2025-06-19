@@ -7,7 +7,7 @@
 //! * Long parameter lists -> Structs
 //! 
 //! The goal is to keep the same general API as Win32. This allows users to keep using regular guides
-//!  and docs with minimal resistance while also benefitting from strong type-checking and clearer APIs.
+//! and docs with minimal resistance while also benefitting from strong type-checking and clearer APIs.
 //! 
 
 pub mod core;
