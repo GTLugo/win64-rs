@@ -127,6 +127,25 @@ fn to_id(ident: &Ident, variants: &Variants) -> Vec<proc_macro2::TokenStream> {
     .collect()
 }
 
+fn to_raw(variants: &Variants) -> Vec<proc_macro2::TokenStream> {
+  variants
+    .regular
+    .iter()
+    .map(|v| {
+      let variant_ident = &v.ident;
+      let wm = id_attr(v);
+      match v.fields.is_empty() {
+        true => quote! {
+          Self::#variant_ident => #wm,
+        },
+        false => quote! {
+          Self::#variant_ident(id) => *id,
+        },
+      }
+    })
+    .collect()
+}
+
 fn w(variants: &Variants) -> Vec<proc_macro2::TokenStream> {
   variants
     .regular
@@ -274,6 +293,7 @@ pub fn message(input: TokenStream) -> TokenStream {
   let variants = Variants::from_variants(variants);
 
   let fallback_ident = &variants.fallback.ident;
+  let to_raw_arms = to_raw(&variants);
   let from_u32_arms = from_u32(&variants);
   let message_variants = message_variants(&variants);
   let new_arms = new(&ident, &variants);
@@ -282,6 +302,15 @@ pub fn message(input: TokenStream) -> TokenStream {
   let l_arms = l(&variants);
 
   let output = quote! {
+    impl #ident {
+      pub const fn to_raw(&self) -> u32 {
+        match self {
+          #( #to_raw_arms )*
+          Self::#fallback_ident(id) => *id,
+        }
+      }
+    }
+
     impl From<u32> for #ident {
       fn from(msg: u32) -> Self {
         match msg {

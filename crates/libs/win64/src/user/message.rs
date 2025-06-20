@@ -13,7 +13,8 @@ pub struct WParam(pub usize);
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LParam(pub isize);
 
-const REGISTERED_MESSAGES: u32 = 0xC000;
+const REGISTERED_MESSAGES_LOWER: u32 = 0xC000;
+const REGISTERED_MESSAGES_UPPER: u32 = 0xFFFF;
 
 #[derive(win64_macro::Message, Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MessageId {
@@ -26,10 +27,10 @@ pub enum MessageId {
   #[id(WindowsAndMessaging::WM_USER..WindowsAndMessaging::WM_APP)]
   #[params(w, l)]
   User(u32),
-  #[id(WindowsAndMessaging::WM_APP..REGISTERED_MESSAGES)]
+  #[id(WindowsAndMessaging::WM_APP..REGISTERED_MESSAGES_LOWER)]
   #[params(w, l)]
   App(u32),
-  #[id(REGISTERED_MESSAGES..=0xFFFF)]
+  #[id(REGISTERED_MESSAGES_LOWER..=REGISTERED_MESSAGES_UPPER)]
   #[params(w, l)]
   Registered(u32),
   #[params(w, l)]
@@ -488,25 +489,17 @@ impl Message {
   pub const MOUSE_MESSAGES: RangeInclusive<u32> =
     WindowsAndMessaging::WM_MOUSEFIRST..=WindowsAndMessaging::WM_MOUSELAST;
 
-  // pub fn is_key(&self) -> bool {
-  //   let id_range = self.discriminant().to_id_range();
-  //   Self::KEYS.start() <= id_range.end() && id_range.start() <= Self::KEYS.end()
-  // }
+  #[inline]
+  pub fn is_key(&self) -> bool {
+    Self::KEY_MESSAGES.contains(&self.id().to_raw())
+  }
 
-  // pub fn is_mouse(&self) -> bool {
-  //   let id_range = self.discriminant().to_id_range();
-  //   Self::MOUSES.start() <= id_range.end() && id_range.start() <= Self::MOUSES.end()
-  // }
+  #[inline]
+  pub fn is_mouse(&self) -> bool {
+    Self::MOUSE_MESSAGES.contains(&self.id().to_raw())
+  }
 
-  // pub const fn is_key(&self) -> bool {
-  //   self.id().is_key()
-  // }
-
-  // pub const fn is_mouse(&self) -> bool {
-  //   self.id().is_mouse()
-  // }
-
-  // pub const fn quit_requested(&self) -> bool {
-  //   matches!(self, Message::Destroy)
-  // }
+  pub const fn quit_requested(&self) -> bool {
+    matches!(self, Message::Destroy)
+  }
 }
