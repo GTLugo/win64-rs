@@ -4,12 +4,12 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::{Expr, Ident, ItemEnum, Token, Variant, parse_macro_input, punctuated::Punctuated};
 
-struct Messages {
-  variants: Vec<Variant>,
+struct Variants {
+  regular: Vec<Variant>,
   fallback: Variant,
 }
 
-impl Messages {
+impl Variants {
   fn from_variants(variants: Punctuated<Variant, Token![,]>) -> Self {
     let fallback = variants
       .iter()
@@ -22,7 +22,7 @@ impl Messages {
       .collect();
 
     Self {
-      variants: normal,
+      regular: normal,
       fallback,
     }
   }
@@ -74,176 +74,218 @@ fn params_attr(variant: &Variant) -> Params {
   params
 }
 
+fn from_u32(variants: &Variants) -> Vec<proc_macro2::TokenStream> {
+  variants
+    .regular
+    .iter()
+    .map(|v| {
+      let variant_ident = &v.ident;
+      let wm = id_attr(v);
+      match v.fields.is_empty() {
+        true => quote! {
+          #wm => Self::#variant_ident,
+        },
+        false => quote! {
+          #wm => Self::#variant_ident(msg),
+        },
+      }
+    })
+    .collect()
+}
+
+fn to_id(ident: &Ident, variants: &Variants) -> Vec<proc_macro2::TokenStream> {
+  variants
+    .regular
+    .iter()
+    .map(|v| {
+      let variant_ident = &v.ident;
+      match v.fields.is_empty() {
+        true => {
+          let params = match params_attr(v) {
+            Params { w: false, l: false } => quote! {},
+            Params { w: false, l: true } => quote! { (_) },
+            Params { w: true, l: false } => quote! { (_) },
+            Params { w: true, l: true } => quote! { (_, _) },
+          };
+          quote! {
+            Self::#variant_ident #params => #ident::#variant_ident,
+          }
+        }
+        false => {
+          let params = match params_attr(v) {
+            Params { w: false, l: false } => quote! { (msg) },
+            Params { w: false, l: true } => quote! { (msg, _) },
+            Params { w: true, l: false } => quote! { (msg, _) },
+            Params { w: true, l: true } => quote! { (msg, _, _) },
+          };
+          quote! {
+            Self::#variant_ident #params => #ident::#variant_ident(*msg),
+          }
+        }
+      }
+    })
+    .collect()
+}
+
+fn w(variants: &Variants) -> Vec<proc_macro2::TokenStream> {
+  variants
+    .regular
+    .iter()
+    .map(|v| {
+      let variant_ident = &v.ident;
+      match v.fields.is_empty() {
+        true => match params_attr(v) {
+          Params { w: false, l: false } => quote! {
+            Self::#variant_ident => WParam(0),
+          },
+          Params { w: false, l: true } => quote! {
+            Self::#variant_ident(_) => WParam(0),
+          },
+          Params { w: true, l: false } => quote! {
+            Self::#variant_ident(w) => *w,
+          },
+          Params { w: true, l: true } => quote! {
+            Self::#variant_ident(w, _) => *w,
+          },
+        },
+        false => match params_attr(v) {
+          Params { w: false, l: false } => quote! {
+            Self::#variant_ident(_) => WParam(0),
+          },
+          Params { w: false, l: true } => quote! {
+            Self::#variant_ident(_, _) => WParam(0),
+          },
+          Params { w: true, l: false } => quote! {
+            Self::#variant_ident(_, w) => *w,
+          },
+          Params { w: true, l: true } => quote! {
+            Self::#variant_ident(_, w, _) => *w,
+          },
+        },
+      }
+    })
+    .collect()
+}
+
+fn l(variants: &Variants) -> Vec<proc_macro2::TokenStream> {
+  variants
+    .regular
+    .iter()
+    .map(|v| {
+      let variant_ident = &v.ident;
+      match v.fields.is_empty() {
+        true => match params_attr(v) {
+          Params { w: false, l: false } => quote! {
+            Self::#variant_ident => LParam(0),
+          },
+          Params { w: false, l: true } => quote! {
+            Self::#variant_ident(l) => *l,
+          },
+          Params { w: true, l: false } => quote! {
+            Self::#variant_ident(_) => LParam(0),
+          },
+          Params { w: true, l: true } => quote! {
+            Self::#variant_ident(_, l) => *l,
+          },
+        },
+        false => match params_attr(v) {
+          Params { w: false, l: false } => quote! {
+            Self::#variant_ident(_) => LParam(0),
+          },
+          Params { w: false, l: true } => quote! {
+            Self::#variant_ident(_, l) => *l,
+          },
+          Params { w: true, l: false } => quote! {
+            Self::#variant_ident(_, _) => LParam(0),
+          },
+          Params { w: true, l: true } => quote! {
+            Self::#variant_ident(_, _, l) => *l,
+          },
+        },
+      }
+    })
+    .collect()
+}
+
+fn message_variants(variants: &Variants) -> Vec<proc_macro2::TokenStream> {
+  variants
+    .regular
+    .iter()
+    .map(|v| {
+      let variant_ident = &v.ident;
+      let params = match v.fields.is_empty() {
+        true => match params_attr(v) {
+          Params { w: false, l: false } => quote! {},
+          Params { w: false, l: true } => quote! { (LParam) },
+          Params { w: true, l: false } => quote! { (WParam) },
+          Params { w: true, l: true } => quote! { (WParam, LParam) },
+        },
+        false => match params_attr(v) {
+          Params { w: false, l: false } => quote! { (u32) },
+          Params { w: false, l: true } => quote! { (u32, LParam) },
+          Params { w: true, l: false } => quote! { (u32, WParam) },
+          Params { w: true, l: true } => quote! { (u32, WParam, LParam) },
+        },
+      };
+      quote! {
+        #variant_ident #params,
+      }
+    })
+    .collect()
+}
+
+fn new(ident: &Ident, variants: &Variants) -> Vec<proc_macro2::TokenStream> {
+  variants
+    .regular
+    .iter()
+    .map(|v| {
+      let variant_ident = &v.ident;
+      match v.fields.is_empty() {
+        true => {
+          let params = match params_attr(v) {
+            Params { w: false, l: false } => quote! {},
+            Params { w: false, l: true } => quote! { (l) },
+            Params { w: true, l: false } => quote! { (w) },
+            Params { w: true, l: true } => quote! { (w, l) },
+          };
+          quote! {
+            #ident::#variant_ident => Self::#variant_ident #params,
+          }
+        }
+        false => {
+          let params = match params_attr(v) {
+            Params { w: false, l: false } => quote! { (msg) },
+            Params { w: false, l: true } => quote! { (msg, l) },
+            Params { w: true, l: false } => quote! { (msg, w) },
+            Params { w: true, l: true } => quote! { (msg, w, l) },
+          };
+          quote! {
+            #ident::#variant_ident(msg) => Self::#variant_ident #params,
+          }
+        }
+      }
+    })
+    .collect()
+}
+
 #[proc_macro_derive(Message, attributes(id, params, fallback))]
 pub fn message(input: TokenStream) -> TokenStream {
   let ItemEnum { ident, variants, .. } = parse_macro_input!(input as ItemEnum);
-  let messages = Messages::from_variants(variants);
+  let variants = Variants::from_variants(variants);
 
-  let fallback_ident = &messages.fallback.ident;
-
-  let from_arms = messages.variants.iter().map(|v| {
-    let variant_ident = &v.ident;
-    let wm = id_attr(v);
-    match v.fields.is_empty() {
-      true => quote! {
-        #wm => Self::#variant_ident,
-      },
-      false => quote! {
-        #wm => Self::#variant_ident(msg),
-      },
-    }
-  });
-
-  let to_id_arms = messages.variants.iter().map(|v| {
-    let variant_ident = &v.ident;
-    match v.fields.is_empty() {
-      true => {
-        let params = match params_attr(v) {
-          Params { w: false, l: false } => quote! {},
-          Params { w: false, l: true } => quote! { (_) },
-          Params { w: true, l: false } => quote! { (_) },
-          Params { w: true, l: true } => quote! { (_, _) },
-        };
-        quote! {
-          Self::#variant_ident #params => #ident::#variant_ident,
-        }
-      }
-      false => {
-        let params = match params_attr(v) {
-          Params { w: false, l: false } => quote! { (msg) },
-          Params { w: false, l: true } => quote! { (msg, _) },
-          Params { w: true, l: false } => quote! { (msg, _) },
-          Params { w: true, l: true } => quote! { (msg, _, _) },
-        };
-        quote! {
-          Self::#variant_ident #params => #ident::#variant_ident(*msg),
-        }
-      }
-    }
-  });
-
-  let w_arms = messages.variants.iter().map(|v| {
-    let variant_ident = &v.ident;
-    match v.fields.is_empty() {
-      true => match params_attr(v) {
-        Params { w: false, l: false } => quote! {
-          Self::#variant_ident => WParam(0),
-        },
-        Params { w: false, l: true } => quote! {
-          Self::#variant_ident(_) => WParam(0),
-        },
-        Params { w: true, l: false } => quote! {
-          Self::#variant_ident(w) => *w,
-        },
-        Params { w: true, l: true } => quote! {
-          Self::#variant_ident(w, _) => *w,
-        },
-      },
-      false => match params_attr(v) {
-        Params { w: false, l: false } => quote! {
-          Self::#variant_ident(_) => WParam(0),
-        },
-        Params { w: false, l: true } => quote! {
-          Self::#variant_ident(_, _) => WParam(0),
-        },
-        Params { w: true, l: false } => quote! {
-          Self::#variant_ident(_, w) => *w,
-        },
-        Params { w: true, l: true } => quote! {
-          Self::#variant_ident(_, w, _) => *w,
-        },
-      },
-    }
-  });
-
-  let l_arms = messages.variants.iter().map(|v| {
-    let variant_ident = &v.ident;
-    match v.fields.is_empty() {
-      true => match params_attr(v) {
-        Params { w: false, l: false } => quote! {
-          Self::#variant_ident => LParam(0),
-        },
-        Params { w: false, l: true } => quote! {
-          Self::#variant_ident(l) => *l,
-        },
-        Params { w: true, l: false } => quote! {
-          Self::#variant_ident(_) => LParam(0),
-        },
-        Params { w: true, l: true } => quote! {
-          Self::#variant_ident(_, l) => *l,
-        },
-      },
-      false => match params_attr(v) {
-        Params { w: false, l: false } => quote! {
-          Self::#variant_ident(_) => LParam(0),
-        },
-        Params { w: false, l: true } => quote! {
-          Self::#variant_ident(_, l) => *l,
-        },
-        Params { w: true, l: false } => quote! {
-          Self::#variant_ident(_, _) => LParam(0),
-        },
-        Params { w: true, l: true } => quote! {
-          Self::#variant_ident(_, _, l) => *l,
-        },
-      },
-    }
-  });
-
-  let message_variants = messages.variants.iter().map(|v| {
-    let variant_ident = &v.ident;
-    let params = match v.fields.is_empty() {
-      true => match params_attr(v) {
-        Params { w: false, l: false } => quote! {},
-        Params { w: false, l: true } => quote! { (LParam) },
-        Params { w: true, l: false } => quote! { (WParam) },
-        Params { w: true, l: true } => quote! { (WParam, LParam) },
-      },
-      false => match params_attr(v) {
-        Params { w: false, l: false } => quote! { (u32) },
-        Params { w: false, l: true } => quote! { (u32, LParam) },
-        Params { w: true, l: false } => quote! { (u32, WParam) },
-        Params { w: true, l: true } => quote! { (u32, WParam, LParam) },
-      },
-    };
-    quote! {
-      #variant_ident #params,
-    }
-  });
-
-  let new_arms = messages.variants.iter().map(|v| {
-    let variant_ident = &v.ident;
-    match v.fields.is_empty() {
-      true => {
-        let params = match params_attr(v) {
-          Params { w: false, l: false } => quote! {},
-          Params { w: false, l: true } => quote! { (l) },
-          Params { w: true, l: false } => quote! { (w) },
-          Params { w: true, l: true } => quote! { (w, l) },
-        };
-        quote! {
-          #ident::#variant_ident => Self::#variant_ident #params,
-        }
-      }
-      false => {
-        let params = match params_attr(v) {
-          Params { w: false, l: false } => quote! { (msg) },
-          Params { w: false, l: true } => quote! { (msg, l) },
-          Params { w: true, l: false } => quote! { (msg, w) },
-          Params { w: true, l: true } => quote! { (msg, w, l) },
-        };
-        quote! {
-          #ident::#variant_ident(msg) => Self::#variant_ident #params,
-        }
-      }
-    }
-  });
+  let fallback_ident = &variants.fallback.ident;
+  let from_u32_arms = from_u32(&variants);
+  let message_variants = message_variants(&variants);
+  let new_arms = new(&ident, &variants);
+  let to_id_arms = to_id(&ident, &variants);
+  let w_arms = w(&variants);
+  let l_arms = l(&variants);
 
   let output = quote! {
     impl From<u32> for #ident {
       fn from(msg: u32) -> Self {
         match msg {
-          #( #from_arms )*
+          #( #from_u32_arms )*
           id => Self::#fallback_ident(id),
         }
       }
