@@ -1,3 +1,14 @@
+pub mod experimental {
+  use std::sync::Arc;
+
+  pub type Handle<T> = Arc<T>;
+
+  pub enum Handle1<T> {
+    Valid(T),
+    Invalid,
+  }
+}
+
 pub trait Handle {
   /// # Safety
   /// Reading directly from raw pointers should be handled carefully and validation performed.
