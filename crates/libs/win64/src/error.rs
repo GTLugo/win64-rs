@@ -20,3 +20,8 @@ use windows_sys::Win32::Foundation::WIN32_ERROR;
 pub fn convert_error(error: WIN32_ERROR) -> Error {
   crate::Error::from_hresult(crate::HResult::from_win32(error))
 }
+
+#[inline]
+pub fn get_last_error() -> Error {
+  Error::from_win32()
+}

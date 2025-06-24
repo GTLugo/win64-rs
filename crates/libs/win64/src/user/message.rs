@@ -1,11 +1,14 @@
 use std::ops::RangeInclusive;
 
-use windows_sys::Win32::UI::WindowsAndMessaging;
+use windows_result::Error;
+use windows_sys::Win32::UI::WindowsAndMessaging::{self, GetMessageW, MSG, PeekMessageW};
+
+use crate::{Handle, get_last_error};
+
+use super::{HWindow, PeekMessageFlags, Point};
 
 pub mod data;
-// pub mod id;
 // pub mod pump;
-// pub mod thread;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WParam(pub usize);
@@ -16,7 +19,7 @@ pub struct LParam(pub isize);
 const REGISTERED_MESSAGES_LOWER: u32 = 0xC000;
 const REGISTERED_MESSAGES_UPPER: u32 = 0xFFFF;
 
-#[derive(win64_macro::Message, Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(win64_macro::Message, Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MessageId {
   #[default]
   Null,
@@ -499,7 +502,141 @@ impl Message {
     Self::MOUSE_MESSAGES.contains(&self.id().to_raw())
   }
 
+  #[inline]
   pub const fn quit_requested(&self) -> bool {
     matches!(self, Message::Destroy)
+  }
+
+  #[inline]
+  pub fn get(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -> Result<Msg, Error> {
+    get_message(hwnd, filter)
+  }
+
+  #[inline]
+  pub fn peek(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>, flags: PeekMessageFlags) -> Option<Msg> {
+    peek_message(hwnd, filter, flags)
+  }
+}
+
+// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+// pub enum GetMessageResult {
+//   Message {
+//     message: Message,
+//     hwnd: HWindow,
+//     time: u32,
+//     point: Point,
+//   },
+//   Quit(i32),
+//   Error(Error),
+// }
+
+// impl GetMessageResult {
+//   pub fn ok(self) -> Result<Msg, Error> {
+//     match self {
+//       GetMessageResult::Message {
+//         message,
+//         hwnd,
+//         time,
+//         point,
+//       } => Ok(Msg::Next {
+//         message,
+//         hwnd,
+//         time,
+//         point,
+//       }),
+//       GetMessageResult::Quit(code) => Ok(Msg::Quit(code)),
+//       GetMessageResult::Error(error) => Err(error),
+//     }
+//   }
+
+//   pub fn is_ok(&self) -> bool {
+//     matches!(self, GetMessageResult::Message { .. } | GetMessageResult::Quit(..))
+//   }
+// }
+
+// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+// pub enum PeekMessageResult {
+//   Message {
+//     message: Message,
+//     hwnd: HWindow,
+//     time: u32,
+//     point: Point,
+//   },
+//   Quit(i32),
+//   None,
+// }
+
+// impl PeekMessageResult {
+//   pub fn some(self) -> Option<Msg> {
+//     match self {
+//       PeekMessageResult::Message {
+//         message,
+//         hwnd,
+//         time,
+//         point,
+//       } => Some(Msg::Next {
+//         message,
+//         hwnd,
+//         time,
+//         point,
+//       }),
+//       PeekMessageResult::Quit(code) => Some(Msg::Quit(code)),
+//       PeekMessageResult::None => None,
+//     }
+//   }
+
+//   pub fn is_some(&self) -> bool {
+//     matches!(self, PeekMessageResult::Message { .. } | PeekMessageResult::Quit(..))
+//   }
+// }
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Msg {
+  Message {
+    message: Message,
+    hwnd: HWindow,
+    time: u32,
+    point: Point,
+  },
+  Quit(i32),
+}
+
+pub fn get_message(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -> Result<Msg, Error> {
+  let (min, max) = filter.map(RangeInclusive::into_inner).unwrap_or_default();
+  let mut msg = MSG::default();
+  let result = unsafe { GetMessageW(&mut msg, hwnd.unwrap_or_default().to_ptr(), min, max) };
+  // WM_QUIT sends return value of zero, causing BOOL to be false. This is still valid though.
+  // Only -1 is actually an error.
+  match result {
+    0 => Ok(Msg::Quit(msg.wParam as _)),
+    -1 => Err(get_last_error()),
+    _ => Ok(Msg::Message {
+      message: Message::new(msg.message, WParam(msg.wParam), LParam(msg.lParam)),
+      hwnd: unsafe { HWindow::from_ptr(msg.hwnd) },
+      time: msg.time,
+      point: Point::from(msg.pt),
+    }),
+  }
+}
+
+pub fn peek_message(
+  hwnd: Option<HWindow>,
+  filter: Option<RangeInclusive<u32>>,
+  flags: PeekMessageFlags,
+) -> Option<Msg> {
+  let (min, max) = filter.map(RangeInclusive::into_inner).unwrap_or_default();
+  let mut msg = MSG::default();
+  let result = unsafe { PeekMessageW(&mut msg, hwnd.unwrap_or_default().to_ptr(), min, max, flags.to_raw()) };
+  // If a message is available, the return value is nonzero.
+  // If no messages are available, the return value is zero.
+  match (result != 0, msg.message) {
+    (true, WindowsAndMessaging::WM_QUIT) => Some(Msg::Quit(msg.wParam as _)),
+    (true, _) => Some(Msg::Message {
+      message: Message::new(msg.message, WParam(msg.wParam), LParam(msg.lParam)),
+      hwnd: unsafe { HWindow::from_ptr(msg.hwnd) },
+      time: msg.time,
+      point: Point::from(msg.pt),
+    }),
+    (false, _) => None,
   }
 }

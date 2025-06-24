@@ -1,1 +1,3 @@
-pub struct WindowClass {}
+pub struct WindowClass {
+  
+}

@@ -14,8 +14,13 @@ pub trait Handle {
   /// Reading directly from raw pointers should be handled carefully and validation performed.
   ///
   unsafe fn from_raw(raw: usize) -> Self;
+  /// # Safety
+  /// Reading directly from raw pointers should be handled carefully and validation performed.
+  ///
+  unsafe fn from_ptr(raw: *mut std::ffi::c_void) -> Self;
 
   fn to_raw(self) -> usize;
+  fn to_ptr(self) -> *mut std::ffi::c_void;
 }
 
 // Adapted from ash https://docs.rs/ash/latest/src/ash/vk/macros.rs.html#121-162
@@ -74,8 +79,14 @@ macro_rules! declare_handle_body {
       unsafe fn from_raw(raw: usize) -> Self {
         Self(raw as _)
       }
+      unsafe fn from_ptr(raw: *mut std::ffi::c_void) -> Self {
+        Self(raw.cast())
+      }
       fn to_raw(self) -> usize {
         self.0 as _
+      }
+      fn to_ptr(self) -> *mut std::ffi::c_void {
+        self.0.cast()
       }
     }
     unsafe impl Send for $name {}

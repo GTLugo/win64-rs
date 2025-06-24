@@ -1,15 +1,14 @@
 use std::{ffi::OsString, os::windows::ffi::OsStrExt};
 
 use dpi::{Position, Size};
-use thiserror::Error as ThisError;
-use windows_sys::Win32::{
-  Foundation::{ERROR_CANNOT_FIND_WND_CLASS, ERROR_INVALID_PARAMETER, ERROR_MOD_NOT_FOUND, ERROR_OUTOFMEMORY},
-  UI::WindowsAndMessaging::{CW_USEDEFAULT, CreateWindowExW, IsWindow, ShowWindow},
-};
+use windows_result::Error;
+use windows_sys::Win32::
+  UI::WindowsAndMessaging::{CW_USEDEFAULT, CreateWindowExW, IsWindow, ShowWindow}
+;
 
-use crate::{Handle, convert_error, declare_handle};
+use crate::{Handle, declare_handle, get_last_error};
 
-use super::HInstance;
+use super::{ExtendedWindowStyle, HInstance, WindowStyle};
 
 declare_handle!(
   HWindow,
@@ -21,20 +20,20 @@ declare_handle!(
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CreateWindowParams {
-  pub ex_style: u32,
+  pub ex_style: ExtendedWindowStyle,
   pub class_name: OsString,
   pub window_name: OsString,
-  pub style: u32,
+  pub style: WindowStyle,
   pub position: (Option<i32>, Option<i32>),
   pub size: (Option<i32>, Option<i32>),
   pub parent: Option<HWindow>,
   pub menu: Option<()>,
   pub instance: Option<HInstance>,
-  pub void: Option<()>,
+  // pub void: Option<()>,
 }
 
 impl CreateWindowParams {
-  pub fn ex_style(mut self, ex_style: u32) -> Self {
+  pub fn ex_style(mut self, ex_style: ExtendedWindowStyle) -> Self {
     self.ex_style = ex_style;
     self
   }
@@ -73,7 +72,7 @@ impl CreateWindowParams {
     self
   }
 
-  pub fn style(mut self, style: u32) -> Self {
+  pub fn style(mut self, style: WindowStyle) -> Self {
     self.style = style;
     self
   }
@@ -93,22 +92,22 @@ impl CreateWindowParams {
     self
   }
 
-  pub fn void(mut self, void: Option<()>) -> Self {
-    self.void = void;
-    self
-  }
+  // pub fn void(mut self, void: Option<()>) -> Self {
+  //   self.void = void;
+  //   self
+  // }
 }
 
 #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw"]
-pub fn create_window(params: CreateWindowParams) -> Result<HWindow, CreateWindowError> {
+pub fn create_window(params: CreateWindowParams) -> Result<HWindow, Error> {
   let class_name: Vec<u16> = params.class_name.encode_wide().collect();
   let window_name: Vec<u16> = params.window_name.encode_wide().collect();
   let hwnd = unsafe {
     CreateWindowExW(
-      params.ex_style,
+      params.ex_style.to_raw(),
       class_name.as_ptr(),
       window_name.as_ptr(),
-      params.style,
+      params.style.to_raw(),
       params.position.0.unwrap_or(CW_USEDEFAULT),
       params.position.1.unwrap_or(CW_USEDEFAULT),
       params.size.0.unwrap_or(CW_USEDEFAULT),
@@ -125,49 +124,45 @@ pub fn create_window(params: CreateWindowParams) -> Result<HWindow, CreateWindow
         Some(i) => i.to_raw() as _,
         None => HInstance::null().to_raw() as _,
       },
-      match params.void {
-        Some(_v) => todo!(),
-        None => std::ptr::null(),
-      },
+      std::ptr::null(),
     )
   };
 
+  // match error {
+  //   e if e == convert_error(ERROR_INVALID_PARAMETER) => Err(CreateWindowError::InvalidParameter(e)),
+  //   e if e == convert_error(ERROR_MOD_NOT_FOUND) => Err(CreateWindowError::ModuleNotFound(e)),
+  //   e if e == convert_error(ERROR_CANNOT_FIND_WND_CLASS) => Err(CreateWindowError::CannotFindWindowClass(e)),
+  //   e if e == convert_error(ERROR_OUTOFMEMORY) => Err(CreateWindowError::OutOfMemory(e)),
+  //   _ => Err(CreateWindowError::Other(error)),
+  // }
+
   match hwnd.is_null() {
-    true => {
-      let error = crate::Error::from_win32();
-      match error {
-        e if e == convert_error(ERROR_INVALID_PARAMETER) => Err(CreateWindowError::InvalidParameter(e)),
-        e if e == convert_error(ERROR_MOD_NOT_FOUND) => Err(CreateWindowError::ModuleNotFound(e)),
-        e if e == convert_error(ERROR_CANNOT_FIND_WND_CLASS) => Err(CreateWindowError::CannotFindWindowClass(e)),
-        e if e == convert_error(ERROR_OUTOFMEMORY) => Err(CreateWindowError::OutOfMemory(e)),
-        _ => Err(CreateWindowError::Other(error)),
-      }
-    }
+    true => Err(get_last_error()),
     false => Ok(unsafe { HWindow::from_raw(hwnd as usize) }),
   }
 }
 
-#[derive(ThisError, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum CreateWindowError {
-  #[error(transparent)]
-  InvalidParameter(crate::Error),
-  #[error(transparent)]
-  ModuleNotFound(crate::Error),
-  #[error(transparent)]
-  CannotFindWindowClass(crate::Error),
-  #[error(transparent)]
-  OutOfMemory(crate::Error),
-  /*
-   ...etc
-  */
-  #[error(transparent)]
-  Other(crate::Error),
-}
+// #[derive(ThisError, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+// pub enum CreateWindowError {
+//   #[error(transparent)]
+//   InvalidParameter(crate::Error),
+//   #[error(transparent)]
+//   ModuleNotFound(crate::Error),
+//   #[error(transparent)]
+//   CannotFindWindowClass(crate::Error),
+//   #[error(transparent)]
+//   OutOfMemory(crate::Error),
+//   /*
+//    ...etc
+//   */
+//   #[error(transparent)]
+//   Other(crate::Error),
+// }
 
 impl HWindow {
   /// Thin wrapper around [`create_window`] function
   #[inline]
-  pub fn new(params: CreateWindowParams) -> Result<Self, CreateWindowError> {
+  pub fn new(params: CreateWindowParams) -> Result<Self, Error> {
     create_window(params)
   }
 }
