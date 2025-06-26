@@ -23,6 +23,8 @@ const REGISTERED_MESSAGES_UPPER: u32 = 0xFFFF;
 pub enum MessageId {
   #[default]
   Null,
+  #[params(w)]
+  Quit,
   /// Any common messages falling into this category should be reported so they may be elevated to proper variants.
   #[fallback]
   #[params(w, l)]
@@ -393,8 +395,6 @@ pub enum MessageId {
   QueryOpen,
   QueryUiState,
   QueueSync,
-  #[params(w)]
-  Quit,
   #[params(w, l)]
   RButtonDblClk,
   #[params(w, l)]
@@ -508,97 +508,103 @@ impl Message {
   }
 
   #[inline]
-  pub fn get(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -> Result<Msg, Error> {
-    get_message(hwnd, filter)
+  pub fn get(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -> GetMessageIterator {
+    GetMessageIterator {
+      hwnd,
+      filter,
+      quit: false,
+    }
   }
 
   #[inline]
-  pub fn peek(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>, flags: PeekMessageFlags) -> Option<Msg> {
-    peek_message(hwnd, filter, flags)
+  pub fn peek(
+    hwnd: Option<HWindow>,
+    filter: Option<RangeInclusive<u32>>,
+    flags: PeekMessageFlags,
+  ) -> PeekMessageIterator {
+    PeekMessageIterator {
+      hwnd,
+      filter,
+      flags,
+      quit: false,
+    }
   }
 }
 
-// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-// pub enum GetMessageResult {
-//   Message {
-//     message: Message,
-//     hwnd: HWindow,
-//     time: u32,
-//     point: Point,
-//   },
-//   Quit(i32),
-//   Error(Error),
-// }
-
-// impl GetMessageResult {
-//   pub fn ok(self) -> Result<Msg, Error> {
-//     match self {
-//       GetMessageResult::Message {
-//         message,
-//         hwnd,
-//         time,
-//         point,
-//       } => Ok(Msg::Next {
-//         message,
-//         hwnd,
-//         time,
-//         point,
-//       }),
-//       GetMessageResult::Quit(code) => Ok(Msg::Quit(code)),
-//       GetMessageResult::Error(error) => Err(error),
-//     }
-//   }
-
-//   pub fn is_ok(&self) -> bool {
-//     matches!(self, GetMessageResult::Message { .. } | GetMessageResult::Quit(..))
-//   }
-// }
-
-// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-// pub enum PeekMessageResult {
-//   Message {
-//     message: Message,
-//     hwnd: HWindow,
-//     time: u32,
-//     point: Point,
-//   },
-//   Quit(i32),
-//   None,
-// }
-
-// impl PeekMessageResult {
-//   pub fn some(self) -> Option<Msg> {
-//     match self {
-//       PeekMessageResult::Message {
-//         message,
-//         hwnd,
-//         time,
-//         point,
-//       } => Some(Msg::Next {
-//         message,
-//         hwnd,
-//         time,
-//         point,
-//       }),
-//       PeekMessageResult::Quit(code) => Some(Msg::Quit(code)),
-//       PeekMessageResult::None => None,
-//     }
-//   }
-
-//   pub fn is_some(&self) -> bool {
-//     matches!(self, PeekMessageResult::Message { .. } | PeekMessageResult::Quit(..))
-//   }
-// }
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Msg {
-  Message {
-    message: Message,
-    hwnd: HWindow,
-    time: u32,
-    point: Point,
-  },
-  Quit(i32),
+pub struct Msg {
+  window: HWindow,
+  message: Message,
+  time: u32,
+  point: Point,
+}
+
+impl From<MSG> for Msg {
+  fn from(msg: MSG) -> Self {
+    let window = unsafe { HWindow::from_ptr(msg.hwnd) };
+    let time = msg.time;
+    let point = Point::from(msg.pt);
+    let message = Message::new(msg.message, WParam(msg.wParam), LParam(msg.lParam));
+    Self {
+      window,
+      message,
+      time,
+      point,
+    }
+  }
+}
+
+pub struct QuitCode(pub usize);
+
+pub struct GetMessageIterator {
+  hwnd: Option<HWindow>,
+  filter: Option<RangeInclusive<u32>>,
+  quit: bool,
+}
+
+impl Iterator for GetMessageIterator {
+  type Item = Result<Msg, Error>;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    if self.quit {
+      return None;
+    }
+    match get_message(self.hwnd, self.filter.clone()) {
+      Ok(m) => {
+        if matches!(m.message, Message::Quit(_)) {
+          self.quit = true;
+        }
+        Some(Ok(m))
+      }
+      Err(e) => Some(Err(e)),
+    }
+  }
+}
+
+pub struct PeekMessageIterator {
+  hwnd: Option<HWindow>,
+  filter: Option<RangeInclusive<u32>>,
+  flags: PeekMessageFlags,
+  quit: bool,
+}
+
+impl Iterator for PeekMessageIterator {
+  type Item = Option<Msg>;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    if self.quit {
+      return None;
+    }
+    match peek_message(self.hwnd, self.filter.clone(), self.flags) {
+      Some(m) => {
+        if matches!(m.message, Message::Quit(_)) {
+          self.quit = true;
+        }
+        Some(Some(m))
+      }
+      None => Some(None),
+    }
+  }
 }
 
 pub fn get_message(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -> Result<Msg, Error> {
@@ -608,14 +614,9 @@ pub fn get_message(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -
   // WM_QUIT sends return value of zero, causing BOOL to be false. This is still valid though.
   // Only -1 is actually an error.
   match result {
-    0 => Ok(Msg::Quit(msg.wParam as _)),
     -1 => Err(get_last_error()),
-    _ => Ok(Msg::Message {
-      message: Message::new(msg.message, WParam(msg.wParam), LParam(msg.lParam)),
-      hwnd: unsafe { HWindow::from_ptr(msg.hwnd) },
-      time: msg.time,
-      point: Point::from(msg.pt),
-    }),
+    // 0 => Err(QuitCode(msg.wParam)),
+    _ => Ok(Msg::from(msg)),
   }
 }
 
@@ -629,14 +630,9 @@ pub fn peek_message(
   let result = unsafe { PeekMessageW(&mut msg, hwnd.unwrap_or_default().to_ptr(), min, max, flags.to_raw()) };
   // If a message is available, the return value is nonzero.
   // If no messages are available, the return value is zero.
-  match (result != 0, msg.message) {
-    (true, WindowsAndMessaging::WM_QUIT) => Some(Msg::Quit(msg.wParam as _)),
-    (true, _) => Some(Msg::Message {
-      message: Message::new(msg.message, WParam(msg.wParam), LParam(msg.lParam)),
-      hwnd: unsafe { HWindow::from_ptr(msg.hwnd) },
-      time: msg.time,
-      point: Point::from(msg.pt),
-    }),
-    (false, _) => None,
+  match result {
+    0 => None,
+    // WindowsAndMessaging::WM_QUIT => Err(QuitCode(msg.wParam)),
+    _ => Some(Msg::from(msg)),
   }
 }

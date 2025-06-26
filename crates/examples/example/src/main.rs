@@ -1,4 +1,4 @@
-use win64::user::{Args, CreateWindowParams, Message, Msg, create_window};
+use win64::user::{Args, CreateWindowParams, Message, create_window};
 
 fn main() -> anyhow::Result<()> {
   let args = Args::get();
@@ -19,9 +19,8 @@ fn main() -> anyhow::Result<()> {
   if let Ok(hwnd) = hwnd {
     eprintln!("IsWindow: {}", unsafe { hwnd.is_window() });
 
-    while let Ok(Msg::Message { message, .. }) = Message::get(Some(hwnd), None) {
-      println!("{message:?}");
-    }
+    let wm_quit = Message::get(Some(hwnd), None).last();
+    eprintln!("{wm_quit:?}")
   }
 
   Ok(())
