@@ -8,18 +8,8 @@ use win64::{
 
 fn main() -> anyhow::Result<()> {
   let args = Args::get();
-  eprintln!("{args:#?}");
 
-  eprintln!("HINSTANCE: {:?}", args.hinstance);
-
-  eprintln!("msg size: {}", size_of_val(&Message::default()));
-
-  let class = WindowClass::Local {
-    instance: args.hinstance,
-    name: "Window".into(),
-    style: WindowClassStyle::empty(),
-  };
-  class.register();
+  let class = WindowClass::new(WindowClassStyle::empty(), args.hinstance, "Window").register();
 
   let hwnd = create_window(
     CreateWindowParams {
@@ -32,11 +22,7 @@ fn main() -> anyhow::Result<()> {
     App,
   );
 
-  eprintln!("HWND: {hwnd:?}");
-
   if let Ok(hwnd) = hwnd {
-    eprintln!("IsWindow: {}", unsafe { hwnd.is_window() });
-
     hwnd.show_window(SW_SHOW);
 
     for msg in Message::get(None, None).flatten() {

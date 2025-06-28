@@ -13,7 +13,7 @@ use windows_sys::Win32::{
 use crate::{Handle, declare_handle, get_last_error};
 
 use super::{
-  ExtendedWindowStyle, HInstance, LongPointerIndex, Message, WindowClass, WindowStyle,
+  ExtendedWindowStyle, HInstance, LongPointerIndex, Message, Registered, WindowClass, WindowStyle,
   descriptor::WindowDescriptor,
   procedure::{CreateInfo, LResult, WindowData, WindowProcedure, WindowState},
 };
@@ -26,10 +26,10 @@ declare_handle!(
 // #[deprecated]
 // pub type HWND = HWindow;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CreateWindowParams {
   pub ex_style: ExtendedWindowStyle,
-  pub class: WindowClass,
+  pub class: WindowClass<Registered>,
   pub name: OsString,
   pub style: WindowStyle,
   pub position: (Option<i32>, Option<i32>),
@@ -38,6 +38,22 @@ pub struct CreateWindowParams {
   pub menu: Option<()>,
   pub instance: Option<HInstance>,
   // pub void: Option<()>,
+}
+
+impl Default for CreateWindowParams {
+  fn default() -> Self {
+    Self {
+      ex_style: Default::default(),
+      class: WindowClass::System("".into()),
+      name: Default::default(),
+      style: Default::default(),
+      position: Default::default(),
+      size: Default::default(),
+      parent: Default::default(),
+      menu: Default::default(),
+      instance: Default::default(),
+    }
+  }
 }
 
 impl CreateWindowParams {
@@ -51,7 +67,7 @@ impl CreateWindowParams {
     self
   }
 
-  pub fn class(mut self, class: WindowClass) -> Self {
+  pub fn class(mut self, class: WindowClass<Registered>) -> Self {
     self.class = class;
     self
   }
