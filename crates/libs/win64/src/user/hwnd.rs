@@ -13,7 +13,7 @@ use windows_sys::Win32::{
 use crate::{Handle, declare_handle, get_last_error};
 
 use super::{
-  ClassName, ExtendedWindowStyle, HInstance, LongPointerIndex, Message, WindowStyle,
+  ExtendedWindowStyle, HInstance, LongPointerIndex, Message, WindowClass, WindowStyle,
   descriptor::WindowDescriptor,
   procedure::{CreateInfo, LResult, WindowData, WindowProcedure, WindowState},
 };
@@ -29,7 +29,7 @@ declare_handle!(
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CreateWindowParams {
   pub ex_style: ExtendedWindowStyle,
-  pub class: ClassName,
+  pub class: WindowClass,
   pub name: OsString,
   pub style: WindowStyle,
   pub position: (Option<i32>, Option<i32>),
@@ -46,8 +46,13 @@ impl CreateWindowParams {
     self
   }
 
-  pub fn class(mut self, name: impl Into<ClassName>) -> Self {
-    self.class = name.into();
+  pub fn system_class(mut self, name: impl Into<OsString>) -> Self {
+    self.class = WindowClass::System(name.into());
+    self
+  }
+
+  pub fn class(mut self, class: WindowClass) -> Self {
+    self.class = class;
     self
   }
 
@@ -123,7 +128,7 @@ pub fn create_window<P: 'static + WindowProcedure>(params: CreateWindowParams, p
   let hwnd = unsafe {
     CreateWindowExW(
       params.ex_style.to_raw(),
-      params.class.as_ptr(),
+      params.class.atom(),
       window_name.as_ptr(),
       params.style.to_raw(),
       params.position.0.unwrap_or(CW_USEDEFAULT),

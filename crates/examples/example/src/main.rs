@@ -1,8 +1,8 @@
 use win64::{
   sys::SW_SHOW,
   user::{
-    Args, CreateWindowParams, HWindow, LResult, Message, WindowClass, WindowStyle, create_window,
-    procedure::WindowProcedure,
+    Args, CreateWindowParams, HWindow, LResult, Message, WindowClass, WindowClassStyle, WindowProcedure, WindowStyle,
+    create_window,
   },
 };
 
@@ -14,12 +14,12 @@ fn main() -> anyhow::Result<()> {
 
   eprintln!("msg size: {}", size_of_val(&Message::default()));
 
-  let class = WindowClass {
+  let class = WindowClass::Local {
     instance: args.hinstance,
     name: "Window".into(),
-    ..Default::default()
-  }
-  .register();
+    style: WindowClassStyle::empty(),
+  };
+  class.register();
 
   let hwnd = create_window(
     CreateWindowParams {
