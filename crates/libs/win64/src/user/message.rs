@@ -527,7 +527,7 @@ impl Message {
   }
 
   #[inline]
-  pub fn get(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -> GetMessageIterator {
+  pub fn get(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -> impl Iterator<Item = Result<Msg, Error>> {
     GetMessageIterator {
       hwnd,
       filter,
@@ -540,7 +540,7 @@ impl Message {
     hwnd: Option<HWindow>,
     filter: Option<RangeInclusive<u32>>,
     flags: PeekMessageFlags,
-  ) -> PeekMessageIterator {
+  ) -> impl Iterator<Item = Option<Msg>> {
     PeekMessageIterator {
       hwnd,
       filter,

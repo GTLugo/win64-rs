@@ -39,14 +39,10 @@ fn main() -> anyhow::Result<()> {
 
     hwnd.show_window(SW_SHOW);
 
-    let wm_quit = Message::get(None, None)
-      .flatten()
-      .inspect(|msg| {
-        msg.translate();
-        msg.dispatch();
-      })
-      .last();
-    eprintln!("wm_quit: {wm_quit:?}");
+    for msg in Message::get(None, None).flatten() {
+      msg.translate();
+      msg.dispatch();
+    }
   }
 
   Ok(())
