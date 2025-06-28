@@ -1,15 +1,14 @@
+use std::ffi::OsString;
+
 use dpi::{Position, Size};
 
-use crate::{
-  flag::{ExtendedWindowStyle, WindowStyle},
-  types::{Win32Position, Win32Size},
-};
+use super::{ExtendedWindowStyle, WindowStyle};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WindowDescriptor {
-  pub title: String,
-  pub position: Win32Position,
-  pub size: Win32Size,
+  pub title: OsString,
+  pub position: Option<Position>,
+  pub size: Option<Size>,
   pub style: WindowStyle,
   pub ext_style: ExtendedWindowStyle,
 }
@@ -17,44 +16,44 @@ pub struct WindowDescriptor {
 impl Default for WindowDescriptor {
   fn default() -> Self {
     Self {
-      title: "Window".to_owned(),
-      position: Default::default(),
-      size: Default::default(),
+      title: "Window".into(),
+      position: None,
+      size: None,
       style: WindowStyle::OverlappedWindow | WindowStyle::Visible,
       ext_style: ExtendedWindowStyle::empty(),
     }
   }
 }
 
-impl WindowDescriptor {
-  pub fn with_title(&mut self, title: impl Into<String>) -> &mut Self {
-    self.title = title.into();
-    self
-  }
+// impl WindowDescriptor {
+//   pub fn with_title(&mut self, title: impl Into<OsString>) -> &mut Self {
+//     self.title = title.into();
+//     self
+//   }
 
-  pub fn with_position(&mut self, position: Option<impl Into<Position>>) -> &mut Self {
-    self.position = match position {
-      Some(pos) => Win32Position::Position(pos.into()),
-      None => Win32Position::Auto,
-    };
-    self
-  }
+//   pub fn with_position(&mut self, position: Option<impl Into<Position>>) -> &mut Self {
+//     self.position = match position {
+//       Some(pos) => Win32Position::Position(pos.into()),
+//       None => Win32Position::Auto,
+//     };
+//     self
+//   }
 
-  pub fn with_size(&mut self, size: impl Into<Size>) -> &mut Self {
-    self.size = Win32Size::Size(size.into());
-    self
-  }
+//   pub fn with_size(&mut self, size: impl Into<Size>) -> &mut Self {
+//     self.size = Win32Size::Size(size.into());
+//     self
+//   }
 
-  pub fn with_style(&mut self, style: WindowStyle) -> &mut Self {
-    self.style = style;
-    self
-  }
+//   pub fn with_style(&mut self, style: WindowStyle) -> &mut Self {
+//     self.style = style;
+//     self
+//   }
 
-  pub fn with_ext_style(&mut self, ext_style: ExtendedWindowStyle) -> &mut Self {
-    self.ext_style = ext_style;
-    self
-  }
-}
+//   pub fn with_ext_style(&mut self, ext_style: ExtendedWindowStyle) -> &mut Self {
+//     self.ext_style = ext_style;
+//     self
+//   }
+// }
 
 // #[cfg(all(feature = "rwh_06", not(feature = "rwh_05")))]
 // pub mod rwh_06 {

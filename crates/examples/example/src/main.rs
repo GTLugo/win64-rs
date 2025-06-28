@@ -1,4 +1,6 @@
-use win64::user::{Args, CreateWindowParams, Message, create_window};
+use win64::user::{
+  Args, CreateWindowParams, Message, WindowClass, WindowClassStyle, create_window, procedure::WindowProcedure,
+};
 
 fn main() -> anyhow::Result<()> {
   let args = Args::get();
@@ -8,10 +10,19 @@ fn main() -> anyhow::Result<()> {
 
   eprintln!("msg size: {}", size_of_val(&Message::default()));
 
+  let class = WindowClass {
+    instance: args.hinstance,
+    style: WindowClassStyle::empty(),
+    name: "Window".into(),
+  }
+  .register();
+
   let hwnd = create_window(
     CreateWindowParams::default()
-      .window_name("Window")
+      .class(class)
+      .name("Window")
       .instance(Some(args.hinstance)),
+    App,
   );
 
   eprintln!("HWND: {hwnd:?}");
@@ -24,6 +35,14 @@ fn main() -> anyhow::Result<()> {
   }
 
   Ok(())
+}
+
+struct App;
+
+impl WindowProcedure for App {
+  fn on_message(&mut self, window: win64::user::HWindow, message: &Message) -> Option<win64::user::procedure::LResult> {
+    None
+  }
 }
 
 /*

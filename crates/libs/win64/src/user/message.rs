@@ -1,11 +1,11 @@
-use std::ops::RangeInclusive;
+use std::ops::{Deref, RangeInclusive};
 
 use windows_result::Error;
-use windows_sys::Win32::UI::WindowsAndMessaging::{self, GetMessageW, MSG, PeekMessageW};
+use windows_sys::Win32::UI::WindowsAndMessaging::{self, CREATESTRUCTW, GetMessageW, MSG, PeekMessageW};
 
 use crate::{Handle, get_last_error};
 
-use super::{HWindow, PeekMessageFlags, Point};
+use super::{HWindow, PeekMessageFlags, Point, procedure::CreateInfo};
 
 pub mod data;
 // pub mod pump;
@@ -13,8 +13,24 @@ pub mod data;
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WParam(pub usize);
 
+impl Deref for WParam {
+  type Target = usize;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LParam(pub isize);
+
+impl Deref for LParam {
+  type Target = isize;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
 
 const REGISTERED_MESSAGES_LOWER: u32 = 0xC000;
 const REGISTERED_MESSAGES_UPPER: u32 = 0xFFFF;
@@ -634,5 +650,13 @@ pub fn peek_message(
     0 => None,
     // WindowsAndMessaging::WM_QUIT => Err(QuitCode(msg.wParam)),
     _ => Some(Msg::from(msg)),
+  }
+}
+
+impl NcCreateMessage {
+  pub(crate) fn create_info(&self) -> CreateInfo {
+    let create_struct = unsafe { (self.l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap();
+    let create_info = unsafe { Box::from_raw(create_struct.lpCreateParams as *mut CreateInfo) };
+    *create_info
   }
 }
