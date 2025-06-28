@@ -42,10 +42,3 @@ impl WindowProcedure for App {
     None
   }
 }
-
-/*
-  TODO:
-    WndClass
-    Message Pump
-    WndProc
-*/
