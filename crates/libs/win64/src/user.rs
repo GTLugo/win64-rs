@@ -22,4 +22,10 @@ pub use flag::*;
 pub mod procedure;
 pub use procedure::*;
 
+pub mod types;
+pub use types::*;
+
+pub mod cursor;
+pub use cursor::*;
+
 pub(crate) mod descriptor;

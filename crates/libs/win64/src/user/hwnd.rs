@@ -1,19 +1,19 @@
 use std::{ffi::OsString, os::windows::ffi::OsStrExt};
 
-use dpi::{Position, Size};
 use windows_result::{HRESULT, Result};
 use windows_sys::Win32::{
   Foundation::{SetLastError, WIN32_ERROR},
   UI::WindowsAndMessaging::{
-    CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, IsWindow, PostQuitMessage,
-    SetWindowLongPtrW, SetWindowTextW, ShowWindow,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, IsWindow, PostQuitMessage, SetWindowLongPtrW,
+    SetWindowTextW, ShowWindow,
   },
 };
 
 use crate::{Handle, declare_handle, get_last_error};
 
 use super::{
-  ExtendedWindowStyle, HInstance, LongPointerIndex, Message, Registered, WindowClass, WindowStyle,
+  ExtendedWindowStyle, HInstance, LongPointerIndex, Message, Registered, WindowClass, WindowPos, WindowSize,
+  WindowStyle,
   descriptor::WindowDescriptor,
   procedure::{CreateInfo, LResult, WindowData, WindowProcedure, WindowState},
 };
@@ -26,14 +26,14 @@ declare_handle!(
 // #[deprecated]
 // pub type HWND = HWindow;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CreateWindowParams {
   pub ex_style: ExtendedWindowStyle,
   pub class: WindowClass<Registered>,
   pub name: OsString,
   pub style: WindowStyle,
-  pub position: (Option<i32>, Option<i32>),
-  pub size: (Option<i32>, Option<i32>),
+  pub position: WindowPos,
+  pub size: WindowSize,
   pub parent: Option<HWindow>,
   pub menu: Option<()>,
   pub instance: Option<HInstance>,
@@ -77,27 +77,13 @@ impl CreateWindowParams {
     self
   }
 
-  pub fn position(mut self, pos: Option<Position>) -> Self {
-    let (x, y) = match pos {
-      Some(pos) => {
-        let pos = pos.to_physical(1.0);
-        (Some(pos.x), Some(pos.y))
-      }
-      None => (None, None),
-    };
-    self.position = (x, y);
+  pub fn position(mut self, pos: WindowPos) -> Self {
+    self.position = pos;
     self
   }
 
-  pub fn size(mut self, size: Option<Size>) -> Self {
-    let (w, h) = match size {
-      Some(size) => {
-        let size = size.to_physical(1.0);
-        (Some(size.width), Some(size.height))
-      }
-      None => (None, None),
-    };
-    self.size = (w, h);
+  pub fn size(mut self, size: WindowSize) -> Self {
+    self.size = size;
     self
   }
 
@@ -147,10 +133,10 @@ pub fn create_window<P: 'static + WindowProcedure>(params: CreateWindowParams, p
       params.class.atom(),
       window_name.as_ptr(),
       params.style.to_raw(),
-      params.position.0.unwrap_or(CW_USEDEFAULT),
-      params.position.1.unwrap_or(CW_USEDEFAULT),
-      params.size.0.unwrap_or(CW_USEDEFAULT),
-      params.size.1.unwrap_or(CW_USEDEFAULT),
+      params.position.x(),
+      params.position.y(),
+      params.size.width(),
+      params.size.height(),
       match params.parent {
         Some(p) => p.to_raw() as _,
         None => HWindow::null().to_raw() as _,

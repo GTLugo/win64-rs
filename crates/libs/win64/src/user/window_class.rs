@@ -1,10 +1,11 @@
 use std::{ffi::OsString, marker::PhantomData};
 
+use cursor_icon::CursorIcon;
 use windows_sys::Win32::UI::WindowsAndMessaging::{RegisterClassExW, WNDCLASSEXW};
 
 use crate::Handle;
 
-use super::{HInstance, WindowClassStyle, procedure::window_procedure};
+use super::{HInstance, LoadCursor, WindowClassStyle, procedure::window_procedure};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Registered;
@@ -85,7 +86,7 @@ impl WindowClass<NotRegistered> {
           lpszClassName: name.as_encoded_bytes().as_ptr().cast(),
           lpfnWndProc: Some(window_procedure),
           style: style.to_raw(),
-          hCursor: std::ptr::null_mut(),
+          hCursor: CursorIcon::Default.load(),
           ..Default::default()
         };
         unsafe { RegisterClassExW(&wc) };
