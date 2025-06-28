@@ -528,11 +528,7 @@ impl Message {
 
   #[inline]
   pub fn get(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -> impl Iterator<Item = Result<Msg, Error>> {
-    GetMessageIterator {
-      hwnd,
-      filter,
-      quit: false,
-    }
+    GetMessageIterator::Iterating { hwnd, filter }
   }
 
   #[inline]
@@ -541,12 +537,7 @@ impl Message {
     filter: Option<RangeInclusive<u32>>,
     flags: PeekMessageFlags,
   ) -> impl Iterator<Item = Option<Msg>> {
-    PeekMessageIterator {
-      hwnd,
-      filter,
-      flags,
-      quit: false,
-    }
+    PeekMessageIterator::Iterating { hwnd, filter, flags }
   }
 }
 
@@ -601,53 +592,57 @@ impl From<MSG> for Msg {
 
 pub struct QuitCode(pub usize);
 
-pub struct GetMessageIterator {
-  hwnd: Option<HWindow>,
-  filter: Option<RangeInclusive<u32>>,
-  quit: bool,
+pub enum GetMessageIterator {
+  Iterating {
+    hwnd: Option<HWindow>,
+    filter: Option<RangeInclusive<u32>>,
+  },
+  Quitting,
 }
 
 impl Iterator for GetMessageIterator {
   type Item = Result<Msg, Error>;
 
   fn next(&mut self) -> Option<Self::Item> {
-    if self.quit {
-      return None;
-    }
-    match get_message(self.hwnd, self.filter.clone()) {
-      Ok(msg) => {
-        if matches!(msg.message, Message::Quit(_)) {
-          self.quit = true;
+    match self {
+      GetMessageIterator::Iterating { hwnd, filter } => match get_message(*hwnd, filter.clone()) {
+        Ok(msg) => {
+          if matches!(msg.message, Message::Quit(_)) {
+            *self = GetMessageIterator::Quitting;
+          }
+          Some(Ok(msg))
         }
-        Some(Ok(msg))
-      }
-      Err(e) => Some(Err(e)),
+        Err(e) => Some(Err(e)),
+      },
+      GetMessageIterator::Quitting => None,
     }
   }
 }
 
-pub struct PeekMessageIterator {
-  hwnd: Option<HWindow>,
-  filter: Option<RangeInclusive<u32>>,
-  flags: PeekMessageFlags,
-  quit: bool,
+pub enum PeekMessageIterator {
+  Iterating {
+    hwnd: Option<HWindow>,
+    filter: Option<RangeInclusive<u32>>,
+    flags: PeekMessageFlags,
+  },
+  Quitting,
 }
 
 impl Iterator for PeekMessageIterator {
   type Item = Option<Msg>;
 
   fn next(&mut self) -> Option<Self::Item> {
-    if self.quit {
-      return None;
-    }
-    match peek_message(self.hwnd, self.filter.clone(), self.flags) {
-      Some(m) => {
-        if matches!(m.message, Message::Quit(_)) {
-          self.quit = true;
+    match self {
+      PeekMessageIterator::Iterating { hwnd, filter, flags } => match peek_message(*hwnd, filter.clone(), *flags) {
+        Some(m) => {
+          if matches!(m.message, Message::Quit(_)) {
+            *self = PeekMessageIterator::Quitting;
+          }
+          Some(Some(m))
         }
-        Some(Some(m))
-      }
-      None => Some(None),
+        None => Some(None),
+      },
+      PeekMessageIterator::Quitting => None,
     }
   }
 }
