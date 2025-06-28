@@ -1,7 +1,10 @@
 use std::ops::{Deref, RangeInclusive};
 
 use windows_result::Error;
-use windows_sys::Win32::UI::WindowsAndMessaging::{self, CREATESTRUCTW, GetMessageW, MSG, PeekMessageW};
+use windows_sys::Win32::{
+  Foundation::POINT,
+  UI::WindowsAndMessaging::{self, CREATESTRUCTW, DispatchMessageW, GetMessageW, MSG, PeekMessageW, TranslateMessage},
+};
 
 use crate::{Handle, get_last_error};
 
@@ -555,6 +558,32 @@ pub struct Msg {
   point: Point,
 }
 
+impl Msg {
+  pub fn to_raw(&self) -> MSG {
+    MSG {
+      hwnd: self.window.to_ptr(),
+      message: self.message.id().to_raw(),
+      wParam: self.message.w().0,
+      lParam: self.message.l().0,
+      time: self.time,
+      pt: POINT {
+        x: self.point.x,
+        y: self.point.y,
+      },
+    }
+  }
+
+  pub fn translate(&self) {
+    let msg = self.to_raw();
+    unsafe { TranslateMessage(&msg) };
+  }
+
+  pub fn dispatch(&self) {
+    let msg = self.to_raw();
+    unsafe { DispatchMessageW(&msg) };
+  }
+}
+
 impl From<MSG> for Msg {
   fn from(msg: MSG) -> Self {
     let window = unsafe { HWindow::from_ptr(msg.hwnd) };
@@ -586,11 +615,11 @@ impl Iterator for GetMessageIterator {
       return None;
     }
     match get_message(self.hwnd, self.filter.clone()) {
-      Ok(m) => {
-        if matches!(m.message, Message::Quit(_)) {
+      Ok(msg) => {
+        if matches!(msg.message, Message::Quit(_)) {
           self.quit = true;
         }
-        Some(Ok(m))
+        Some(Ok(msg))
       }
       Err(e) => Some(Err(e)),
     }
@@ -631,7 +660,6 @@ pub fn get_message(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -
   // Only -1 is actually an error.
   match result {
     -1 => Err(get_last_error()),
-    // 0 => Err(QuitCode(msg.wParam)),
     _ => Ok(Msg::from(msg)),
   }
 }

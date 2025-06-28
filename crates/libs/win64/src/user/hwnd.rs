@@ -223,7 +223,7 @@ impl HWindow {
     unsafe { DefWindowProcW(self.to_ptr(), message.id().to_raw(), message.w().0, message.l().0) }.into()
   }
 
-  pub fn destroy(&mut self) -> Result<()> {
+  pub fn destroy(&self) -> Result<()> {
     if unsafe { self.is_window() } && !self.data().unwrap().is_destroying() {
       self.data().unwrap().state = WindowState::Destroying;
       unsafe { DestroyWindow(self.to_ptr()) };
@@ -231,11 +231,11 @@ impl HWindow {
     Ok(())
   }
 
-  pub(crate) fn quit(&self) {
+  pub fn quit(&self) {
     self.quit_with_code(0)
   }
 
-  pub(crate) fn quit_with_code(&self, exit_code: i32) {
+  pub fn quit_with_code(&self, exit_code: i32) {
     unsafe { PostQuitMessage(exit_code) };
   }
 

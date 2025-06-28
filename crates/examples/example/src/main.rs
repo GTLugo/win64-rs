@@ -1,5 +1,9 @@
-use win64::user::{
-  Args, CreateWindowParams, Message, WindowClass, WindowClassStyle, create_window, procedure::WindowProcedure,
+use win64::{
+  sys::SW_SHOW,
+  user::{
+    Args, CreateWindowParams, HWindow, LResult, Message, WindowClass, WindowStyle, create_window,
+    procedure::WindowProcedure,
+  },
 };
 
 fn main() -> anyhow::Result<()> {
@@ -12,16 +16,19 @@ fn main() -> anyhow::Result<()> {
 
   let class = WindowClass {
     instance: args.hinstance,
-    style: WindowClassStyle::empty(),
     name: "Window".into(),
+    ..Default::default()
   }
   .register();
 
   let hwnd = create_window(
-    CreateWindowParams::default()
-      .class(class)
-      .name("Window")
-      .instance(Some(args.hinstance)),
+    CreateWindowParams {
+      class,
+      name: "Window".into(),
+      style: WindowStyle::OverlappedWindow,
+      instance: Some(args.hinstance),
+      ..Default::default()
+    },
     App,
   );
 
@@ -30,8 +37,16 @@ fn main() -> anyhow::Result<()> {
   if let Ok(hwnd) = hwnd {
     eprintln!("IsWindow: {}", unsafe { hwnd.is_window() });
 
-    let wm_quit = Message::get(Some(hwnd), None).last();
-    eprintln!("{wm_quit:?}")
+    hwnd.show_window(SW_SHOW);
+
+    let wm_quit = Message::get(None, None)
+      .flatten()
+      .inspect(|msg| {
+        msg.translate();
+        msg.dispatch();
+      })
+      .last();
+    eprintln!("wm_quit: {wm_quit:?}");
   }
 
   Ok(())
@@ -40,7 +55,8 @@ fn main() -> anyhow::Result<()> {
 struct App;
 
 impl WindowProcedure for App {
-  fn on_message(&mut self, window: win64::user::HWindow, message: &Message) -> Option<win64::user::procedure::LResult> {
+  fn on_message(&mut self, window: HWindow, message: &Message) -> Option<LResult> {
+    println!("[{window:?}] {message:?}");
     None
   }
 }

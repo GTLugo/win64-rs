@@ -10,6 +10,12 @@ use super::{CreateMessage, HWindow, LParam, Message, NcCreateMessage, WParam, Wi
 #[repr(transparent)]
 pub struct LResult(pub isize);
 
+impl LResult {
+  pub fn handled() -> Option<Self> {
+    Some(LResult::default())
+  }
+}
+
 impl From<LResult> for LRESULT {
   fn from(value: LResult) -> Self {
     value.0

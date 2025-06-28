@@ -6,6 +6,7 @@ use crate::Handle;
 
 use super::{HInstance, WindowClassStyle, procedure::window_procedure};
 
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WindowClass {
   pub style: WindowClassStyle,
   pub instance: HInstance,

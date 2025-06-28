@@ -20,5 +20,6 @@ pub mod flag;
 pub use flag::*;
 
 pub mod procedure;
+pub use procedure::*;
 
 pub(crate) mod descriptor;
