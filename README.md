@@ -7,3 +7,5 @@ The idea for this library is to offer low-level, safe(ish) wrappers for the `win
 ## Features
 
 * `safe`: This is a set of new API wrappers that aim to provide stronger checks against improper usage
+
+No AI was used to generate code.
