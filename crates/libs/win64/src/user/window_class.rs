@@ -14,7 +14,7 @@ pub struct WindowClass {
 }
 
 impl WindowClass {
-  pub fn register(self) -> ClassId {
+  pub fn register(self) -> ClassName {
     let lpsz_class_name = self.name.encode_wide().collect::<Vec<u16>>();
 
     let wc = WNDCLASSEXW {
@@ -29,22 +29,15 @@ impl WindowClass {
 
     unsafe { RegisterClassExW(&wc) };
 
-    ClassId(lpsz_class_name)
+    ClassName(lpsz_class_name)
   }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ClassId(Vec<u16>);
+pub struct ClassName(Vec<u16>);
 
-impl ClassId {
+impl ClassName {
   pub fn as_ptr(&self) -> *const u16 {
     self.0.as_ptr()
-  }
-}
-
-impl From<&str> for ClassId {
-  fn from(value: &str) -> Self {
-    let string: Vec<u16> = OsString::from(value).encode_wide().collect();
-    Self(string)
   }
 }

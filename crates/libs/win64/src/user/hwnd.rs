@@ -13,7 +13,9 @@ use windows_sys::Win32::{
 use crate::{Handle, declare_handle, get_last_error};
 
 use super::{
-  descriptor::WindowDescriptor, procedure::{CreateInfo, LResult, WindowData, WindowProcedure, WindowState}, ClassId, ExtendedWindowStyle, HInstance, LongPointerIndex, Message, WindowStyle
+  ClassName, ExtendedWindowStyle, HInstance, LongPointerIndex, Message, WindowStyle,
+  descriptor::WindowDescriptor,
+  procedure::{CreateInfo, LResult, WindowData, WindowProcedure, WindowState},
 };
 
 declare_handle!(
@@ -27,7 +29,7 @@ declare_handle!(
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CreateWindowParams {
   pub ex_style: ExtendedWindowStyle,
-  pub class: ClassId,
+  pub class: ClassName,
   pub name: OsString,
   pub style: WindowStyle,
   pub position: (Option<i32>, Option<i32>),
@@ -44,7 +46,7 @@ impl CreateWindowParams {
     self
   }
 
-  pub fn class(mut self, name: impl Into<ClassId>) -> Self {
+  pub fn class(mut self, name: impl Into<ClassName>) -> Self {
     self.class = name.into();
     self
   }
@@ -113,7 +115,7 @@ pub fn create_window<P: 'static + WindowProcedure>(params: CreateWindowParams, p
     ..Default::default()
   };
 
-   // remove visible style and reapply it later in the window procedure
+  // remove visible style and reapply it later in the window procedure
   // let mut new_style = desc.style;
   // new_style.remove(WindowStyle::Visible);
 
@@ -178,7 +180,7 @@ pub fn create_window<P: 'static + WindowProcedure>(params: CreateWindowParams, p
 impl HWindow {
   /// Thin wrapper around [`create_window`] function
   #[inline]
-  pub fn new<P: 'static + WindowProcedure>(params: CreateWindowParams, procedure: P)  -> Result<Self> {
+  pub fn new<P: 'static + WindowProcedure>(params: CreateWindowParams, procedure: P) -> Result<Self> {
     create_window(params, procedure)
   }
 }
