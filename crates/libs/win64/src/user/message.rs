@@ -525,7 +525,9 @@ impl Message {
   pub const fn quit_requested(&self) -> bool {
     matches!(self, Message::Destroy)
   }
+}
 
+impl Msg {
   #[inline]
   pub fn get(queue: MsgQueue, filter: Option<RangeInclusive<u32>>) -> impl Iterator<Item = Result<Msg, Error>> {
     GetMessageIterator::Iterating { queue, filter }
