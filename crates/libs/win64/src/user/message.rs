@@ -527,17 +527,17 @@ impl Message {
   }
 
   #[inline]
-  pub fn get(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -> impl Iterator<Item = Result<Msg, Error>> {
-    GetMessageIterator::Iterating { hwnd, filter }
+  pub fn get(queue: MsgQueue, filter: Option<RangeInclusive<u32>>) -> impl Iterator<Item = Result<Msg, Error>> {
+    GetMessageIterator::Iterating { queue, filter }
   }
 
   #[inline]
   pub fn peek(
-    hwnd: Option<HWindow>,
+    queue: MsgQueue,
     filter: Option<RangeInclusive<u32>>,
     flags: PeekMessageFlags,
   ) -> impl Iterator<Item = Option<Msg>> {
-    PeekMessageIterator::Iterating { hwnd, filter, flags }
+    PeekMessageIterator::Iterating { queue, filter, flags }
   }
 }
 
@@ -594,7 +594,7 @@ pub struct QuitCode(pub usize);
 
 pub enum GetMessageIterator {
   Iterating {
-    hwnd: Option<HWindow>,
+    queue: MsgQueue,
     filter: Option<RangeInclusive<u32>>,
   },
   Quitting,
@@ -605,7 +605,7 @@ impl Iterator for GetMessageIterator {
 
   fn next(&mut self) -> Option<Self::Item> {
     match self {
-      GetMessageIterator::Iterating { hwnd, filter } => match get_message(*hwnd, filter.clone()) {
+      GetMessageIterator::Iterating { queue, filter } => match get_message(*queue, filter.clone()) {
         Ok(msg) => {
           if matches!(msg.message, Message::Quit(_)) {
             *self = GetMessageIterator::Quitting;
@@ -621,7 +621,7 @@ impl Iterator for GetMessageIterator {
 
 pub enum PeekMessageIterator {
   Iterating {
-    hwnd: Option<HWindow>,
+    queue: MsgQueue,
     filter: Option<RangeInclusive<u32>>,
     flags: PeekMessageFlags,
   },
@@ -633,7 +633,7 @@ impl Iterator for PeekMessageIterator {
 
   fn next(&mut self) -> Option<Self::Item> {
     match self {
-      PeekMessageIterator::Iterating { hwnd, filter, flags } => match peek_message(*hwnd, filter.clone(), *flags) {
+      PeekMessageIterator::Iterating { queue, filter, flags } => match peek_message(*queue, filter.clone(), *flags) {
         Some(m) => {
           if matches!(m.message, Message::Quit(_)) {
             *self = PeekMessageIterator::Quitting;
@@ -647,10 +647,26 @@ impl Iterator for PeekMessageIterator {
   }
 }
 
-pub fn get_message(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -> Result<Msg, Error> {
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum MsgQueue {
+  Window(HWindow),
+  #[default]
+  CurrentThread,
+}
+
+impl MsgQueue {
+  fn unwrap_or_default(self) -> HWindow {
+    match self {
+      Self::Window(hwnd) => hwnd,
+      Self::CurrentThread => Default::default(),
+    }
+  }
+}
+
+pub fn get_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>) -> Result<Msg, Error> {
   let (min, max) = filter.map(RangeInclusive::into_inner).unwrap_or_default();
   let mut msg = MSG::default();
-  let result = unsafe { GetMessageW(&mut msg, hwnd.unwrap_or_default().to_ptr(), min, max) };
+  let result = unsafe { GetMessageW(&mut msg, queue.unwrap_or_default().to_ptr(), min, max) };
   // WM_QUIT sends return value of zero, causing BOOL to be false. This is still valid though.
   // Only -1 is actually an error.
   match result {
@@ -659,14 +675,10 @@ pub fn get_message(hwnd: Option<HWindow>, filter: Option<RangeInclusive<u32>>) -
   }
 }
 
-pub fn peek_message(
-  hwnd: Option<HWindow>,
-  filter: Option<RangeInclusive<u32>>,
-  flags: PeekMessageFlags,
-) -> Option<Msg> {
+pub fn peek_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>, flags: PeekMessageFlags) -> Option<Msg> {
   let (min, max) = filter.map(RangeInclusive::into_inner).unwrap_or_default();
   let mut msg = MSG::default();
-  let result = unsafe { PeekMessageW(&mut msg, hwnd.unwrap_or_default().to_ptr(), min, max, flags.to_raw()) };
+  let result = unsafe { PeekMessageW(&mut msg, queue.unwrap_or_default().to_ptr(), min, max, flags.to_raw()) };
   // If a message is available, the return value is nonzero.
   // If no messages are available, the return value is zero.
   match result {

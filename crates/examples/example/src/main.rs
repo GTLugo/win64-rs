@@ -1,8 +1,8 @@
 use win64::{
   sys::SW_SHOW,
   user::{
-    Args, CreateWindowParams, HWindow, LResult, Message, WindowClass, WindowClassStyle, WindowProcedure, WindowStyle,
-    create_window,
+    Args, CreateWindowParams, HWindow, LResult, Message, MsgQueue, WindowClass, WindowClassStyle, WindowProcedure,
+    WindowStyle, create_window,
   },
 };
 
@@ -25,7 +25,7 @@ fn main() -> anyhow::Result<()> {
   if let Ok(hwnd) = hwnd {
     hwnd.show_window(SW_SHOW);
 
-    for msg in Message::get(None, None).flatten() {
+    for msg in Message::get(MsgQueue::CurrentThread, None).flatten() {
       msg.translate();
       msg.dispatch();
     }
