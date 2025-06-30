@@ -4,8 +4,8 @@ pub use hwnd::*;
 pub mod hinstance;
 pub use hinstance::*;
 
-pub mod window_class;
-pub use window_class::*;
+pub mod class;
+pub use class::*;
 
 pub mod winmain;
 pub use winmain::*;

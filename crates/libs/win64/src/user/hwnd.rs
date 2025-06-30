@@ -13,10 +13,9 @@ use windows_sys::Win32::{
 use crate::{Handle, declare_handle, get_last_error};
 
 use super::{
-  ExtendedWindowStyle, HInstance, LongPointerIndex, Message, Registered, WindowClass, WindowPos, WindowSize,
-  WindowStyle,
+  ExtendedWindowStyle, HInstance, LongPointerIndex, Message, WindowClass, WindowPos, WindowSize, WindowStyle,
   descriptor::WindowDescriptor,
-  procedure::{CreateInfo, LResult, WindowData, WindowProcedure, WindowState},
+  procedure::{CreateInfo, LResult, WindowProcedure, WindowState},
 };
 
 declare_handle!(
@@ -27,98 +26,23 @@ declare_handle!(
 // #[deprecated]
 // pub type HWND = HWindow;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct CreateWindowParams {
-  pub ex_style: ExtendedWindowStyle,
-  pub class: WindowClass<Registered>,
-  pub name: String,
-  pub style: WindowStyle,
-  pub position: WindowPos,
-  pub size: WindowSize,
-  pub parent: Option<HWindow>,
-  pub menu: Option<()>,
-  pub instance: Option<HInstance>,
-  // pub void: Option<()>,
-}
-
-impl Default for CreateWindowParams {
-  fn default() -> Self {
-    Self {
-      ex_style: Default::default(),
-      class: WindowClass::System(""),
-      name: Default::default(),
-      style: Default::default(),
-      position: Default::default(),
-      size: Default::default(),
-      parent: Default::default(),
-      menu: Default::default(),
-      instance: Default::default(),
-    }
-  }
-}
-
-impl CreateWindowParams {
-  pub fn ex_style(mut self, ex_style: ExtendedWindowStyle) -> Self {
-    self.ex_style = ex_style;
-    self
-  }
-
-  pub fn system_class(mut self, name: impl Into<&'static str>) -> Self {
-    self.class = WindowClass::System(name.into()).register();
-    self
-  }
-
-  pub fn class(mut self, class: WindowClass<Registered>) -> Self {
-    self.class = class;
-    self
-  }
-
-  pub fn name(mut self, name: impl Into<String>) -> Self {
-    self.name = name.into();
-    self
-  }
-
-  pub fn position(mut self, pos: WindowPos) -> Self {
-    self.position = pos;
-    self
-  }
-
-  pub fn size(mut self, size: WindowSize) -> Self {
-    self.size = size;
-    self
-  }
-
-  pub fn style(mut self, style: WindowStyle) -> Self {
-    self.style = style;
-    self
-  }
-
-  pub fn parent(mut self, parent: Option<HWindow>) -> Self {
-    self.parent = parent;
-    self
-  }
-
-  pub fn menu(mut self, menu: Option<()>) -> Self {
-    self.menu = menu;
-    self
-  }
-
-  pub fn instance(mut self, instance: Option<HInstance>) -> Self {
-    self.instance = instance;
-    self
-  }
-
-  // pub fn void(mut self, void: Option<()>) -> Self {
-  //   self.void = void;
-  //   self
-  // }
-}
-
 #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw"]
-pub fn create_window<P: 'static + WindowProcedure>(params: CreateWindowParams, procedure: P) -> Result<HWindow> {
+#[allow(clippy::too_many_arguments)]
+pub fn create_window<WindowState: 'static + WindowProcedure>(
+  ex_style: ExtendedWindowStyle,
+  class: WindowClass,
+  name: String,
+  style: WindowStyle,
+  position: WindowPos,
+  size: WindowSize,
+  parent: Option<HWindow>,
+  menu: Option<*mut ()>,
+  instance: Option<HInstance>,
+  state: WindowState,
+) -> Result<HWindow> {
   let desc = WindowDescriptor {
-    ext_style: params.ex_style,
-    style: params.style,
+    ex_style,
+    style,
     ..Default::default()
   };
 
@@ -126,27 +50,27 @@ pub fn create_window<P: 'static + WindowProcedure>(params: CreateWindowParams, p
   // let mut new_style = desc.style;
   // new_style.remove(WindowStyle::Visible);
 
-  let create_info = Box::into_raw(Box::new(CreateInfo::new(procedure, desc.clone())));
-  let name = WideCString::from_str_truncate(params.name);
+  let create_info = Box::into_raw(Box::new(CreateInfo::new(state, desc.clone())));
+  let name = WideCString::from_str_truncate(name);
   let hwnd = unsafe {
     CreateWindowExW(
-      params.ex_style.to_raw(),
-      params.class.atom(),
+      ex_style.to_raw(),
+      class.atom(),
       name.as_ptr(),
-      params.style.to_raw(),
-      params.position.x(),
-      params.position.y(),
-      params.size.width(),
-      params.size.height(),
-      match params.parent {
+      style.to_raw(),
+      position.x(),
+      position.y(),
+      size.width(),
+      size.height(),
+      match parent {
         Some(p) => p.to_raw() as _,
         None => HWindow::null().to_raw() as _,
       },
-      match params.menu {
-        Some(_m) => todo!(),
+      match menu {
+        Some(m) => m as _,
         None => std::ptr::null_mut() as _,
       },
-      match params.instance {
+      match instance {
         Some(i) => i.to_raw() as _,
         None => HInstance::null().to_raw() as _,
       },
@@ -188,8 +112,20 @@ pub fn create_window<P: 'static + WindowProcedure>(params: CreateWindowParams, p
 impl HWindow {
   /// Thin wrapper around [`create_window`] function
   #[inline]
-  pub fn new<P: 'static + WindowProcedure>(params: CreateWindowParams, procedure: P) -> Result<Self> {
-    create_window(params, procedure)
+  #[allow(clippy::too_many_arguments)]
+  pub fn new<WindowState: 'static + WindowProcedure>(
+    ex_style: ExtendedWindowStyle,
+    class: WindowClass,
+    name: String,
+    style: WindowStyle,
+    position: WindowPos,
+    size: WindowSize,
+    parent: Option<HWindow>,
+    menu: Option<*mut ()>,
+    instance: Option<HInstance>,
+    state: WindowState,
+  ) -> Result<Self> {
+    create_window(ex_style, class, name, style, position, size, parent, menu, instance, state)
   }
 }
 
@@ -234,9 +170,11 @@ impl HWindow {
   }
 
   pub fn destroy(&self) -> Result<()> {
-    if unsafe { self.is_window() } && !self.data().unwrap().is_destroying() {
-      self.data().unwrap().state = WindowState::Destroying;
-      unsafe { DestroyWindow(self.to_ptr()) };
+    if unsafe { self.is_window() } {
+      if let Some(state) = self.state() {
+        state.transition();
+        unsafe { DestroyWindow(self.to_ptr()) };
+      }
     }
     Ok(())
   }
@@ -274,16 +212,16 @@ impl HWindow {
   }
 
   pub(crate) fn initialize_data(&self, create_info: CreateInfo) {
-    let data = WindowData::new(create_info);
+    let data = WindowState::new(create_info);
     let data_ptr = Box::into_raw(Box::new(data));
     self.set_window_long_ptr(LongPointerIndex::UserData, data_ptr as isize);
   }
 
-  pub(crate) fn data(&self) -> Option<&mut WindowData> {
-    unsafe { (self.get_window_long_ptr(LongPointerIndex::UserData) as *mut WindowData).as_mut() }
+  pub(crate) fn state(&self) -> Option<&mut WindowState> {
+    unsafe { (self.get_window_long_ptr(LongPointerIndex::UserData) as *mut WindowState).as_mut() }
   }
 
-  pub(crate) fn take_data(&self) -> Box<WindowData> {
-    unsafe { Box::from_raw(self.get_window_long_ptr(LongPointerIndex::UserData) as *mut WindowData) }
+  pub(crate) fn take_data(&self) -> Box<WindowState> {
+    unsafe { Box::from_raw(self.get_window_long_ptr(LongPointerIndex::UserData) as *mut WindowState) }
   }
 }

@@ -50,27 +50,49 @@ impl CreateInfo {
 }
 
 pub(crate) enum WindowState {
-  Creating(WindowDescriptor),
-  Ready,
+  Creating {
+    desc: WindowDescriptor,
+    app: Option<Box<dyn WindowProcedure>>,
+  },
+  Ready {
+    app: Option<Box<dyn WindowProcedure>>,
+  },
   Destroying,
 }
 
-pub(crate) struct WindowData {
-  pub state: WindowState,
-  pub proc: Box<dyn WindowProcedure>,
-}
-
-impl WindowData {
+impl WindowState {
   pub fn new(mut create_info: CreateInfo) -> Self {
-    Self {
-      state: WindowState::Creating(create_info.desc),
-      proc: create_info.state.take().unwrap(),
+    Self::Creating {
+      desc: create_info.desc,
+      app: create_info.state.take(),
     }
   }
 
-  pub fn is_destroying(&self) -> bool {
-    matches!(self.state, WindowState::Destroying)
+  // pub fn app(&mut self) -> Option<&mut dyn WindowProcedure> {
+  //   match self {
+  //     WindowState::Creating { app, .. } | WindowState::Ready { app } => app.as_deref_mut(),
+  //     WindowState::Destroying => None,
+  //   }
+  // }
+
+  pub fn transition(&mut self) {
+    match self {
+      WindowState::Creating { app, .. } => *self = Self::Ready { app: app.take() },
+      WindowState::Ready { .. } => *self = Self::Destroying,
+      _ => (),
+    }
   }
+
+  // pub fn state_mut(&mut self) -> Option<&mut dyn WindowProcedure> {
+  //   match self {
+  //     WindowState::Creating { state, .. } | WindowState::Ready { state } => Some(state.as_mut()),
+  //     WindowState::Destroying => None,
+  //   }
+  // }
+
+  // pub fn is_destroying(&self) -> bool {
+  //   matches!(self, WindowState::Destroying)
+  // }
 }
 
 /// # Safety
@@ -86,21 +108,15 @@ fn on_message(window: HWindow, message: &Message) -> LRESULT {
     return 0;
   }
 
-  let result = match (window.data(), message) {
+  let result = match (window.state(), message) {
     (None, Message::NcCreate(nc_create_message)) => on_nc_create(window, nc_create_message),
-    (Some(data), Message::Create(create_message)) => on_create(window, create_message, data),
+    (Some(state), Message::Create(create_message)) => on_create(window, create_message, state),
     (Some(_), Message::NcDestroy) => {
       window.quit();
       drop(window.take_data());
       None
     }
-    (
-      Some(WindowData {
-        state: WindowState::Ready,
-        proc,
-      }),
-      _,
-    ) => proc.on_message(window, message),
+    (Some(WindowState::Ready { app: Some(app) }), _) => app.on_message(window, message),
     _ => None,
   };
 
@@ -119,14 +135,17 @@ fn on_nc_create(window: HWindow, message: &NcCreateMessage) -> Option<LResult> {
   None
 }
 
-fn on_create(window: HWindow, _message: &CreateMessage, data: &mut WindowData) -> Option<LResult> {
-  // let create_info = CreateInfo::from_message(message.clone());
-  if let WindowState::Creating(desc) = &data.state {
-    if desc.style.contains(WindowStyle::Visible) && unsafe { ShowWindow(window.to_ptr(), SW_SHOW) } != 1 {
-      eprintln!("Error: {}", get_last_error());
-      return Some(LResult(-1));
-    }
+fn on_create(window: HWindow, _message: &CreateMessage, state: &mut WindowState) -> Option<LResult> {
+  let WindowState::Creating { desc, .. } = state else {
+    return Some(LResult(-1));
+  };
+
+  if desc.style.contains(WindowStyle::Visible) && unsafe { ShowWindow(window.to_ptr(), SW_SHOW) } != 1 {
+    eprintln!("Error: {}", get_last_error());
+    return Some(LResult(-1));
   }
-  data.state = WindowState::Ready;
+
+  state.transition();
+
   None
 }

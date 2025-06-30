@@ -697,3 +697,7 @@ impl NcCreateMessage {
     *create_info
   }
 }
+
+impl KeyDownMessage {}
+
+impl KeyUpMessage {}

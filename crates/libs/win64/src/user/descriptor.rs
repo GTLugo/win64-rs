@@ -10,7 +10,7 @@ pub struct WindowDescriptor {
   pub position: Option<Position>,
   pub size: Option<Size>,
   pub style: WindowStyle,
-  pub ext_style: ExtendedWindowStyle,
+  pub ex_style: ExtendedWindowStyle,
 }
 
 impl Default for WindowDescriptor {
@@ -20,7 +20,7 @@ impl Default for WindowDescriptor {
       position: None,
       size: None,
       style: WindowStyle::OverlappedWindow | WindowStyle::Visible,
-      ext_style: ExtendedWindowStyle::empty(),
+      ex_style: ExtendedWindowStyle::empty(),
     }
   }
 }

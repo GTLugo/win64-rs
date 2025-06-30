@@ -1,25 +1,27 @@
 use win64::{
   sys::SW_SHOW,
   user::{
-    Args, CreateWindowParams, HWindow, LResult, Message, Msg, MsgQueue, WindowClass, WindowClassStyle, WindowProcedure,
-    WindowStyle, create_window,
+    Args, ExtendedWindowStyle, HWindow, LResult, Message, Msg, MsgQueue, WindowClass,
+    WindowClassStyle, WindowPos, WindowProcedure, WindowSize, WindowStyle, create_window,
   },
 };
 
 fn main() -> anyhow::Result<()> {
   let args = Args::get();
 
-  let class = WindowClass::new(WindowClassStyle::empty(), args.hinstance, "Window").register();
+  let class = WindowClass::register(WindowClassStyle::empty(), args.hinstance, "Window");
 
   let hwnd = create_window(
-    CreateWindowParams {
-      class,
-      name: "Window".into(),
-      style: WindowStyle::OverlappedWindow,
-      instance: Some(args.hinstance),
-      ..Default::default()
-    },
-    App,
+    ExtendedWindowStyle::default(),
+    class,
+    "Window".into(),
+    WindowStyle::OverlappedWindow,
+    WindowPos::Auto,
+    WindowSize::Auto,
+    None,
+    None,
+    Some(args.hinstance),
+    State,
   );
 
   if let Ok(hwnd) = hwnd {
@@ -34,11 +36,12 @@ fn main() -> anyhow::Result<()> {
   Ok(())
 }
 
-struct App;
+struct State;
 
-impl WindowProcedure for App {
+impl WindowProcedure for State {
   fn on_message(&mut self, window: HWindow, message: &Message) -> Option<LResult> {
     println!("[{window:?}] {message:?}");
+    // window.destroy();
     None
   }
 }
