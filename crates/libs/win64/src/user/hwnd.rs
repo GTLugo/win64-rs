@@ -1,5 +1,6 @@
 use std::{ffi::OsString, os::windows::ffi::OsStrExt};
 
+use widestring::WideCString;
 use windows_result::{HRESULT, Result};
 use windows_sys::Win32::{
   Foundation::{SetLastError, WIN32_ERROR},
@@ -30,7 +31,7 @@ declare_handle!(
 pub struct CreateWindowParams {
   pub ex_style: ExtendedWindowStyle,
   pub class: WindowClass<Registered>,
-  pub name: OsString,
+  pub name: String,
   pub style: WindowStyle,
   pub position: WindowPos,
   pub size: WindowSize,
@@ -44,7 +45,7 @@ impl Default for CreateWindowParams {
   fn default() -> Self {
     Self {
       ex_style: Default::default(),
-      class: WindowClass::System("".into()),
+      class: WindowClass::System(""),
       name: Default::default(),
       style: Default::default(),
       position: Default::default(),
@@ -62,8 +63,8 @@ impl CreateWindowParams {
     self
   }
 
-  pub fn system_class(mut self, name: impl Into<OsString>) -> Self {
-    self.class = WindowClass::System(name.into());
+  pub fn system_class(mut self, name: impl Into<&'static str>) -> Self {
+    self.class = WindowClass::System(name.into()).register();
     self
   }
 
@@ -72,7 +73,7 @@ impl CreateWindowParams {
     self
   }
 
-  pub fn name(mut self, name: impl Into<OsString>) -> Self {
+  pub fn name(mut self, name: impl Into<String>) -> Self {
     self.name = name.into();
     self
   }
@@ -115,7 +116,6 @@ impl CreateWindowParams {
 
 #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw"]
 pub fn create_window<P: 'static + WindowProcedure>(params: CreateWindowParams, procedure: P) -> Result<HWindow> {
-  let window_name: Vec<u16> = params.name.encode_wide().collect();
   let desc = WindowDescriptor {
     ext_style: params.ex_style,
     style: params.style,
@@ -127,11 +127,12 @@ pub fn create_window<P: 'static + WindowProcedure>(params: CreateWindowParams, p
   // new_style.remove(WindowStyle::Visible);
 
   let create_info = Box::into_raw(Box::new(CreateInfo::new(procedure, desc.clone())));
+  let name = WideCString::from_str_truncate(params.name);
   let hwnd = unsafe {
     CreateWindowExW(
       params.ex_style.to_raw(),
       params.class.atom(),
-      window_name.as_ptr(),
+      name.as_ptr(),
       params.style.to_raw(),
       params.position.x(),
       params.position.y(),
