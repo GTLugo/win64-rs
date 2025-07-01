@@ -19,8 +19,5 @@ pub use point::*;
 pub mod flags;
 pub use flags::*;
 
-pub mod types;
-pub use types::*;
-
 pub mod cursor;
 pub use cursor::*;

@@ -1,15 +1,16 @@
 use std::{ffi::OsString, os::windows::ffi::OsStrExt};
 
+use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use widestring::WideCString;
 use windows_result::{HRESULT, Result};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-  CreateWindowExW, DefWindowProcW, DestroyWindow, IsWindow, PostQuitMessage, SetWindowTextW, ShowWindow,
+  CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, IsWindow, PostQuitMessage, SetWindowTextW, ShowWindow,
 };
 
 use crate::{Handle, declare_handle, get_last_error, reset_last_error};
 
 use super::{
-  Instance, Message, WindowClass, WindowPointerIndex, WindowPos, WindowSize, WindowStyle,
+  Instance, Message, WindowClass, WindowPointerIndex, WindowStyle,
   procedure::{LResult, WindowProcedure, WindowState},
   styles::ExtendedWindowStyle,
 };
@@ -29,8 +30,8 @@ pub struct CreateStruct {
   pub name: String,
   pub style: WindowStyle,
   pub ex_style: ExtendedWindowStyle,
-  pub position: WindowPos,
-  pub size: WindowSize,
+  pub position: (Option<PixelUnit>, Option<PixelUnit>),
+  pub size: (Option<PixelUnit>, Option<PixelUnit>),
   pub parent: Option<Window>,
   pub menu: Option<*mut ()>,
   pub instance: Option<Instance>,
@@ -43,6 +44,35 @@ pub fn create_window(create_struct: CreateStruct) -> Result<Window> {
   // let mut new_style = desc.style;
   // new_style.remove(WindowStyle::Visible);
 
+  let position = {
+    (
+      create_struct
+        .position
+        .0
+        .map(|p| p.to_physical(1.0).0)
+        .unwrap_or(CW_USEDEFAULT),
+      create_struct
+        .position
+        .1
+        .map(|p| p.to_physical(1.0).0)
+        .unwrap_or(CW_USEDEFAULT),
+    )
+  };
+  let size = {
+    (
+      create_struct
+        .size
+        .0
+        .map(|p| p.to_physical(1.0).0)
+        .unwrap_or(CW_USEDEFAULT),
+      create_struct
+        .size
+        .1
+        .map(|p| p.to_physical(1.0).0)
+        .unwrap_or(CW_USEDEFAULT),
+    )
+  };
+
   let name = WideCString::from_str_truncate(create_struct.name.clone());
   let hwnd = unsafe {
     CreateWindowExW(
@@ -50,10 +80,10 @@ pub fn create_window(create_struct: CreateStruct) -> Result<Window> {
       create_struct.class.atom(),
       name.as_ptr(),
       create_struct.style.to_raw(),
-      create_struct.position.x(),
-      create_struct.position.y(),
-      create_struct.size.width(),
-      create_struct.size.height(),
+      position.0,
+      position.1,
+      size.0,
+      size.1,
       match create_struct.parent {
         Some(p) => p.to_raw() as _,
         None => Window::null().to_raw() as _,
@@ -91,8 +121,8 @@ impl Window {
       name: "Window".to_string(),
       style: WindowStyle::OverlappedWindow,
       ex_style: ExtendedWindowStyle::default(),
-      position: WindowPos::Auto,
-      size: WindowSize::Auto,
+      position: (None, None),
+      size: (None, None),
       parent: None,
       menu: None,
       instance: Some(Instance::get()),
@@ -112,8 +142,8 @@ pub struct WindowBuilder<WndClass, WndProc> {
   name: String,
   style: WindowStyle,
   ex_style: ExtendedWindowStyle,
-  position: WindowPos,
-  size: WindowSize,
+  position: (Option<PixelUnit>, Option<PixelUnit>),
+  size: (Option<PixelUnit>, Option<PixelUnit>),
   parent: Option<Window>,
   menu: Option<*mut ()>,
   instance: Option<Instance>,
@@ -169,13 +199,36 @@ impl<WndClass, WndProc> WindowBuilder<WndClass, WndProc> {
     self
   }
 
-  pub fn position(mut self, position: WindowPos) -> WindowBuilder<WndClass, WndProc> {
-    self.position = position;
+  pub fn x(mut self, x: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
+    self.position.0 = x;
     self
   }
 
-  pub fn size(mut self, size: WindowSize) -> WindowBuilder<WndClass, WndProc> {
-    self.size = size;
+  pub fn y(mut self, y: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
+    self.position.1 = y;
+    self
+  }
+
+  pub fn position(mut self, position: impl Into<Position>) -> WindowBuilder<WndClass, WndProc> {
+    let pos: PhysicalPosition<i32> = position.into().to_physical(1.0);
+    self.position = (Some(PixelUnit::Physical(pos.x.into())), Some(PixelUnit::Physical(pos.y.into())));
+    self
+  }
+
+  // TODO: Refactor these out. Split into separate x,y,width,height to simplify things. Make each Option<PixelUnit>.
+  pub fn width(mut self, width: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
+    self.size.0 = width;
+    self
+  }
+
+  pub fn height(mut self, height: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
+    self.size.1 = height;
+    self
+  }
+
+  pub fn size(mut self, size: impl Into<Size>) -> WindowBuilder<WndClass, WndProc> {
+    let size: PhysicalSize<i32> = size.into().to_physical(1.0);
+    self.size = (Some(PixelUnit::Physical(size.width.into())), Some(PixelUnit::Physical(size.height.into())));
     self
   }
 

@@ -1,4 +1,4 @@
-use win64::{sys::SW_SHOW, user::*};
+use win64::{dpi::PhysicalSize, sys::SW_SHOW, user::*};
 
 fn main() -> anyhow::Result<()> {
   let args = Args::get();
@@ -10,6 +10,7 @@ fn main() -> anyhow::Result<()> {
     .wndproc(State)
     .name("Window")
     .style(WindowStyle::OverlappedWindow)
+    .size(PhysicalSize::new(800, 500))
     .instance(Some(args.instance))
     .create();
 
