@@ -10,7 +10,7 @@ use win64::{sys::SW_SHOW, user::*};
 fn main() -> anyhow::Result<()> {
   let args = Args::get();
 
-  let class = WindowClass::register(WindowClassStyle::empty(), args.instance, "Window");
+  let class = WindowClass::register(WindowClassStyle::empty(), args.instance, "Window Class");
 
   let hwnd = Window::new(CreateStruct {
     class,
