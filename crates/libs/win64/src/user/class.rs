@@ -7,7 +7,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{RegisterClassExW, WNDCLASSEXW}
 
 use crate::Handle;
 
-use super::{Instance, LoadCursor, styles::WindowClassStyle};
+use super::{Class, Instance, LoadCursor, NoProc, Window, WindowBuilder, styles::WindowClassStyle};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AppClass {
@@ -61,24 +61,68 @@ impl WindowClass {
     }
   }
 
-  pub fn register(style: WindowClassStyle, instance: Instance, name: impl Into<&'static str>) -> Self {
-    let class = AppClass {
-      style,
-      instance,
-      name: name.into(),
-    };
+  pub fn builder() -> WindowClassBuilder<NoName> {
+    WindowClassBuilder {
+      name: NoName,
+      style: WindowClassStyle::default(),
+      instance: Instance::get(),
+    }
+  }
 
+  pub fn window(&self) -> WindowBuilder<Class, NoProc> {
+    Window::builder().class(self.clone())
+  }
+}
+
+pub struct NoName;
+pub struct Name(&'static str);
+
+pub struct WindowClassBuilder<N> {
+  name: N,
+  style: WindowClassStyle,
+  instance: Instance,
+}
+
+impl WindowClassBuilder<NoName> {
+  pub fn name(self, name: &'static str) -> WindowClassBuilder<Name> {
+    WindowClassBuilder {
+      name: Name(name),
+      style: self.style,
+      instance: self.instance,
+    }
+  }
+}
+
+impl<N> WindowClassBuilder<N> {
+  pub fn instance(mut self, instance: Instance) -> Self {
+    self.instance = instance;
+    self
+  }
+
+  pub fn style(mut self, style: WindowClassStyle) -> Self {
+    self.style = style;
+    self
+  }
+}
+
+impl WindowClassBuilder<Name> {
+  pub fn register(self) -> WindowClass {
     let wc = WNDCLASSEXW {
       cbSize: core::mem::size_of::<WNDCLASSEXW>() as _,
-      hInstance: instance.to_ptr(),
-      lpszClassName: class.atom(),
+      hInstance: self.instance.to_ptr(),
+      lpszClassName: self.name.0.as_ptr().cast(),
       lpfnWndProc: Some(window_procedure),
-      style: style.to_raw(),
+      style: self.style.to_raw(),
       hCursor: CursorIcon::Default.load(),
       ..Default::default()
     };
+
     unsafe { RegisterClassExW(&wc) };
 
-    Self::App(class)
+    WindowClass::App(AppClass {
+      name: self.name.0,
+      style: self.style,
+      instance: self.instance,
+    })
   }
 }

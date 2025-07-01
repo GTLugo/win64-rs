@@ -83,6 +83,133 @@ impl Window {
   pub fn new(create_struct: CreateStruct) -> Result<Self> {
     create_window(create_struct)
   }
+
+  pub fn builder() -> WindowBuilder<NoClass, NoProc> {
+    WindowBuilder {
+      class: NoClass,
+      wnd_proc: NoProc,
+      name: "Window".to_string(),
+      style: WindowStyle::OverlappedWindow,
+      ex_style: ExtendedWindowStyle::default(),
+      position: WindowPos::Auto,
+      size: WindowSize::Auto,
+      parent: None,
+      menu: None,
+      instance: Some(Instance::get()),
+    }
+  }
+}
+
+pub struct NoClass;
+pub struct Class(WindowClass);
+
+pub struct NoProc;
+pub struct Proc(Box<dyn WindowProcedure>);
+
+pub struct WindowBuilder<WndClass, WndProc> {
+  class: WndClass,
+  wnd_proc: WndProc,
+  name: String,
+  style: WindowStyle,
+  ex_style: ExtendedWindowStyle,
+  position: WindowPos,
+  size: WindowSize,
+  parent: Option<Window>,
+  menu: Option<*mut ()>,
+  instance: Option<Instance>,
+}
+
+impl<WndProc> WindowBuilder<NoClass, WndProc> {
+  pub fn class(self, class: WindowClass) -> WindowBuilder<Class, WndProc> {
+    WindowBuilder {
+      class: Class(class),
+      wnd_proc: self.wnd_proc,
+      name: self.name,
+      style: self.style,
+      ex_style: self.ex_style,
+      position: self.position,
+      size: self.size,
+      parent: self.parent,
+      menu: self.menu,
+      instance: self.instance,
+    }
+  }
+}
+
+impl<WndClass> WindowBuilder<WndClass, NoProc> {
+  pub fn wndproc(self, wndproc: impl 'static + WindowProcedure) -> WindowBuilder<WndClass, Proc> {
+    WindowBuilder {
+      class: self.class,
+      wnd_proc: Proc(Box::new(wndproc)),
+      name: self.name,
+      style: self.style,
+      ex_style: self.ex_style,
+      position: self.position,
+      size: self.size,
+      parent: self.parent,
+      menu: self.menu,
+      instance: self.instance,
+    }
+  }
+}
+
+impl<WndClass, WndProc> WindowBuilder<WndClass, WndProc> {
+  pub fn name(mut self, name: impl Into<String>) -> WindowBuilder<WndClass, WndProc> {
+    self.name = name.into();
+    self
+  }
+
+  pub fn style(mut self, style: WindowStyle) -> WindowBuilder<WndClass, WndProc> {
+    self.style = style;
+    self
+  }
+
+  pub fn ex_style(mut self, ex_style: ExtendedWindowStyle) -> WindowBuilder<WndClass, WndProc> {
+    self.ex_style = ex_style;
+    self
+  }
+
+  pub fn position(mut self, position: WindowPos) -> WindowBuilder<WndClass, WndProc> {
+    self.position = position;
+    self
+  }
+
+  pub fn size(mut self, size: WindowSize) -> WindowBuilder<WndClass, WndProc> {
+    self.size = size;
+    self
+  }
+
+  pub fn parent(mut self, parent: Option<Window>) -> WindowBuilder<WndClass, WndProc> {
+    self.parent = parent;
+    self
+  }
+
+  pub fn menu(mut self, menu: Option<*mut ()>) -> WindowBuilder<WndClass, WndProc> {
+    self.menu = menu;
+    self
+  }
+
+  pub fn instance(mut self, instance: Option<Instance>) -> WindowBuilder<WndClass, WndProc> {
+    self.instance = instance;
+    self
+  }
+}
+
+impl WindowBuilder<Class, Proc> {
+  pub fn create(self) -> Result<Window> {
+    Window::new(CreateStruct {
+      class: self.class.0,
+      wnd_proc: Some(self.wnd_proc.0),
+      name: self.name,
+      style: self.style,
+      ex_style: self.ex_style,
+      position: self.position,
+      size: self.size,
+      parent: self.parent,
+      menu: self.menu,
+      instance: self.instance,
+    })
+  }
 }
 
 impl Window {

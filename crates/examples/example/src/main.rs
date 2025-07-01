@@ -3,20 +3,15 @@ use win64::{sys::SW_SHOW, user::*};
 fn main() -> anyhow::Result<()> {
   let args = Args::get();
 
-  let class = WindowClass::register(WindowClassStyle::empty(), args.instance, "Window");
+  let class = WindowClass::builder().name("Window Class").register();
 
-  let hwnd = Window::new(CreateStruct {
-    class,
-    wnd_proc: Some(Box::new(State)),
-    name: "Window".into(),
-    style: WindowStyle::OverlappedWindow,
-    ex_style: ExtendedWindowStyle::default(),
-    position: WindowPos::Auto,
-    size: WindowSize::Auto,
-    parent: None,
-    menu: None,
-    instance: Some(args.instance),
-  });
+  let hwnd = class
+    .window()
+    .wndproc(State)
+    .name("Window")
+    .style(WindowStyle::OverlappedWindow)
+    .instance(Some(args.instance))
+    .create();
 
   if let Ok(hwnd) = hwnd {
     hwnd.show_window(SW_SHOW);
