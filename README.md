@@ -14,8 +14,8 @@ fn main() -> anyhow::Result<()> {
     .name("Window Class")
     .register();
 
-  let hwnd = class
-    .window()
+  let hwnd = Window::builder()
+    .class(class)
     .wndproc(State)
     .name("Window")
     .style(WindowStyle::OverlappedWindow)
