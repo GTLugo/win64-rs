@@ -1,28 +1,22 @@
-use win64::{
-  sys::SW_SHOW,
-  user::{
-    Args, ExtendedWindowStyle, HWindow, LResult, Message, Msg, MsgQueue, WindowClass,
-    WindowClassStyle, WindowPos, WindowProcedure, WindowSize, WindowStyle, create_window,
-  },
-};
+use win64::{sys::SW_SHOW, user::*};
 
 fn main() -> anyhow::Result<()> {
   let args = Args::get();
 
-  let class = WindowClass::register(WindowClassStyle::empty(), args.hinstance, "Window");
+  let class = WindowClass::register(WindowClassStyle::empty(), args.instance, "Window");
 
-  let hwnd = create_window(
-    ExtendedWindowStyle::default(),
+  let hwnd = Window::new(CreateStruct {
     class,
-    "Window".into(),
-    WindowStyle::OverlappedWindow,
-    WindowPos::Auto,
-    WindowSize::Auto,
-    None,
-    None,
-    Some(args.hinstance),
-    State,
-  );
+    wnd_proc: Some(Box::new(State)),
+    name: "Window".into(),
+    style: WindowStyle::OverlappedWindow,
+    ex_style: ExtendedWindowStyle::default(),
+    position: WindowPos::Auto,
+    size: WindowSize::Auto,
+    parent: None,
+    menu: None,
+    instance: Some(args.instance),
+  });
 
   if let Ok(hwnd) = hwnd {
     hwnd.show_window(SW_SHOW);
@@ -39,9 +33,8 @@ fn main() -> anyhow::Result<()> {
 struct State;
 
 impl WindowProcedure for State {
-  fn on_message(&mut self, window: HWindow, message: &Message) -> Option<LResult> {
+  fn on_message(&mut self, window: Window, message: &Message) -> Option<LResult> {
     println!("[{window:?}] {message:?}");
-    // window.destroy();
     None
   }
 }

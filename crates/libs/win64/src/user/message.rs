@@ -1,17 +1,20 @@
+pub mod peek;
+pub use peek::*;
+
+pub mod get;
+pub use get::*;
+
 use std::ops::{Deref, RangeInclusive};
 
 use windows_result::Error;
 use windows_sys::Win32::{
   Foundation::POINT,
-  UI::WindowsAndMessaging::{self, CREATESTRUCTW, DispatchMessageW, GetMessageW, MSG, PeekMessageW, TranslateMessage},
+  UI::WindowsAndMessaging::{self, CREATESTRUCTW, DispatchMessageW, MSG, TranslateMessage},
 };
 
-use crate::{Handle, get_last_error};
+use crate::Handle;
 
-use super::{HWindow, PeekMessageFlags, Point, procedure::CreateInfo};
-
-pub mod data;
-// pub mod pump;
+use super::{CreateStruct, PeekMessageFlags, Point, Window};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WParam(pub usize);
@@ -527,25 +530,9 @@ impl Message {
   }
 }
 
-impl Msg {
-  #[inline]
-  pub fn get(queue: MsgQueue, filter: Option<RangeInclusive<u32>>) -> impl Iterator<Item = Result<Msg, Error>> {
-    GetMessageIterator::Iterating { queue, filter }
-  }
-
-  #[inline]
-  pub fn peek(
-    queue: MsgQueue,
-    filter: Option<RangeInclusive<u32>>,
-    flags: PeekMessageFlags,
-  ) -> impl Iterator<Item = Option<Msg>> {
-    PeekMessageIterator::Iterating { queue, filter, flags }
-  }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Msg {
-  window: HWindow,
+  window: Window,
   message: Message,
   time: u32,
   point: Point,
@@ -579,7 +566,7 @@ impl Msg {
 
 impl From<MSG> for Msg {
   fn from(msg: MSG) -> Self {
-    let window = unsafe { HWindow::from_ptr(msg.hwnd) };
+    let window = unsafe { Window::from_ptr(msg.hwnd) };
     let time = msg.time;
     let point = Point::from(msg.pt);
     let message = Message::new(msg.message, WParam(msg.wParam), LParam(msg.lParam));
@@ -594,70 +581,15 @@ impl From<MSG> for Msg {
 
 pub struct QuitCode(pub usize);
 
-pub enum GetMessageIterator {
-  Iterating {
-    queue: MsgQueue,
-    filter: Option<RangeInclusive<u32>>,
-  },
-  Quitting,
-}
-
-impl Iterator for GetMessageIterator {
-  type Item = Result<Msg, Error>;
-
-  fn next(&mut self) -> Option<Self::Item> {
-    match self {
-      GetMessageIterator::Iterating { queue, filter } => match get_message(*queue, filter.clone()) {
-        Ok(msg) => {
-          if matches!(msg.message, Message::Quit(_)) {
-            *self = GetMessageIterator::Quitting;
-          }
-          Some(Ok(msg))
-        }
-        Err(e) => Some(Err(e)),
-      },
-      GetMessageIterator::Quitting => None,
-    }
-  }
-}
-
-pub enum PeekMessageIterator {
-  Iterating {
-    queue: MsgQueue,
-    filter: Option<RangeInclusive<u32>>,
-    flags: PeekMessageFlags,
-  },
-  Quitting,
-}
-
-impl Iterator for PeekMessageIterator {
-  type Item = Option<Msg>;
-
-  fn next(&mut self) -> Option<Self::Item> {
-    match self {
-      PeekMessageIterator::Iterating { queue, filter, flags } => match peek_message(*queue, filter.clone(), *flags) {
-        Some(m) => {
-          if matches!(m.message, Message::Quit(_)) {
-            *self = PeekMessageIterator::Quitting;
-          }
-          Some(Some(m))
-        }
-        None => Some(None),
-      },
-      PeekMessageIterator::Quitting => None,
-    }
-  }
-}
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MsgQueue {
-  Window(HWindow),
   #[default]
   CurrentThread,
+  Window(Window),
 }
 
 impl MsgQueue {
-  fn unwrap_or_default(self) -> HWindow {
+  fn unwrap_or_default(self) -> Window {
     match self {
       Self::Window(hwnd) => hwnd,
       Self::CurrentThread => Default::default(),
@@ -665,36 +597,27 @@ impl MsgQueue {
   }
 }
 
-pub fn get_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>) -> Result<Msg, Error> {
-  let (min, max) = filter.map(RangeInclusive::into_inner).unwrap_or_default();
-  let mut msg = MSG::default();
-  let result = unsafe { GetMessageW(&mut msg, queue.unwrap_or_default().to_ptr(), min, max) };
-  // WM_QUIT sends return value of zero, causing BOOL to be false. This is still valid though.
-  // Only -1 is actually an error.
-  match result {
-    -1 => Err(get_last_error()),
-    _ => Ok(Msg::from(msg)),
+impl Msg {
+  #[inline]
+  pub fn get(queue: MsgQueue, filter: Option<RangeInclusive<u32>>) -> impl Iterator<Item = Result<Msg, Error>> {
+    GetMessageIterator::Iterating { queue, filter }
   }
-}
 
-pub fn peek_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>, flags: PeekMessageFlags) -> Option<Msg> {
-  let (min, max) = filter.map(RangeInclusive::into_inner).unwrap_or_default();
-  let mut msg = MSG::default();
-  let result = unsafe { PeekMessageW(&mut msg, queue.unwrap_or_default().to_ptr(), min, max, flags.to_raw()) };
-  // If a message is available, the return value is nonzero.
-  // If no messages are available, the return value is zero.
-  match result {
-    0 => None,
-    // WindowsAndMessaging::WM_QUIT => Err(QuitCode(msg.wParam)),
-    _ => Some(Msg::from(msg)),
+  #[inline]
+  pub fn peek(
+    queue: MsgQueue,
+    filter: Option<RangeInclusive<u32>>,
+    flags: PeekMessageFlags,
+  ) -> impl Iterator<Item = PeekResult> {
+    PeekMessageIterator::Iterating { queue, filter, flags }
   }
 }
 
 impl NcCreateMessage {
-  pub(crate) fn create_info(&self) -> CreateInfo {
+  pub(crate) fn create_info(&self) -> CreateStruct {
     let create_struct = unsafe { (self.l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap();
-    let create_info = unsafe { Box::from_raw(create_struct.lpCreateParams as *mut CreateInfo) };
-    *create_info
+    let create_struct = unsafe { Box::from_raw(create_struct.lpCreateParams as *mut CreateStruct) };
+    *create_struct
   }
 }
 

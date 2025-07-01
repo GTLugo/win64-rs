@@ -2,134 +2,90 @@ use std::{ffi::OsString, os::windows::ffi::OsStrExt};
 
 use widestring::WideCString;
 use windows_result::{HRESULT, Result};
-use windows_sys::Win32::{
-  Foundation::{SetLastError, WIN32_ERROR},
-  UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, IsWindow, PostQuitMessage, SetWindowLongPtrW,
-    SetWindowTextW, ShowWindow,
-  },
+use windows_sys::Win32::UI::WindowsAndMessaging::{
+  CreateWindowExW, DefWindowProcW, DestroyWindow, IsWindow, PostQuitMessage, SetWindowTextW, ShowWindow,
 };
 
-use crate::{Handle, declare_handle, get_last_error};
+use crate::{Handle, declare_handle, get_last_error, reset_last_error};
 
 use super::{
-  ExtendedWindowStyle, HInstance, LongPointerIndex, Message, WindowClass, WindowPos, WindowSize, WindowStyle,
-  descriptor::WindowDescriptor,
-  procedure::{CreateInfo, LResult, WindowProcedure, WindowState},
+  Instance, Message, WindowClass, WindowPointerIndex, WindowPos, WindowSize, WindowStyle,
+  procedure::{LResult, WindowProcedure, WindowState},
+  styles::ExtendedWindowStyle,
 };
 
 declare_handle!(
-  HWindow,
+  Window,
   alias = "HWND",
   doc = "https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#hwnd"
 );
 // #[deprecated]
 // pub type HWND = HWindow;
 
+// #[derive(Debug, Clone)]
+pub struct CreateStruct {
+  pub class: WindowClass,
+  pub wnd_proc: Option<Box<dyn WindowProcedure>>,
+  pub name: String,
+  pub style: WindowStyle,
+  pub ex_style: ExtendedWindowStyle,
+  pub position: WindowPos,
+  pub size: WindowSize,
+  pub parent: Option<Window>,
+  pub menu: Option<*mut ()>,
+  pub instance: Option<Instance>,
+}
+
 #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw"]
 #[allow(clippy::too_many_arguments)]
-pub fn create_window<WindowState: 'static + WindowProcedure>(
-  ex_style: ExtendedWindowStyle,
-  class: WindowClass,
-  name: String,
-  style: WindowStyle,
-  position: WindowPos,
-  size: WindowSize,
-  parent: Option<HWindow>,
-  menu: Option<*mut ()>,
-  instance: Option<HInstance>,
-  state: WindowState,
-) -> Result<HWindow> {
-  let desc = WindowDescriptor {
-    ex_style,
-    style,
-    ..Default::default()
-  };
-
+pub fn create_window(create_struct: CreateStruct) -> Result<Window> {
   // remove visible style and reapply it later in the window procedure
   // let mut new_style = desc.style;
   // new_style.remove(WindowStyle::Visible);
 
-  let create_info = Box::into_raw(Box::new(CreateInfo::new(state, desc.clone())));
-  let name = WideCString::from_str_truncate(name);
+  let name = WideCString::from_str_truncate(create_struct.name.clone());
   let hwnd = unsafe {
     CreateWindowExW(
-      ex_style.to_raw(),
-      class.atom(),
+      create_struct.ex_style.to_raw(),
+      create_struct.class.atom(),
       name.as_ptr(),
-      style.to_raw(),
-      position.x(),
-      position.y(),
-      size.width(),
-      size.height(),
-      match parent {
+      create_struct.style.to_raw(),
+      create_struct.position.x(),
+      create_struct.position.y(),
+      create_struct.size.width(),
+      create_struct.size.height(),
+      match create_struct.parent {
         Some(p) => p.to_raw() as _,
-        None => HWindow::null().to_raw() as _,
+        None => Window::null().to_raw() as _,
       },
-      match menu {
+      match create_struct.menu {
         Some(m) => m as _,
         None => std::ptr::null_mut() as _,
       },
-      match instance {
+      match create_struct.instance {
         Some(i) => i.to_raw() as _,
-        None => HInstance::null().to_raw() as _,
+        None => Instance::null().to_raw() as _,
       },
-      create_info.cast(),
+      Box::into_raw(Box::new(create_struct)).cast(),
     )
   };
 
-  // match error {
-  //   e if e == convert_error(ERROR_INVALID_PARAMETER) => Err(CreateWindowError::InvalidParameter(e)),
-  //   e if e == convert_error(ERROR_MOD_NOT_FOUND) => Err(CreateWindowError::ModuleNotFound(e)),
-  //   e if e == convert_error(ERROR_CANNOT_FIND_WND_CLASS) => Err(CreateWindowError::CannotFindWindowClass(e)),
-  //   e if e == convert_error(ERROR_OUTOFMEMORY) => Err(CreateWindowError::OutOfMemory(e)),
-  //   _ => Err(CreateWindowError::Other(error)),
-  // }
-
   match hwnd.is_null() {
     true => Err(get_last_error()),
-    false => Ok(unsafe { HWindow::from_raw(hwnd as usize) }),
+    false => Ok(unsafe { Window::from_raw(hwnd as usize) }),
   }
 }
 
-// #[derive(ThisError, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-// pub enum CreateWindowError {
-//   #[error(transparent)]
-//   InvalidParameter(crate::Error),
-//   #[error(transparent)]
-//   ModuleNotFound(crate::Error),
-//   #[error(transparent)]
-//   CannotFindWindowClass(crate::Error),
-//   #[error(transparent)]
-//   OutOfMemory(crate::Error),
-//   /*
-//    ...etc
-//   */
-//   #[error(transparent)]
-//   Other(crate::Error),
-// }
-
-impl HWindow {
+impl Window {
   /// Thin wrapper around [`create_window`] function
   #[inline]
   #[allow(clippy::too_many_arguments)]
-  pub fn new<WindowState: 'static + WindowProcedure>(
-    ex_style: ExtendedWindowStyle,
-    class: WindowClass,
-    name: String,
-    style: WindowStyle,
-    position: WindowPos,
-    size: WindowSize,
-    parent: Option<HWindow>,
-    menu: Option<*mut ()>,
-    instance: Option<HInstance>,
-    state: WindowState,
-  ) -> Result<Self> {
-    create_window(ex_style, class, name, style, position, size, parent, menu, instance, state)
+  pub fn new(create_struct: CreateStruct) -> Result<Self> {
+    create_window(create_struct)
   }
 }
 
-impl HWindow {
+impl Window {
   /// Returns whether or not the handle identifies an existing window.
   /// # Safety
   /// A thread should not use [`WindowId::is_window`] for a window that it did not create because the window could be destroyed after this function was called. Further, because window handles are recycled the handle could even point to a different window.
@@ -147,8 +103,8 @@ pub enum ShowWindowResult {
   WasHidden,
 }
 
-impl HWindow {
-  #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-iswindow"]
+impl Window {
+  #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-showwindow"]
   pub fn show_window(&self, cmd_show: i32) -> ShowWindowResult {
     match unsafe { ShowWindow(self.to_raw() as _, cmd_show) } {
       0 => ShowWindowResult::WasHidden,
@@ -157,7 +113,7 @@ impl HWindow {
   }
 }
 
-impl HWindow {
+impl Window {
   pub fn send_message(&self) {
     // TODO: somehow ensure these are always sent to the correct thread, even when called from a different thread.
     // maybe do it by storing the thread id?
@@ -172,8 +128,12 @@ impl HWindow {
   pub fn destroy(&self) -> Result<()> {
     if unsafe { self.is_window() } {
       if let Some(state) = self.state() {
-        state.transition();
-        unsafe { DestroyWindow(self.to_ptr()) };
+        state.set_destroying();
+        reset_last_error();
+        return match unsafe { DestroyWindow(self.to_ptr()) } {
+          0 => Ok(()),
+          _ => Err(get_last_error()),
+        };
       }
     }
     Ok(())
@@ -189,39 +149,67 @@ impl HWindow {
 
   pub fn set_window_text(&self, text: impl Into<String>) -> Result<()> {
     let text = OsString::from(text.into()).encode_wide().collect::<Vec<u16>>();
-    unsafe { SetWindowTextW(self.to_ptr(), text.as_ptr()) };
-    Ok(())
-  }
-
-  // TODO: Migrate these functions to use conditionals for diff ptr widths
-  pub(crate) fn get_window_long_ptr(&self, index: LongPointerIndex) -> isize {
-    unsafe { GetWindowLongPtrW(self.to_ptr(), index.to_raw()) }
-  }
-
-  pub(crate) fn set_window_long_ptr(&self, index: LongPointerIndex, value: isize) -> Option<isize> {
-    unsafe { SetLastError(WIN32_ERROR::default()) }; // clear error
-    let result = unsafe { SetWindowLongPtrW(self.to_ptr(), index.to_raw(), value) };
-    let error = get_last_error();
-    match result == 0 && error.code() != HRESULT(0) {
-      true => {
-        eprintln!("Error: {}", get_last_error());
-        None
-      }
-      false => Some(result),
+    reset_last_error();
+    match unsafe { SetWindowTextW(self.to_ptr(), text.as_ptr()) } {
+      0 => Ok(()),
+      _ => Err(get_last_error()),
     }
   }
 
-  pub(crate) fn initialize_data(&self, create_info: CreateInfo) {
-    let data = WindowState::new(create_info);
-    let data_ptr = Box::into_raw(Box::new(data));
-    self.set_window_long_ptr(LongPointerIndex::UserData, data_ptr as isize);
+  // TODO: Migrate these functions to use conditionals for diff ptr widths
+  pub(crate) fn get_window_ptr(&self, index: WindowPointerIndex) -> isize {
+    #[cfg(target_pointer_width = "32")]
+    #[inline(always)]
+    fn inner(index: WindowPointerIndex) -> isize {
+      unsafe {
+        use windows_sys::Win32::UI::WindowsAndMessaging::GetWindowLongW;
+        GetWindowLongW(this.to_ptr(), index.to_raw()) as _
+      }
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    #[inline(always)]
+    fn inner(this: &Window, index: WindowPointerIndex) -> isize {
+      unsafe {
+        use windows_sys::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW;
+        GetWindowLongPtrW(this.to_ptr(), index.to_raw()) as _
+      }
+    }
+
+    inner(self, index)
+  }
+
+  pub(crate) fn set_window_ptr(&self, index: WindowPointerIndex, value: isize) -> Result<isize> {
+    reset_last_error();
+
+    #[cfg(target_pointer_width = "32")]
+    #[inline(always)]
+    fn inner(index: WindowPointerIndex) -> isize {
+      unsafe {
+        use windows_sys::Win32::UI::WindowsAndMessaging::SetWindowLongW;
+        SetWindowLongW(self.to_ptr(), index.to_raw(), value) as _
+      }
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    #[inline(always)]
+    fn inner(this: &Window, index: WindowPointerIndex, value: isize) -> isize {
+      unsafe {
+        use windows_sys::Win32::UI::WindowsAndMessaging::SetWindowLongPtrW;
+        SetWindowLongPtrW(this.to_ptr(), index.to_raw(), value) as _
+      }
+    }
+
+    let result = inner(self, index, value);
+
+    let error = get_last_error();
+    match result == 0 && error.code() != HRESULT(0) {
+      true => Err(error),
+      false => Ok(result),
+    }
   }
 
   pub(crate) fn state(&self) -> Option<&mut WindowState> {
-    unsafe { (self.get_window_long_ptr(LongPointerIndex::UserData) as *mut WindowState).as_mut() }
-  }
-
-  pub(crate) fn take_data(&self) -> Box<WindowState> {
-    unsafe { Box::from_raw(self.get_window_long_ptr(LongPointerIndex::UserData) as *mut WindowState) }
+    unsafe { (self.get_window_ptr(WindowPointerIndex::UserData) as *mut WindowState).as_mut() }
   }
 }

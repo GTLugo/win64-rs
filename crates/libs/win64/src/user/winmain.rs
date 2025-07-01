@@ -1,10 +1,10 @@
 use crate::StartupInfo;
 
-use super::HInstance;
+use super::Instance;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Args {
-  pub hinstance: HInstance,
+  pub instance: Instance,
   pub prev_instance: u32,
   pub cmd_line: Vec<String>,
   pub cmd_show: bool,
@@ -12,12 +12,12 @@ pub struct Args {
 
 impl Args {
   pub fn get() -> Self {
-    let hinstance = HInstance::get();
+    let instance = Instance::get();
     let cmd_line = std::env::args().collect();
     let info = StartupInfo::get();
 
     Self {
-      hinstance,
+      instance,
       prev_instance: 0,
       cmd_line,
       cmd_show: info.show_window,

@@ -3,12 +3,12 @@ use windows_sys::Win32::System::SystemServices::IMAGE_DOS_HEADER;
 use crate::declare_handle;
 
 declare_handle!(
-  HInstance,
+  Instance,
   alias = "HINSTANCE",
   doc = "https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#hinstance"
 );
 
-impl HInstance {
+impl Instance {
   pub fn get() -> Self {
     // https://devblogs.microsoft.com/oldnewthing/20041025-00/?p=37483
     unsafe extern "C" {

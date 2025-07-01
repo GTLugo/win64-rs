@@ -16,16 +16,11 @@ pub use message::*;
 pub mod point;
 pub use point::*;
 
-pub mod flag;
-pub use flag::*;
-
-pub mod procedure;
-pub use procedure::*;
+pub mod flags;
+pub use flags::*;
 
 pub mod types;
 pub use types::*;
 
 pub mod cursor;
 pub use cursor::*;
-
-pub(crate) mod descriptor;

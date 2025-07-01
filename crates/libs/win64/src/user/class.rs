@@ -1,16 +1,20 @@
+pub mod procedure;
+
+pub use procedure::*;
+
 use cursor_icon::CursorIcon;
 use windows_sys::Win32::UI::WindowsAndMessaging::{RegisterClassExW, WNDCLASSEXW};
 
 use crate::Handle;
 
-use super::{HInstance, LoadCursor, WindowClassStyle, procedure::window_procedure};
+use super::{Instance, LoadCursor, styles::WindowClassStyle};
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AppClass {
-  style: WindowClassStyle,
-  instance: HInstance,
   name: &'static str, // Class names are stored as static string slices to ensure their pointers remain valid.
-                      // I will add more fields later :)
+  style: WindowClassStyle,
+  instance: Instance,
+  // I will add more fields later :)
 }
 
 impl AppClass {
@@ -31,12 +35,11 @@ pub enum WindowClass {
   Static,
 }
 
-struct ClassName(*const u16);
-
-unsafe impl Sync for ClassName {}
-
 impl WindowClass {
   pub const fn atom(&self) -> *const u16 {
+    struct ClassName(*const u16);
+    unsafe impl Sync for ClassName {}
+
     // Hmmm this can't be good for memory footprint...
     static BUTTON: ClassName = ClassName(windows_sys::w!("Button"));
     static COMBO_BOX: ClassName = ClassName(windows_sys::w!("ComboBox"));
@@ -45,6 +48,7 @@ impl WindowClass {
     static MDICLIENT: ClassName = ClassName(windows_sys::w!("MDIClient"));
     static SCROLL_BAR: ClassName = ClassName(windows_sys::w!("ScrollBar"));
     static STATIC: ClassName = ClassName(windows_sys::w!("Static"));
+
     match self {
       WindowClass::App(class) => class.atom(),
       Self::Button => BUTTON.0,
@@ -56,10 +60,8 @@ impl WindowClass {
       Self::Static => STATIC.0,
     }
   }
-}
 
-impl WindowClass {
-  pub fn register(style: WindowClassStyle, instance: HInstance, name: impl Into<&'static str>) -> Self {
+  pub fn register(style: WindowClassStyle, instance: Instance, name: impl Into<&'static str>) -> Self {
     let class = AppClass {
       style,
       instance,
