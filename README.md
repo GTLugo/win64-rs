@@ -23,6 +23,7 @@ fn main() -> anyhow::Result<()> {
     .create();
 
   if let Ok(hwnd) = hwnd {
+    // Some APIs that are yet to be migrated will be under the sys module
     hwnd.show_window(SW_SHOW);
 
     for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {
