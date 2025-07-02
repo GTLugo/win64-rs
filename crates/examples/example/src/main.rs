@@ -1,6 +1,6 @@
-use win64::{dpi::PhysicalSize, user::*};
+use win64::{Error, dpi::PhysicalSize, user::*};
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), Error> {
   let args = Args::get();
 
   let class = WindowClass::builder().name("Window Class").register();
