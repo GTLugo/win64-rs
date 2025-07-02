@@ -4,7 +4,8 @@ use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use widestring::WideCString;
 use windows_result::{HRESULT, Result};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-  CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, IsWindow, PostQuitMessage, SetWindowTextW, ShowWindow,
+  self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, IsWindow, PostQuitMessage, SHOW_WINDOW_CMD,
+  SetWindowTextW, ShowWindow,
 };
 
 use crate::{Handle, declare_handle, get_last_error, reset_last_error};
@@ -277,6 +278,42 @@ impl Window {
   }
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CmdShow {
+  Hide,
+  Show,
+  #[default]
+  ShowDefault,
+  Restore,
+  Normal,
+  Maximize,
+  Minimize,
+  ForceMinimize,
+  ShowMinimized,
+  ShowMinNoActive,
+  ShowNoActivate,
+  ShowNA,
+}
+
+impl CmdShow {
+  pub const fn to_raw(&self) -> SHOW_WINDOW_CMD {
+    match self {
+      CmdShow::Hide => WindowsAndMessaging::SW_HIDE,
+      CmdShow::Normal => WindowsAndMessaging::SW_NORMAL,
+      CmdShow::ShowMinimized => WindowsAndMessaging::SW_SHOWMINIMIZED,
+      CmdShow::Maximize => WindowsAndMessaging::SW_SHOWMAXIMIZED,
+      CmdShow::ShowNoActivate => WindowsAndMessaging::SW_SHOWNOACTIVATE,
+      CmdShow::Show => WindowsAndMessaging::SW_SHOW,
+      CmdShow::Minimize => WindowsAndMessaging::SW_MINIMIZE,
+      CmdShow::ShowMinNoActive => WindowsAndMessaging::SW_SHOWMINNOACTIVE,
+      CmdShow::ShowNA => WindowsAndMessaging::SW_SHOWNA,
+      CmdShow::Restore => WindowsAndMessaging::SW_RESTORE,
+      CmdShow::ShowDefault => WindowsAndMessaging::SW_SHOWDEFAULT,
+      CmdShow::ForceMinimize => WindowsAndMessaging::SW_FORCEMINIMIZE,
+    }
+  }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ShowWindowResult {
   WasVisible,
@@ -285,8 +322,8 @@ pub enum ShowWindowResult {
 
 impl Window {
   #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-showwindow"]
-  pub fn show_window(&self, cmd_show: i32) -> ShowWindowResult {
-    match unsafe { ShowWindow(self.to_raw() as _, cmd_show) } {
+  pub fn show_window(&self, cmd_show: CmdShow) -> ShowWindowResult {
+    match unsafe { ShowWindow(self.to_raw() as _, cmd_show.to_raw()) } {
       0 => ShowWindowResult::WasHidden,
       _ => ShowWindowResult::WasVisible,
     }

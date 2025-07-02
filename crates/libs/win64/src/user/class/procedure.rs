@@ -1,11 +1,7 @@
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
-use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOW;
 
-use crate::user::{
-  CreateMessage, CreateStruct, Window, LParam, Message, NcCreateMessage, ShowWindowResult, WParam, WindowPointerIndex,
-  WindowStyle,
-};
-use crate::{Handle, get_last_error};
+use crate::Handle;
+use crate::user::{CreateMessage, CreateStruct, LParam, Message, NcCreateMessage, WParam, Window, WindowPointerIndex};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 #[repr(transparent)]
@@ -140,17 +136,19 @@ fn on_nc_create(window: Window, message: &NcCreateMessage) {
   }
 }
 
-fn on_create(window: Window, _message: &CreateMessage, state: &mut WindowState) {
-  let WindowState::Creating { create_struct, .. } = state else {
-    state.set_destroying();
-    return;
-  };
+fn on_create(_window: Window, _message: &CreateMessage, state: &mut WindowState) {
+  // let WindowState::Creating { create_struct, .. } = state else {
+  //   state.set_destroying();
+  //   return;
+  // };
 
-  if create_struct.style.contains(WindowStyle::Visible) && window.show_window(SW_SHOW) != ShowWindowResult::WasVisible {
-    eprintln!("[ERROR] {}", get_last_error());
-    state.set_destroying();
-    return;
-  }
+  // if create_struct.style.contains(WindowStyle::Visible)
+  //   && window.show_window(CmdShow::Show) == ShowWindowResult::WasVisible
+  // {
+  //   eprintln!("[ERROR] {}", get_last_error());
+  //   state.set_destroying();
+  //   return;
+  // }
 
   state.set_ready();
 }

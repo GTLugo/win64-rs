@@ -1,26 +1,22 @@
-use win64::{dpi::PhysicalSize, sys::SW_SHOW, user::*};
+use win64::{dpi::PhysicalSize, user::*};
 
 fn main() -> anyhow::Result<()> {
   let args = Args::get();
 
   let class = WindowClass::builder().name("Window Class").register();
 
-  let hwnd = class
+  class
     .window()
     .wndproc(State)
     .name("Window")
-    .style(WindowStyle::OverlappedWindow)
+    .style(WindowStyle::OverlappedWindow | WindowStyle::Visible)
     .size(PhysicalSize::new(800, 500))
     .instance(Some(args.instance))
-    .create();
+    .create()?;
 
-  if let Ok(hwnd) = hwnd {
-    hwnd.show_window(SW_SHOW);
-
-    for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {
-      msg.translate();
-      msg.dispatch();
-    }
+  for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {
+    msg.translate();
+    msg.dispatch();
   }
 
   Ok(())
