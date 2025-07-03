@@ -168,7 +168,7 @@ impl<WndProc> WindowBuilder<NoClass, WndProc> {
 }
 
 impl<WndClass> WindowBuilder<WndClass, NoProc> {
-  pub fn wndproc(self, wndproc: impl 'static + WindowProcedure) -> WindowBuilder<WndClass, Proc> {
+  pub fn procedure(self, wndproc: impl 'static + WindowProcedure) -> WindowBuilder<WndClass, Proc> {
     WindowBuilder {
       class: self.class,
       wnd_proc: Proc(Box::new(wndproc)),

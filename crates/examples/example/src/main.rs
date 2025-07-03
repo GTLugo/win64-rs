@@ -7,7 +7,7 @@ fn main() -> Result<(), Error> {
 
   class
     .window_builder()
-    .wndproc(State)
+    .procedure(State)
     .name("Window")
     .style(WindowStyle::OverlappedWindow | WindowStyle::Visible)
     .size(PhysicalSize::new(800, 500))
