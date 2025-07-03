@@ -44,4 +44,4 @@ impl WindowProcedure for State {
 * `safe`: This is a set of new API wrappers that aim to provide stronger checks against improper usage
 
 > [!NOTE]
-> No AI was used to generate code.
+> No AI-generated code.
