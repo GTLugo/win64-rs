@@ -11,7 +11,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 use crate::{Handle, declare_handle, get_last_error, reset_last_error};
 
 use super::{
-  Instance, Message, WindowClass, WindowPointerIndex, WindowStyle,
+  Instance, Message, WindowClass, WindowPtrIndex, WindowStyle,
   procedure::{LResult, WindowProcedure, WindowState},
   styles::ExtendedWindowStyle,
 };
@@ -374,10 +374,10 @@ impl Window {
   }
 
   // TODO: Migrate these functions to use conditionals for diff ptr widths
-  pub(crate) fn get_window_ptr(&self, index: WindowPointerIndex) -> isize {
+  pub(crate) fn get_window_ptr(&self, index: WindowPtrIndex) -> isize {
     #[cfg(target_pointer_width = "32")]
     #[inline(always)]
-    fn inner(index: WindowPointerIndex) -> isize {
+    fn inner(index: WindowPtrIndex) -> isize {
       unsafe {
         use windows_sys::Win32::UI::WindowsAndMessaging::GetWindowLongW;
         GetWindowLongW(this.to_ptr(), index.to_raw()) as _
@@ -386,7 +386,7 @@ impl Window {
 
     #[cfg(target_pointer_width = "64")]
     #[inline(always)]
-    fn inner(this: &Window, index: WindowPointerIndex) -> isize {
+    fn inner(this: &Window, index: WindowPtrIndex) -> isize {
       unsafe {
         use windows_sys::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW;
         GetWindowLongPtrW(this.to_ptr(), index.to_raw()) as _
@@ -396,12 +396,12 @@ impl Window {
     inner(self, index)
   }
 
-  pub(crate) fn set_window_ptr(&self, index: WindowPointerIndex, value: isize) -> Result<isize> {
+  pub(crate) fn set_window_ptr(&self, index: WindowPtrIndex, value: isize) -> Result<isize> {
     reset_last_error();
 
     #[cfg(target_pointer_width = "32")]
     #[inline(always)]
-    fn inner(index: WindowPointerIndex) -> isize {
+    fn inner(index: WindowPtrIndex) -> isize {
       unsafe {
         use windows_sys::Win32::UI::WindowsAndMessaging::SetWindowLongW;
         SetWindowLongW(self.to_ptr(), index.to_raw(), value) as _
@@ -410,7 +410,7 @@ impl Window {
 
     #[cfg(target_pointer_width = "64")]
     #[inline(always)]
-    fn inner(this: &Window, index: WindowPointerIndex, value: isize) -> isize {
+    fn inner(this: &Window, index: WindowPtrIndex, value: isize) -> isize {
       unsafe {
         use windows_sys::Win32::UI::WindowsAndMessaging::SetWindowLongPtrW;
         SetWindowLongPtrW(this.to_ptr(), index.to_raw(), value) as _
@@ -427,6 +427,6 @@ impl Window {
   }
 
   pub(crate) fn state(&self) -> Option<&mut WindowState> {
-    unsafe { (self.get_window_ptr(WindowPointerIndex::UserData) as *mut WindowState).as_mut() }
+    unsafe { (self.get_window_ptr(WindowPtrIndex::UserData) as *mut WindowState).as_mut() }
   }
 }

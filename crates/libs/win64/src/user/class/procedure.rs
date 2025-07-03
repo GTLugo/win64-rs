@@ -1,15 +1,13 @@
-use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+use windows_sys::Win32::Foundation::{FALSE, HWND, LPARAM, LRESULT, WPARAM};
 
 use crate::Handle;
-use crate::user::{CreateMessage, CreateStruct, LParam, Message, NcCreateMessage, WParam, Window, WindowPointerIndex};
+use crate::user::{CreateStruct, LParam, Message, NcCreateMessage, WParam, Window, WindowPtrIndex};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 #[repr(transparent)]
 pub struct LResult(pub isize);
 
 impl LResult {
-  pub const ERROR: Self = Self(-1);
-
   pub fn handled() -> Option<Self> {
     Some(LResult::default())
   }
@@ -105,13 +103,6 @@ fn on_message(window: Window, message: &Message) -> LRESULT {
         _ => None,
       }
     }
-    (Some(state), Message::Create(create_message)) => {
-      on_create(window, create_message, state);
-      match state.app() {
-        Some(app) => app.on_message(window, message),
-        _ => None,
-      }
-    }
     (Some(state), Message::NcDestroy) => {
       window.quit();
       let state = unsafe { Box::from_raw(state) };
@@ -125,30 +116,22 @@ fn on_message(window: Window, message: &Message) -> LRESULT {
   result.unwrap_or_else(|| window.default_procedure(message)).0
 }
 
-fn on_nc_create(window: Window, message: &NcCreateMessage) {
+fn on_nc_create(window: Window, message: &NcCreateMessage) -> LResult {
   let create_info = message.create_info();
 
   let state = WindowState::new(create_info);
   let state_ptr = Box::into_raw(Box::new(state));
-  if let Err(error) = window.set_window_ptr(WindowPointerIndex::UserData, state_ptr as isize) {
-    eprintln!("[ERROR] {}", error);
-    unsafe { Box::from_raw(state_ptr) }.set_destroying();
+
+  if window
+    .set_window_ptr(WindowPtrIndex::UserData, state_ptr as isize)
+    .is_err()
+  {
+    return LResult(FALSE as _);
   }
-}
 
-fn on_create(_window: Window, _message: &CreateMessage, state: &mut WindowState) {
-  // let WindowState::Creating { create_struct, .. } = state else {
-  //   state.set_destroying();
-  //   return;
-  // };
+  if let Some(state) = unsafe { state_ptr.as_mut() } {
+    state.set_ready();
+  }
 
-  // if create_struct.style.contains(WindowStyle::Visible)
-  //   && window.show_window(CmdShow::Show) == ShowWindowResult::WasVisible
-  // {
-  //   eprintln!("[ERROR] {}", get_last_error());
-  //   state.set_destroying();
-  //   return;
-  // }
-
-  state.set_ready();
+  LResult(1)
 }
