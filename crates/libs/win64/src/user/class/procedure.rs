@@ -1,4 +1,4 @@
-use windows_sys::Win32::Foundation::{FALSE, HWND, LPARAM, LRESULT, WPARAM};
+use windows_sys::Win32::Foundation::{self, HWND, LPARAM, LRESULT, WPARAM};
 
 use crate::Handle;
 use crate::user::{CreateStruct, LParam, Message, NcCreateMessage, WParam, Window, WindowPtrIndex};
@@ -8,6 +8,9 @@ use crate::user::{CreateStruct, LParam, Message, NcCreateMessage, WParam, Window
 pub struct LResult(pub isize);
 
 impl LResult {
+  pub const TRUE: Self = LResult(Foundation::TRUE as _);
+  pub const FALSE: Self = LResult(Foundation::FALSE as _);
+
   pub fn handled() -> Option<Self> {
     Some(LResult::default())
   }
@@ -93,7 +96,9 @@ fn on_message(window: Window, message: &Message) -> LRESULT {
 
   let result = match (window.state(), message) {
     (None, Message::NcCreate(nc_create_message)) => {
-      on_nc_create(window, nc_create_message);
+      if on_nc_create(window, nc_create_message) == LResult::FALSE {
+        return LResult::FALSE.0;
+      }
 
       match window.state() {
         Some(state) => match state.app() {
@@ -126,12 +131,12 @@ fn on_nc_create(window: Window, message: &NcCreateMessage) -> LResult {
     .set_window_ptr(WindowPtrIndex::UserData, state_ptr as isize)
     .is_err()
   {
-    return LResult(FALSE as _);
+    return LResult::FALSE;
   }
 
   if let Some(state) = unsafe { state_ptr.as_mut() } {
     state.set_ready();
   }
 
-  LResult(1)
+  LResult::TRUE
 }
