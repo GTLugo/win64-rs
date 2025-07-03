@@ -69,7 +69,7 @@ impl WindowClass {
     }
   }
 
-  pub fn window(&self) -> WindowBuilder<Class, NoProc> {
+  pub fn window_builder(&self) -> WindowBuilder<Class, NoProc> {
     Window::builder().class(self.clone())
   }
 }
