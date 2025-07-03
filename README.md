@@ -7,6 +7,15 @@ The idea for this library is to offer low-level, safe(ish) wrappers for the `win
 ```rs
 use win64::{Error, dpi::PhysicalSize, user::*};
 
+struct State;
+
+impl WindowProcedure for State {
+  fn on_message(&mut self, window: Window, message: &Message) -> Option<LResult> {
+    println!("[{window:?}] {message:?}");
+    None
+  }
+}
+
 fn main() -> Result<(), Error> {
   let args = Args::get();
 
@@ -27,15 +36,6 @@ fn main() -> Result<(), Error> {
   }
 
   Ok(())
-}
-
-struct State;
-
-impl WindowProcedure for State {
-  fn on_message(&mut self, window: Window, message: &Message) -> Option<LResult> {
-    println!("[{window:?}] {message:?}");
-    None
-  }
 }
 ```
 
