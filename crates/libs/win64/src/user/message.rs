@@ -14,7 +14,7 @@ use windows_sys::Win32::{
 
 use crate::Handle;
 
-use super::{CreateStruct, PeekMessageFlags, Point, Window};
+use super::{CreateStruct, LResult, PeekMessageFlags, Point, Window};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WParam(pub usize);
@@ -613,11 +613,48 @@ impl Msg {
   }
 }
 
-impl NcCreateMessage {
-  pub(crate) fn create_info(&self) -> CreateStruct {
+pub trait MessageHandler {
+  type In;
+  type Out;
+
+  fn handle(&self, f: impl FnOnce(Self::In) -> Self::Out) -> Option<LResult>
+  where
+    Self: Sized;
+}
+
+impl MessageHandler for NcCreateMessage {
+  type In = CreateStruct;
+
+  type Out = bool;
+
+  fn handle(&self, f: impl FnOnce(Self::In) -> Self::Out) -> Option<LResult> {
     let create_struct = unsafe { (self.l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap();
     let create_struct = unsafe { Box::from_raw(create_struct.lpCreateParams as *mut CreateStruct) };
-    *create_struct
+    Some(match f(*create_struct) {
+      true => LResult::TRUE,
+      false => LResult::FALSE,
+    })
+  }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CreateMessageResult {
+  Create,
+  Destroy,
+}
+
+impl MessageHandler for CreateMessage {
+  type In = CreateStruct;
+
+  type Out = CreateMessageResult;
+
+  fn handle(&self, f: impl FnOnce(Self::In) -> Self::Out) -> Option<LResult> {
+    let create_struct = unsafe { (self.l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap();
+    let create_struct = unsafe { Box::from_raw(create_struct.lpCreateParams as *mut CreateStruct) };
+    Some(LResult(match f(*create_struct) {
+      CreateMessageResult::Create => 0,
+      CreateMessageResult::Destroy => -1,
+    }))
   }
 }
 
