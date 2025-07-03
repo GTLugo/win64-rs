@@ -10,14 +10,14 @@ use crate::Handle;
 use super::{Class, Instance, LoadCursor, NoProc, Window, WindowBuilder, styles::WindowClassStyle};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct AppClass {
+pub struct CustomClass {
   name: &'static str, // Class names are stored as static string slices to ensure their pointers remain valid.
   style: WindowClassStyle,
   instance: Instance,
   // I will add more fields later :)
 }
 
-impl AppClass {
+impl CustomClass {
   pub const fn atom(&self) -> *const u16 {
     self.name.as_ptr().cast()
   }
@@ -25,7 +25,7 @@ impl AppClass {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum WindowClass {
-  App(AppClass),
+  Custom(CustomClass),
   Button,
   ComboBox,
   Edit,
@@ -50,7 +50,7 @@ impl WindowClass {
     static STATIC: ClassName = ClassName(windows_sys::w!("Static"));
 
     match self {
-      WindowClass::App(class) => class.atom(),
+      WindowClass::Custom(class) => class.atom(),
       Self::Button => BUTTON.0,
       Self::ComboBox => COMBO_BOX.0,
       Self::Edit => EDIT.0,
@@ -119,7 +119,7 @@ impl WindowClassBuilder<Name> {
 
     unsafe { RegisterClassExW(&wc) };
 
-    WindowClass::App(AppClass {
+    WindowClass::Custom(CustomClass {
       name: self.name.0,
       style: self.style,
       instance: self.instance,
