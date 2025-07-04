@@ -9,7 +9,7 @@ use std::ops::{Deref, RangeInclusive};
 use windows_result::Error;
 use windows_sys::Win32::{
   Foundation::POINT,
-  UI::WindowsAndMessaging::{self, DispatchMessageW, MSG, TranslateMessage},
+  UI::WindowsAndMessaging::{self, CREATESTRUCTW, DispatchMessageW, MSG, TranslateMessage},
 };
 
 use crate::Handle;
@@ -622,13 +622,24 @@ pub trait MessageHandler {
     Self: Sized;
 }
 
+impl NcCreateMessage {
+  #[allow(clippy::mut_from_ref)]
+  pub(crate) fn create_struct(&self) -> &mut CREATESTRUCTW {
+    unsafe { (self.l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap()
+  }
+
+  pub(crate) fn lp_param(&self) -> *mut LpParam {
+    self.create_struct().lpCreateParams.cast()
+  }
+}
+
 impl MessageHandler for NcCreateMessage {
   type In<'a> = &'a mut LpParam;
 
   type Out = bool;
 
   fn handle<'a>(&'a self, f: impl Fn(Self::In<'a>) -> Self::Out) -> Option<LResult> {
-    let mut ptr = LpParam::from_raw(self.l);
+    let mut ptr = self.lp_param();
     let boxed = unsafe { Box::from_raw(ptr) };
 
     let result = Some(match f(unsafe { ptr.as_mut() }.unwrap()) {
@@ -645,6 +656,17 @@ impl MessageHandler for NcCreateMessage {
   }
 }
 
+impl CreateMessage {
+  #[allow(clippy::mut_from_ref)]
+  pub(crate) fn create_struct(&self) -> &mut CREATESTRUCTW {
+    unsafe { (self.l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap()
+  }
+
+  pub(crate) fn lp_param(&self) -> *mut LpParam {
+    self.create_struct().lpCreateParams.cast()
+  }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CreateMessageResult {
   Create,
@@ -657,14 +679,14 @@ impl MessageHandler for CreateMessage {
   type Out = CreateMessageResult;
 
   fn handle<'a>(&'a self, f: impl FnOnce(Self::In<'a>) -> Self::Out) -> Option<LResult> {
-    let ptr = LpParam::from_raw(self.l);
+    let ptr = self.lp_param();
     let boxed = unsafe { Box::from_raw(ptr) };
 
     let result = Some(LResult(match f(unsafe { ptr.as_ref() }.map(|p| &p.create_struct).unwrap()) {
       CreateMessageResult::Create => 0,
       CreateMessageResult::Destroy => -1,
     }));
-    
+
     drop(boxed);
 
     result
@@ -674,3 +696,14 @@ impl MessageHandler for CreateMessage {
 impl KeyDownMessage {}
 
 impl KeyUpMessage {}
+
+impl MessageHandler for SetTextMessage {
+  type In<'a> = ();
+
+  type Out = ();
+
+  fn handle<'a>(&'a self, f: impl FnOnce(Self::In<'a>) -> Self::Out) -> Option<LResult> {
+    f(());
+    Some(LResult::TRUE)
+  }
+}

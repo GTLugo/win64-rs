@@ -1,11 +1,9 @@
-use std::{ffi::OsString, os::windows::ffi::OsStrExt};
-
 use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use widestring::WideCString;
-use windows_result::{HRESULT, Result};
+use windows_result::{Error, HRESULT, Result};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-  self, CREATESTRUCTW, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, IsWindow, PostQuitMessage,
-  SHOW_WINDOW_CMD, SetWindowTextW, ShowWindow,
+  self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, IsWindow, PostQuitMessage, SHOW_WINDOW_CMD,
+  SetWindowTextW, ShowWindow,
 };
 
 use crate::{Handle, declare_handle, get_last_error, reset_last_error};
@@ -27,14 +25,6 @@ pub struct LpParam {
   pub wnd_proc: Option<Box<dyn WindowProcedure>>,
 }
 
-impl LpParam {
-  pub fn from_raw(l: LParam) -> *mut Self {
-    unsafe { (l.0 as *mut CREATESTRUCTW).as_mut() }
-      .map(|cs| cs.lpCreateParams.cast())
-      .unwrap()
-  }
-}
-
 pub struct CreateStruct {
   pub class: WindowClass,
   pub name: String,
@@ -45,6 +35,28 @@ pub struct CreateStruct {
   pub parent: Option<Window>,
   pub menu: Option<*mut ()>,
   pub instance: Option<Instance>,
+}
+
+impl CreateStruct {
+  #[inline]
+  pub fn x(&self) -> i32 {
+    self.position.0.map(|p| p.to_physical(1.0).0).unwrap_or(CW_USEDEFAULT)
+  }
+
+  #[inline]
+  pub fn y(&self) -> i32 {
+    self.position.1.map(|p| p.to_physical(1.0).0).unwrap_or(CW_USEDEFAULT)
+  }
+
+  #[inline]
+  pub fn width(&self) -> i32 {
+    self.size.0.map(|p| p.to_physical(1.0).0).unwrap_or(CW_USEDEFAULT)
+  }
+
+  #[inline]
+  pub fn height(&self) -> i32 {
+    self.size.1.map(|p| p.to_physical(1.0).0).unwrap_or(CW_USEDEFAULT)
+  }
 }
 
 // impl Drop for CreateStruct {
@@ -59,35 +71,6 @@ pub fn create_window(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProced
   // let mut new_style = desc.style;
   // new_style.remove(WindowStyle::Visible);
 
-  let position = {
-    (
-      create_struct
-        .position
-        .0
-        .map(|p| p.to_physical(1.0).0)
-        .unwrap_or(CW_USEDEFAULT),
-      create_struct
-        .position
-        .1
-        .map(|p| p.to_physical(1.0).0)
-        .unwrap_or(CW_USEDEFAULT),
-    )
-  };
-  let size = {
-    (
-      create_struct
-        .size
-        .0
-        .map(|p| p.to_physical(1.0).0)
-        .unwrap_or(CW_USEDEFAULT),
-      create_struct
-        .size
-        .1
-        .map(|p| p.to_physical(1.0).0)
-        .unwrap_or(CW_USEDEFAULT),
-    )
-  };
-
   let name = WideCString::from_str_truncate(create_struct.name.clone());
 
   let hwnd = unsafe {
@@ -96,10 +79,10 @@ pub fn create_window(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProced
       create_struct.class.atom(),
       name.as_ptr(),
       create_struct.style.to_raw(),
-      position.0,
-      position.1,
-      size.0,
-      size.1,
+      create_struct.x(),
+      create_struct.y(),
+      create_struct.width(),
+      create_struct.height(),
       create_struct.parent.unwrap_or_default().to_raw() as _,
       create_struct.menu.unwrap_or_else(std::ptr::null_mut) as _,
       create_struct.instance.unwrap_or_default().to_raw() as _,
@@ -387,12 +370,27 @@ impl Window {
   }
 
   pub fn set_window_text(&self, text: impl Into<String>) -> Result<()> {
-    let text = OsString::from(text.into()).encode_wide().collect::<Vec<u16>>();
+    let text = WideCString::from_str_truncate(text.into());
     reset_last_error();
     match unsafe { SetWindowTextW(self.to_ptr(), text.as_ptr()) } {
-      0 => Ok(()),
-      _ => Err(get_last_error()),
+      0 => Err(get_last_error()),
+      _ => Ok(()),
     }
+  }
+
+  pub fn get_window_text(&self) -> Result<String> {
+    let mut text: u16 = 0;
+    let len = match unsafe { SetWindowTextW(self.to_ptr(), &raw mut text) } {
+      0 => {
+        let error = get_last_error();
+        match error == Error::empty() {
+          true => 0,
+          false => return Err(error),
+        }
+      }
+      l => l,
+    } as usize;
+    Ok(String::from_utf16(unsafe { std::slice::from_raw_parts(&raw const text, len) }).expect("Invalid window text"))
   }
 
   pub(crate) fn get_window_ptr(&self, index: WindowPtrIndex) -> isize {

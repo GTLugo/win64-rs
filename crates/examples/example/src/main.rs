@@ -9,10 +9,12 @@ impl WindowProcedure for State {
         println!("[{window:?}] Window created!");
         CreateMessageResult::Create
       }),
-      _ => {
-        // println!("[{window:?}] {message:?}");
+      Message::Paint => {
+        window.set_window_text("Uhhh, why");
+        println!("[{window:?} | {}] {message:?}", window.get_window_text().unwrap());
         None
       }
+      _ => None,
     }
   }
 }
