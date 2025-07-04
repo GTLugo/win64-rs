@@ -37,7 +37,7 @@ fn main() -> Result<(), Error> {
   }
 
   if !unsafe { hwnd.is_window() } {
-    println!("Window destroyed!");
+    println!("[{hwnd:?}] Window destroyed!");
   }
 
   Ok(())
