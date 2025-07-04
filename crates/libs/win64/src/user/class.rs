@@ -40,11 +40,7 @@ pub enum WindowClass {
 
 impl WindowClass {
   pub fn builder() -> WindowClassBuilder<NoName> {
-    WindowClassBuilder {
-      name: NoName,
-      style: WindowClassStyle::default(),
-      instance: Instance::get(),
-    }
+    WindowClassBuilder::default()
   }
 
   pub fn window_builder(&self) -> WindowBuilder<Class, NoProc> {
@@ -59,6 +55,16 @@ pub struct WindowClassBuilder<N> {
   name: N,
   style: WindowClassStyle,
   instance: Instance,
+}
+
+impl Default for WindowClassBuilder<NoName> {
+  fn default() -> Self {
+    WindowClassBuilder {
+      name: NoName,
+      style: WindowClassStyle::default(),
+      instance: Instance::get(),
+    }
+  }
 }
 
 impl WindowClassBuilder<NoName> {

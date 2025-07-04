@@ -9,7 +9,7 @@ use std::ops::{Deref, RangeInclusive};
 use windows_result::Error;
 use windows_sys::Win32::{
   Foundation::POINT,
-  UI::WindowsAndMessaging::{self, CREATESTRUCTW, DispatchMessageW, MSG, TranslateMessage},
+  UI::WindowsAndMessaging::{self, DispatchMessageW, MSG, TranslateMessage},
 };
 
 use crate::Handle;
@@ -628,8 +628,7 @@ impl MessageHandler for NcCreateMessage {
   type Out = bool;
 
   fn handle(&self, f: impl FnOnce(Self::In) -> Self::Out) -> Option<LResult> {
-    let create_struct = unsafe { (self.l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap();
-    let create_struct = unsafe { Box::from_raw(create_struct.lpCreateParams as *mut CreateStruct) };
+    let create_struct = CreateStruct::new(self.l);
     Some(match f(*create_struct) {
       true => LResult::TRUE,
       false => LResult::FALSE,
@@ -649,8 +648,7 @@ impl MessageHandler for CreateMessage {
   type Out = CreateMessageResult;
 
   fn handle(&self, f: impl FnOnce(Self::In) -> Self::Out) -> Option<LResult> {
-    let create_struct = unsafe { (self.l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap();
-    let create_struct = unsafe { Box::from_raw(create_struct.lpCreateParams as *mut CreateStruct) };
+    let create_struct = CreateStruct::new(self.l);
     Some(LResult(match f(*create_struct) {
       CreateMessageResult::Create => 0,
       CreateMessageResult::Destroy => -1,

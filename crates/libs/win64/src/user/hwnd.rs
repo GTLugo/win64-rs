@@ -4,14 +4,16 @@ use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use widestring::WideCString;
 use windows_result::{HRESULT, Result};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-  self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, IsWindow, PostQuitMessage, SHOW_WINDOW_CMD,
-  SetWindowTextW, ShowWindow,
+  self, CREATESTRUCTW, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, IsWindow, PostQuitMessage,
+  SHOW_WINDOW_CMD, SetWindowTextW, ShowWindow,
 };
 
 use crate::{Handle, declare_handle, get_last_error, reset_last_error};
 
 use super::{
-  procedure::{WindowProcedure, WindowState}, styles::ExtendedWindowStyle, Instance, LParam, LResult, Message, WParam, WindowClass, WindowPtrIndex, WindowStyle
+  Instance, LParam, LResult, Message, WParam, WindowClass, WindowPtrIndex, WindowStyle,
+  procedure::{WindowProcedure, WindowState},
+  styles::ExtendedWindowStyle,
 };
 
 declare_handle!(
@@ -34,6 +36,13 @@ pub struct CreateStruct {
   pub parent: Option<Window>,
   pub menu: Option<*mut ()>,
   pub instance: Option<Instance>,
+}
+
+impl CreateStruct {
+  pub(crate) fn new(l: LParam) -> Box<Self> {
+    let create_struct = unsafe { (l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap();
+    unsafe { Box::from_raw(create_struct.lpCreateParams as *mut CreateStruct) }
+  }
 }
 
 #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw"]
@@ -114,18 +123,7 @@ impl Window {
   }
 
   pub fn builder() -> WindowBuilder<NoClass, NoProc> {
-    WindowBuilder {
-      class: NoClass,
-      wnd_proc: NoProc,
-      name: "Window".to_string(),
-      style: WindowStyle::OverlappedWindow,
-      ex_style: ExtendedWindowStyle::default(),
-      position: (None, None),
-      size: (None, None),
-      parent: None,
-      menu: None,
-      instance: Some(Instance::get()),
-    }
+    WindowBuilder::default()
   }
 }
 
@@ -146,6 +144,23 @@ pub struct WindowBuilder<WndClass, WndProc> {
   parent: Option<Window>,
   menu: Option<*mut ()>,
   instance: Option<Instance>,
+}
+
+impl Default for WindowBuilder<NoClass, NoProc> {
+  fn default() -> Self {
+    WindowBuilder {
+      class: NoClass,
+      wnd_proc: NoProc,
+      name: "Window".to_string(),
+      style: WindowStyle::OverlappedWindow,
+      ex_style: ExtendedWindowStyle::default(),
+      position: (None, None),
+      size: (None, None),
+      parent: None,
+      menu: None,
+      instance: Some(Instance::get()),
+    }
+  }
 }
 
 impl<WndProc> WindowBuilder<NoClass, WndProc> {
