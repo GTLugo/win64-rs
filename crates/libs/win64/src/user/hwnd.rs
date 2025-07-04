@@ -89,6 +89,7 @@ pub fn create_window(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProced
   };
 
   let name = WideCString::from_str_truncate(create_struct.name.clone());
+
   let hwnd = unsafe {
     CreateWindowExW(
       create_struct.ex_style.to_raw(),
@@ -99,18 +100,9 @@ pub fn create_window(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProced
       position.1,
       size.0,
       size.1,
-      match create_struct.parent {
-        Some(p) => p.to_raw() as _,
-        None => Window::null().to_raw() as _,
-      },
-      match create_struct.menu {
-        Some(m) => m as _,
-        None => std::ptr::null_mut() as _,
-      },
-      match create_struct.instance {
-        Some(i) => i.to_raw() as _,
-        None => Instance::null().to_raw() as _,
-      },
+      create_struct.parent.unwrap_or_default().to_raw() as _,
+      create_struct.menu.unwrap_or_else(std::ptr::null_mut) as _,
+      create_struct.instance.unwrap_or_default().to_raw() as _,
       Box::into_raw(Box::new(LpParam {
         create_struct,
         wnd_proc: Some(wnd_proc),
