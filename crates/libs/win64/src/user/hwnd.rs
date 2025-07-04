@@ -425,7 +425,7 @@ impl Window {
     }
   }
 
-  #[allow(clippy::mut_from_ref)] // This is fine because self is really just a helper here.
+  #[allow(clippy::mut_from_ref)] // This is fine because self is just a handle.
   #[inline]
   pub(crate) fn state(&self) -> Option<&mut WindowState> {
     unsafe { (self.get_window_ptr(WindowPtrIndex::UserData) as *mut WindowState).as_mut() }
