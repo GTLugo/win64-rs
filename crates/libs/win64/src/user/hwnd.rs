@@ -2,14 +2,14 @@ use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use widestring::WideCString;
 use windows_result::{Error, HRESULT, Result};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-  self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, IsWindow, PostQuitMessage, SHOW_WINDOW_CMD,
-  SetWindowTextW, ShowWindow,
+  self, CW_USEDEFAULT, CreateWindowExW, DestroyWindow, IsWindow, PostQuitMessage, SHOW_WINDOW_CMD, SetWindowTextW,
+  ShowWindow,
 };
 
 use crate::{Handle, declare_handle, get_last_error, reset_last_error};
 
 use super::{
-  Instance, LParam, LResult, Message, WParam, WindowClass, WindowPtrIndex, WindowStyle,
+  Instance, WindowClass, WindowPtrIndex, WindowStyle,
   procedure::{WindowProcedure, WindowState},
   styles::ExtendedWindowStyle,
 };
@@ -332,19 +332,11 @@ impl Window {
 }
 
 impl Window {
-  pub fn send_message(&self) {
+  pub(crate) fn send_message(&self) {
     // TODO: somehow ensure these are always sent to the correct thread, even when called from a different thread.
     // maybe do it by storing the thread id?
     // Reference winit for this!
     todo!()
-  }
-
-  pub fn default_procedure_raw(&self, message: u32, w: WParam, l: LParam) -> isize {
-    unsafe { DefWindowProcW(self.to_ptr(), message, w.0, l.0) }
-  }
-
-  pub fn default_procedure(&self, message: &Message) -> LResult {
-    LResult(self.default_procedure_raw(message.id().to_raw(), message.w(), message.l()))
   }
 
   pub fn destroy(&self) -> Result<()> {

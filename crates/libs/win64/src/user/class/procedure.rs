@@ -1,4 +1,5 @@
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+use windows_sys::Win32::UI::WindowsAndMessaging::DefWindowProcW;
 
 use crate::Handle;
 use crate::user::{LParam, Message, MessageHandler, NcCreateMessage, WParam, Window, WindowPtrIndex};
@@ -59,27 +60,25 @@ impl WindowState {
 pub unsafe extern "system" fn window_procedure(hwnd: HWND, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
   let window = unsafe { Window::from_ptr(hwnd) };
   let message = Message::new(msg, WParam(w_param), LParam(l_param));
-  on_message(window, message).0
+  on_message(window, message)
+    .unwrap_or_else(|| LResult(unsafe { DefWindowProcW(hwnd, msg, w_param, l_param) }))
+    .0
 }
 
-fn on_message(window: Window, message: Message) -> LResult {
+fn on_message(window: Window, message: Message) -> Option<LResult> {
   if !unsafe { window.is_window() } {
-    return LResult(0);
+    return Some(LResult(0));
   }
 
   match (window.state(), message) {
-    (None, Message::NcCreate(nc_create_message)) => {
-      on_nc_create(window, nc_create_message).expect("This should always return either Some(true) or Some(false)")
-    }
+    (None, Message::NcCreate(nc_create_message)) => on_nc_create(window, nc_create_message),
     (Some(state), Message::NcDestroy) => {
       window.quit();
       drop(unsafe { Box::from_raw(state) });
-      LResult(0)
+      Some(LResult(0))
     }
-    (Some(WindowState::Ready(state)), message) => state
-      .on_message(&window, &message)
-      .unwrap_or_else(|| window.default_procedure(&message)),
-    (_, message) => window.default_procedure(&message),
+    (Some(WindowState::Ready(state)), message) => state.on_message(&window, &message),
+    (_, _) => None,
   }
 }
 
