@@ -71,26 +71,27 @@ pub fn create_window(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProced
   // let mut new_style = desc.style;
   // new_style.remove(WindowStyle::Visible);
 
-  let name = WideCString::from_str_truncate(create_struct.name.clone());
+  let lp_param_ptr = Box::into_raw(Box::new(LpParam {
+    create_struct,
+    wnd_proc: Some(wnd_proc),
+  }));
+  let lp_param = unsafe { lp_param_ptr.as_ref() }.unwrap();
+  let name = WideCString::from_str_truncate(lp_param.create_struct.name.clone());
 
   let hwnd = unsafe {
     CreateWindowExW(
-      create_struct.ex_style.to_raw(),
-      create_struct.class.atom(),
+      lp_param.create_struct.ex_style.to_raw(),
+      lp_param.create_struct.class.atom(),
       name.as_ptr(),
-      create_struct.style.to_raw(),
-      create_struct.x(),
-      create_struct.y(),
-      create_struct.width(),
-      create_struct.height(),
-      create_struct.parent.unwrap_or_default().to_raw() as _,
-      create_struct.menu.unwrap_or_else(std::ptr::null_mut) as _,
-      create_struct.instance.unwrap_or_default().to_raw() as _,
-      Box::into_raw(Box::new(LpParam {
-        create_struct,
-        wnd_proc: Some(wnd_proc),
-      }))
-      .cast(),
+      lp_param.create_struct.style.to_raw(),
+      lp_param.create_struct.x(),
+      lp_param.create_struct.y(),
+      lp_param.create_struct.width(),
+      lp_param.create_struct.height(),
+      lp_param.create_struct.parent.unwrap_or_default().to_raw() as _,
+      lp_param.create_struct.menu.unwrap_or_else(std::ptr::null_mut) as _,
+      lp_param.create_struct.instance.unwrap_or_default().to_raw() as _,
+      lp_param_ptr.cast(),
     )
   };
 
