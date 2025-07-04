@@ -10,7 +10,7 @@ impl WindowProcedure for State {
         CreateMessageResult::Create
       }),
       Message::Paint => {
-        window.set_window_text("Uhhh, why");
+        // window.set_window_text("Uhhh, why");
         println!("[{window:?} | {}] {message:?}", window.get_window_text().unwrap());
         None
       }
