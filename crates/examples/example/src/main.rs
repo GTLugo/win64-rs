@@ -22,7 +22,7 @@ fn main() -> Result<(), Error> {
 
   let class = WindowClass::builder().name("Window Class").register();
 
-  class
+  let hwnd = class
     .window_builder()
     .procedure(State)
     .name("Window")
@@ -34,6 +34,10 @@ fn main() -> Result<(), Error> {
   for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {
     msg.translate();
     msg.dispatch();
+  }
+
+  if !unsafe { hwnd.is_window() } {
+    println!("Window destroyed!");
   }
 
   Ok(())
