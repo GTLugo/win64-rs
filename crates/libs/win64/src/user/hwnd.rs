@@ -1,5 +1,6 @@
+use std::{ffi::OsStr, os::windows::ffi::OsStrExt};
+
 use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
-use widestring::WideCString;
 use windows_result::{Error, HRESULT, Result};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
   self, CW_USEDEFAULT, CreateWindowExW, DestroyWindow, GetWindowTextLengthW, GetWindowTextW, IsWindow, PostQuitMessage,
@@ -76,7 +77,10 @@ pub fn create_window(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProced
     wnd_proc: Some(wnd_proc),
   }));
   let lp_param = unsafe { lp_param_ptr.as_ref() }.unwrap();
-  let name = WideCString::from_str_truncate(lp_param.create_struct.name.clone());
+  let name: Vec<u16> = OsStr::new(&lp_param.create_struct.name)
+    .encode_wide()
+    .chain(std::iter::once(0))
+    .collect();
 
   let hwnd = unsafe {
     CreateWindowExW(
@@ -363,7 +367,10 @@ impl Window {
   }
 
   pub fn set_window_text(&self, text: impl Into<String>) -> Result<()> {
-    let text = WideCString::from_str_truncate(text.into());
+    let text: Vec<u16> = OsStr::new(&text.into())
+      .encode_wide()
+      .chain(std::iter::once(0))
+      .collect();
     reset_last_error();
     match unsafe { SetWindowTextW(self.to_ptr(), text.as_ptr()) } {
       0 => Err(get_last_error()),
