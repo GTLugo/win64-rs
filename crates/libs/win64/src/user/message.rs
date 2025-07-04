@@ -664,11 +664,8 @@ impl MessageHandler for CreateMessage {
       CreateMessageResult::Create => 0,
       CreateMessageResult::Destroy => -1,
     }));
-
-    #[allow(unused_assignments)]
-    {
-      drop(boxed);
-    }
+    
+    drop(boxed);
 
     result
   }
