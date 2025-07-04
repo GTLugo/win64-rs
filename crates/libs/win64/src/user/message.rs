@@ -14,7 +14,7 @@ use windows_sys::Win32::{
 
 use crate::Handle;
 
-use super::{CreateStruct, LResult, PeekMessageFlags, Point, Window};
+use super::{CreateStruct, LResult, LpParam, PeekMessageFlags, Point, Window};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WParam(pub usize);
@@ -614,25 +614,34 @@ impl Msg {
 }
 
 pub trait MessageHandler {
-  type In;
+  type In<'a>;
   type Out;
 
-  fn handle(&self, f: impl FnOnce(Self::In) -> Self::Out) -> Option<LResult>
+  fn handle<'a>(&'a self, f: impl Fn(Self::In<'a>) -> Self::Out) -> Option<LResult>
   where
     Self: Sized;
 }
 
 impl MessageHandler for NcCreateMessage {
-  type In = CreateStruct;
+  type In<'a> = &'a mut LpParam;
 
   type Out = bool;
 
-  fn handle(&self, f: impl FnOnce(Self::In) -> Self::Out) -> Option<LResult> {
-    let create_struct = CreateStruct::new(self.l);
-    Some(match f(*create_struct) {
+  fn handle<'a>(&'a self, f: impl Fn(Self::In<'a>) -> Self::Out) -> Option<LResult> {
+    let mut ptr = LpParam::from_raw(self.l);
+    let boxed = unsafe { Box::from_raw(ptr) };
+
+    let result = Some(match f(unsafe { ptr.as_mut() }.unwrap()) {
       true => LResult::TRUE,
       false => LResult::FALSE,
-    })
+    });
+
+    #[allow(unused_assignments)]
+    {
+      ptr = Box::into_raw(boxed);
+    }
+
+    result
   }
 }
 
@@ -643,16 +652,25 @@ pub enum CreateMessageResult {
 }
 
 impl MessageHandler for CreateMessage {
-  type In = CreateStruct;
+  type In<'a> = &'a mut CreateStruct;
 
   type Out = CreateMessageResult;
 
-  fn handle(&self, f: impl FnOnce(Self::In) -> Self::Out) -> Option<LResult> {
-    let create_struct = CreateStruct::new(self.l);
-    Some(LResult(match f(*create_struct) {
+  fn handle<'a>(&'a self, f: impl FnOnce(Self::In<'a>) -> Self::Out) -> Option<LResult> {
+    let ptr = LpParam::from_raw(self.l);
+    let boxed = unsafe { Box::from_raw(ptr) };
+
+    let result = Some(LResult(match f(unsafe { ptr.as_mut() }.map(|p| &mut p.create_struct).unwrap()) {
       CreateMessageResult::Create => 0,
       CreateMessageResult::Destroy => -1,
-    }))
+    }));
+
+    #[allow(unused_assignments)]
+    {
+      drop(boxed);
+    }
+
+    result
   }
 }
 

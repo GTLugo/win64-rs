@@ -21,13 +21,22 @@ declare_handle!(
   alias = "HWND",
   doc = "https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#hwnd"
 );
-// #[deprecated]
-// pub type HWND = HWindow;
 
-// #[derive(Debug, Clone)]
+pub struct LpParam {
+  pub create_struct: CreateStruct,
+  pub wnd_proc: Option<Box<dyn WindowProcedure>>,
+}
+
+impl LpParam {
+  pub fn from_raw(l: LParam) -> *mut Self {
+    unsafe { (l.0 as *mut CREATESTRUCTW).as_mut() }
+      .map(|cs| cs.lpCreateParams.cast())
+      .unwrap()
+  }
+}
+
 pub struct CreateStruct {
   pub class: WindowClass,
-  pub wnd_proc: Option<Box<dyn WindowProcedure>>,
   pub name: String,
   pub style: WindowStyle,
   pub ex_style: ExtendedWindowStyle,
@@ -38,16 +47,14 @@ pub struct CreateStruct {
   pub instance: Option<Instance>,
 }
 
-impl CreateStruct {
-  pub(crate) fn new(l: LParam) -> Box<Self> {
-    let create_struct = unsafe { (l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap();
-    unsafe { Box::from_raw(create_struct.lpCreateParams as *mut CreateStruct) }
-  }
-}
+// impl Drop for CreateStruct {
+//   fn drop(&mut self) {
+//     println!("It dropped!")
+//   }
+// }
 
 #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw"]
-#[allow(clippy::too_many_arguments)]
-pub fn create_window(create_struct: CreateStruct) -> Result<Window> {
+pub fn create_window(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProcedure>) -> Result<Window> {
   // remove visible style and reapply it later in the window procedure
   // let mut new_style = desc.style;
   // new_style.remove(WindowStyle::Visible);
@@ -104,7 +111,11 @@ pub fn create_window(create_struct: CreateStruct) -> Result<Window> {
         Some(i) => i.to_raw() as _,
         None => Instance::null().to_raw() as _,
       },
-      Box::into_raw(Box::new(create_struct)).cast(),
+      Box::into_raw(Box::new(LpParam {
+        create_struct,
+        wnd_proc: Some(wnd_proc),
+      }))
+      .cast(),
     )
   };
 
@@ -118,8 +129,8 @@ impl Window {
   /// Thin wrapper around [`create_window`] function
   #[inline]
   #[allow(clippy::too_many_arguments)]
-  pub fn new(create_struct: CreateStruct) -> Result<Self> {
-    create_window(create_struct)
+  pub fn new(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProcedure>) -> Result<Self> {
+    create_window(create_struct, wnd_proc)
   }
 
   pub fn builder() -> WindowBuilder<NoClass, NoProc> {
@@ -264,18 +275,20 @@ impl<WndClass, WndProc> WindowBuilder<WndClass, WndProc> {
 
 impl WindowBuilder<Class, Proc> {
   pub fn create(self) -> Result<Window> {
-    Window::new(CreateStruct {
-      class: self.class.0,
-      wnd_proc: Some(self.wnd_proc.0),
-      name: self.name,
-      style: self.style,
-      ex_style: self.ex_style,
-      position: self.position,
-      size: self.size,
-      parent: self.parent,
-      menu: self.menu,
-      instance: self.instance,
-    })
+    Window::new(
+      CreateStruct {
+        class: self.class.0,
+        name: self.name,
+        style: self.style,
+        ex_style: self.ex_style,
+        position: self.position,
+        size: self.size,
+        parent: self.parent,
+        menu: self.menu,
+        instance: self.instance,
+      },
+      self.wnd_proc.0,
+    )
   }
 }
 
