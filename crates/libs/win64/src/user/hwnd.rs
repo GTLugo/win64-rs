@@ -2,8 +2,8 @@ use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use widestring::WideCString;
 use windows_result::{Error, HRESULT, Result};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-  self, CW_USEDEFAULT, CreateWindowExW, DestroyWindow, IsWindow, PostQuitMessage, SHOW_WINDOW_CMD, SetWindowTextW,
-  ShowWindow,
+  self, CW_USEDEFAULT, CreateWindowExW, DestroyWindow, GetWindowTextLengthW, GetWindowTextW, IsWindow, PostQuitMessage,
+  SHOW_WINDOW_CMD, SetWindowTextW, ShowWindow,
 };
 
 use crate::{Handle, declare_handle, get_last_error, reset_last_error};
@@ -372,18 +372,15 @@ impl Window {
   }
 
   pub fn get_window_text(&self) -> Result<String> {
-    let mut text: u16 = 0;
-    let len = match unsafe { SetWindowTextW(self.to_ptr(), &raw mut text) } {
-      0 => {
-        let error = get_last_error();
-        match error == Error::empty() {
-          true => 0,
-          false => return Err(error),
-        }
+    let text_len = unsafe { GetWindowTextLengthW(self.to_ptr()) };
+    let mut buffer = Vec::with_capacity(text_len as usize + 1);
+    if unsafe { GetWindowTextW(self.to_ptr(), buffer.as_mut_ptr(), text_len) } == 0 {
+      let error = get_last_error();
+      if error != Error::empty() {
+        return Err(error);
       }
-      l => l,
-    } as usize;
-    Ok(String::from_utf16(unsafe { std::slice::from_raw_parts(&raw const text, len) }).expect("Invalid window text"))
+    };
+    Ok(String::from_utf16(&buffer).expect("Invalid string parts"))
   }
 
   pub(crate) fn get_window_ptr(&self, index: WindowPtrIndex) -> isize {
