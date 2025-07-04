@@ -639,20 +639,10 @@ impl MessageHandler for NcCreateMessage {
   type Out = bool;
 
   fn handle<'a>(&'a self, f: impl Fn(Self::In<'a>) -> Self::Out) -> Option<LResult> {
-    let mut ptr = self.lp_param();
-    let boxed = unsafe { Box::from_raw(ptr) };
-
-    let result = Some(match f(unsafe { ptr.as_mut() }.unwrap()) {
+    Some(match f(unsafe { self.lp_param().as_mut() }.unwrap()) {
       true => LResult::TRUE,
       false => LResult::FALSE,
-    });
-
-    #[allow(unused_assignments)]
-    {
-      ptr = Box::into_raw(boxed);
-    }
-
-    result
+    })
   }
 }
 
@@ -679,15 +669,12 @@ impl MessageHandler for CreateMessage {
   type Out = CreateMessageResult;
 
   fn handle<'a>(&'a self, f: impl FnOnce(Self::In<'a>) -> Self::Out) -> Option<LResult> {
-    let ptr = self.lp_param();
-    let boxed = unsafe { Box::from_raw(ptr) };
-
-    let result = Some(LResult(match f(unsafe { ptr.as_ref() }.map(|p| &p.create_struct).unwrap()) {
+    let result = Some(LResult(match f(unsafe { self.lp_param().as_ref() }.map(|p| &p.create_struct).unwrap()) {
       CreateMessageResult::Create => 0,
       CreateMessageResult::Destroy => -1,
     }));
 
-    drop(boxed);
+    drop(unsafe { Box::from_raw(self.lp_param()) });
 
     result
   }
