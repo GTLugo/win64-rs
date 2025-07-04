@@ -652,7 +652,7 @@ pub enum CreateMessageResult {
 }
 
 impl MessageHandler for CreateMessage {
-  type In<'a> = &'a mut CreateStruct;
+  type In<'a> = &'a CreateStruct;
 
   type Out = CreateMessageResult;
 
@@ -660,7 +660,7 @@ impl MessageHandler for CreateMessage {
     let ptr = LpParam::from_raw(self.l);
     let boxed = unsafe { Box::from_raw(ptr) };
 
-    let result = Some(LResult(match f(unsafe { ptr.as_mut() }.map(|p| &mut p.create_struct).unwrap()) {
+    let result = Some(LResult(match f(unsafe { ptr.as_ref() }.map(|p| &p.create_struct).unwrap()) {
       CreateMessageResult::Create => 0,
       CreateMessageResult::Destroy => -1,
     }));
