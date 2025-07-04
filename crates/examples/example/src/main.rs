@@ -5,8 +5,8 @@ struct State;
 impl WindowProcedure for State {
   fn on_message(&mut self, window: &Window, message: &Message) -> Option<LResult> {
     match message {
-      Message::Create(wm_create) => wm_create.handle(|create_struct| {
-        println!("[{window:?}] {:?}", create_struct.class);
+      Message::Create(wm_create) => wm_create.handle(|_create_struct| {
+        println!("[{window:?}] Window created!");
         CreateMessageResult::Create
       }),
       _ => {
