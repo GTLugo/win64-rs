@@ -24,7 +24,13 @@ pub fn reset_last_error() {
   unsafe { SetLastError(0) };
 }
 
+/// Will return `Some(Error)` if there was an error. Otherwise, will return `None`.
 #[inline]
-pub fn get_last_error() -> Error {
-  Error::from_win32()
+pub fn get_last_error() -> Option<Error> {
+  let error = Error::from_win32();
+  
+  match error == Error::empty() {
+    true => None,
+    false => Some(error),
+  }
 }

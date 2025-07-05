@@ -1,7 +1,7 @@
 use std::{ffi::OsStr, os::windows::ffi::OsStrExt};
 
 use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
-use windows_result::{Error, HRESULT, Result};
+use windows_result::{Error, Result};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
   self, CW_USEDEFAULT, CreateWindowExW, DestroyWindow, GetWindowTextLengthW, GetWindowTextW, IsWindow, PostQuitMessage,
   SHOW_WINDOW_CMD, SetWindowTextW, ShowWindow,
@@ -100,7 +100,7 @@ pub fn create_window(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProced
   };
 
   match hwnd.is_null() {
-    true => Err(get_last_error()),
+    true => Err(get_last_error().unwrap_or(Error::empty())),
     false => Ok(unsafe { Window::from_raw(hwnd as usize) }),
   }
 }
@@ -351,7 +351,7 @@ impl Window {
         reset_last_error();
         return match unsafe { DestroyWindow(self.to_ptr()) } {
           0 => Ok(()),
-          _ => Err(get_last_error()),
+          _ => Err(get_last_error().unwrap_or(Error::empty())),
         };
       }
     }
@@ -373,17 +373,17 @@ impl Window {
       .collect();
     reset_last_error();
     match unsafe { SetWindowTextW(self.to_ptr(), text.as_ptr()) } {
-      0 => Err(get_last_error()),
+      0 => Err(get_last_error().unwrap_or(Error::empty())),
       _ => Ok(()),
     }
   }
 
   pub fn get_window_text(&self) -> Result<String> {
+    reset_last_error();
     let text_len = unsafe { GetWindowTextLengthW(self.to_ptr()) };
     let mut buffer = Vec::with_capacity(text_len as usize + 1);
     if unsafe { GetWindowTextW(self.to_ptr(), buffer.as_mut_ptr(), text_len) } == 0 {
-      let error = get_last_error();
-      if error != Error::empty() {
+      if let Some(error) = get_last_error() {
         return Err(error);
       }
     };
@@ -405,10 +405,9 @@ impl Window {
       SetWindowLongPtrW(self.to_ptr(), index.to_raw(), value) as _
     };
 
-    let error = get_last_error();
-    match result == 0 && error.code() != HRESULT(0) {
-      true => Err(error),
-      false => Ok(result),
+    match (result == 0, get_last_error()) {
+      (true, Some(error)) => Err(error),
+      _ => Ok(result),
     }
   }
 

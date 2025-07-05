@@ -15,12 +15,11 @@ pub fn peek_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>, flags:
   let mut msg = MSG::default();
   reset_last_error();
   let result = unsafe { PeekMessageW(&mut msg, queue.unwrap_or_default().to_ptr(), min, max, flags.to_raw()) };
-  let error = get_last_error();
   // If a message is available, the return value is nonzero.
   // If no messages are available, the return value is zero.
-  match (result, error == Error::empty()) {
-    (0, true) => PeekResult::None,
-    (0, false) => PeekResult::Err(error),
+  match (result, get_last_error()) {
+    (0, None) => PeekResult::None,
+    (0, Some(error)) => PeekResult::Err(error),
     _ => PeekResult::Msg(Msg::from(msg)),
   }
 }

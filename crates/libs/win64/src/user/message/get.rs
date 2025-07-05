@@ -14,7 +14,7 @@ pub fn get_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>) -> Resu
   // WM_QUIT sends return value of zero, causing BOOL to be false. This is still valid though.
   // Only -1 is actually an error.
   match result {
-    -1 => Err(get_last_error()),
+    -1 => Err(get_last_error().unwrap_or(Error::empty())),
     _ => Ok(Msg::from(msg)),
   }
 }

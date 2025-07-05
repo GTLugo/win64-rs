@@ -10,8 +10,8 @@ impl WindowProcedure for State {
         CreateMessageResult::Create
       }),
       Message::Paint => {
-        window.set_window_text("Uhhh, why");
-        println!("[{window:?} | {}] {message:?}", window.get_window_text().unwrap());
+        window.set_window_text("Uhhh, why"); // So this works now...
+        println!("[{window:?} | {}] {message:?}", window.get_window_text().unwrap()); // but this still doesn't...
         None
       }
       _ => None,
