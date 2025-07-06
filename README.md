@@ -21,6 +21,7 @@ fn main() -> Result<(), Error> {
 
   let class = WindowClass::builder()
     .name("Window Class")
+    .instance(Some(args.instance))
     .register()?;
 
   let hwnd = class
@@ -29,7 +30,6 @@ fn main() -> Result<(), Error> {
     .name("Window")
     .style(WindowStyle::OverlappedWindow | WindowStyle::Visible)
     .size(PhysicalSize::new(800, 500))
-    .instance(Some(args.instance))
     .create()?;
 
   hwnd.use_immersive_dark_mode(is_os_dark_mode());
