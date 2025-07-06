@@ -58,7 +58,7 @@ impl StartupInfo {
   pub fn get() -> Self {
     let mut info = STARTUPINFOW {
       cb: std::mem::size_of::<STARTUPINFOW>() as u32,
-      ..unsafe { std::mem::zeroed() }
+      ..Default::default()
     };
 
     unsafe { GetStartupInfoW(&mut info) };
