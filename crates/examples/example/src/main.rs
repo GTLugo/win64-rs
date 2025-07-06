@@ -9,8 +9,8 @@ impl WindowProcedure for State {
         println!("[{window:?}] Window created! {} {:?}", create_struct.name, create_struct.class);
         CreateMessageResult::Create
       }),
-      Message::Paint => {
-        println!("[{window:?} | {}] {message:?}", window.get_window_text().unwrap());
+      Message::SettingChange(_) => {
+        window.use_immersive_dark_mode(is_os_dark_mode());
         None
       }
       _ => None,
