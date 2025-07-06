@@ -1,6 +1,13 @@
 pub mod hwnd;
 pub use hwnd::*;
 
+#[cfg(any(feature = "rwh_06", feature = "rwh_05"))]
+pub mod rwh;
+
+#[cfg(any(feature = "rwh_06", feature = "rwh_05"))]
+#[allow(unused)]
+pub use rwh::*;
+
 pub mod hinstance;
 pub use hinstance::*;
 

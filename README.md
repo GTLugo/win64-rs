@@ -50,6 +50,7 @@ fn main() -> Result<(), Error> {
 ## Features
 
 * `safe`: This is a set of new API wrappers that aim to provide stronger checks against improper usage
+* `rwh_05 / rwh_06`: Implements the raw_window_handle traits on the window handle type.
 
 > [!NOTE]
 > No AI-generated code.

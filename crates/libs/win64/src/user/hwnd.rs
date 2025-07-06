@@ -419,6 +419,10 @@ impl Window {
     unsafe { GetWindowLongPtrW(self.to_ptr(), index.to_raw()) as _ }
   }
 
+  pub fn instance(&self) -> Instance {
+    unsafe { Instance::from_raw(self.get_window_ptr(WindowPtrIndex::Instance) as _) }
+  }
+
   pub(crate) fn set_window_ptr(&self, index: WindowPtrIndex, value: isize) -> Result<isize> {
     reset_last_error();
 
