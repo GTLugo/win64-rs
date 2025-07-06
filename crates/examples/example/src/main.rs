@@ -18,7 +18,7 @@ impl WindowProcedure for State {
   }
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> win64::Result<()> {
   let class = WindowClass::builder().name("Window Class").register()?;
 
   let hwnd = class

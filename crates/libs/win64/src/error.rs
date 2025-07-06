@@ -9,6 +9,7 @@
 */
 
 // Should the need arise for extensions, newtypes should be favored over ext traits.
+pub use windows_result::Result;
 pub use windows_result::Error;
 pub use windows_result::HRESULT as HResult;
 

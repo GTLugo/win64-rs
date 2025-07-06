@@ -36,5 +36,5 @@ pub use rwh_05 as raw_window_handle;
 pub use rwh_06 as raw_window_handle;
 
 pub mod prelude {
-  pub use crate::{Error, dpi::*, user::*};
+  pub use crate::{dpi::*, user::*};
 }
