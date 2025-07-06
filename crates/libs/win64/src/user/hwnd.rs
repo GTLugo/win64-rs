@@ -6,7 +6,8 @@ use std::{
 use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use windows_result::{Error, Result};
 use windows_sys::Win32::{
-  Foundation::{LPARAM, WPARAM},
+  Foundation::{LPARAM, TRUE, WPARAM},
+  Graphics::Dwm::DwmSetWindowAttribute,
   System::Threading::GetCurrentThreadId,
   UI::WindowsAndMessaging::{
     self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW,
@@ -375,7 +376,20 @@ impl Window {
     Some(self.def_window_proc_raw(message.id().to_raw(), message.w().0, message.l().0))
   }
 
-  pub fn set_dark_mode(&self) {}
+  pub fn set_dark_mode(&self, enable: bool) {
+    // https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-windows-themes
+    const DWMWA_USE_IMMERSIVE_DARK_MODE: u32 = 20;
+
+    let value = enable as windows_sys::core::BOOL;
+    unsafe {
+      DwmSetWindowAttribute(
+        self.to_ptr(),
+        DWMWA_USE_IMMERSIVE_DARK_MODE,
+        (&raw const value).cast(),
+        size_of_val(&value) as _,
+      )
+    };
+  }
 
   pub fn destroy(&self) -> Result<()> {
     if self.is_window() {
