@@ -7,6 +7,8 @@ use windows_sys::{
   core::{PCWSTR, PWSTR},
 };
 
+use crate::user::CmdShow;
+
 /// # Safety
 /// Must be null-terminated, valid UTF16
 pub unsafe fn wcslen(s: *mut u16) -> usize {
@@ -39,7 +41,7 @@ pub struct StartupInfo {
   pub count_chars: (u32, u32),
   pub fill_attribute: u32,
   pub flags: u32,
-  pub show_window: bool,
+  pub show_window: CmdShow,
   pub std_input: *mut (),
   pub std_output: *mut (),
   pub std_error: *mut (),
@@ -61,7 +63,7 @@ impl StartupInfo {
       count_chars: (info.dwXCountChars, info.dwYCountChars),
       fill_attribute: info.dwFillAttribute,
       flags: info.dwFlags,
-      show_window: info.wShowWindow == 0,
+      show_window: CmdShow::from_raw(info.wShowWindow.into()),
       std_input: info.hStdInput.cast(),
       std_output: info.hStdOutput.cast(),
       std_error: info.hStdError.cast(),

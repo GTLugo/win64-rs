@@ -283,7 +283,7 @@ impl WindowBuilder<Class, Proc> {
 
 impl Window {
   /// Returns whether or not the handle identifies an existing window. Will also return false if the window is not owned by the calling thread.
-  /// 
+  ///
   #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-iswindow"]
   pub fn is_window(&self) -> bool {
     self.is_current_thread() && unsafe { IsWindow(self.to_raw() as _) != 0 }
@@ -308,6 +308,23 @@ pub enum CmdShow {
 }
 
 impl CmdShow {
+  pub const fn from_raw(raw: SHOW_WINDOW_CMD) -> Self {
+    match raw {
+      WindowsAndMessaging::SW_HIDE => CmdShow::Hide,
+      WindowsAndMessaging::SW_NORMAL => CmdShow::Normal,
+      WindowsAndMessaging::SW_SHOWMINIMIZED => CmdShow::ShowMinimized,
+      WindowsAndMessaging::SW_SHOWMAXIMIZED => CmdShow::Maximize,
+      WindowsAndMessaging::SW_SHOWNOACTIVATE => CmdShow::ShowNoActivate,
+      WindowsAndMessaging::SW_SHOW => CmdShow::Show,
+      WindowsAndMessaging::SW_MINIMIZE => CmdShow::Minimize,
+      WindowsAndMessaging::SW_SHOWMINNOACTIVE => CmdShow::ShowMinNoActive,
+      WindowsAndMessaging::SW_SHOWNA => CmdShow::ShowNA,
+      WindowsAndMessaging::SW_RESTORE => CmdShow::Restore,
+      WindowsAndMessaging::SW_FORCEMINIMIZE => CmdShow::ForceMinimize,
+      _ => CmdShow::ShowDefault,
+    }
+  }
+
   pub const fn to_raw(&self) -> SHOW_WINDOW_CMD {
     match self {
       CmdShow::Hide => WindowsAndMessaging::SW_HIDE,
@@ -357,6 +374,8 @@ impl Window {
   pub fn def_window_proc(&self, message: &Message) -> Option<LResult> {
     Some(self.def_window_proc_raw(message.id().to_raw(), message.w().0, message.l().0))
   }
+
+  pub fn set_dark_mode(&self) {}
 
   pub fn destroy(&self) -> Result<()> {
     if self.is_window() {

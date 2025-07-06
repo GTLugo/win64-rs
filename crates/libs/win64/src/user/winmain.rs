@@ -1,13 +1,13 @@
 use crate::StartupInfo;
 
-use super::Instance;
+use super::{CmdShow, Instance};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Args {
   pub instance: Instance,
   pub prev_instance: u32,
   pub cmd_line: Vec<String>,
-  pub cmd_show: bool,
+  pub cmd_show: CmdShow,
 }
 
 impl Args {
