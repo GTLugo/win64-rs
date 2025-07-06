@@ -376,7 +376,7 @@ impl Window {
     Some(self.def_window_proc_raw(message.id().to_raw(), message.w().0, message.l().0))
   }
 
-  pub fn set_dark_mode(&self, enable: bool) {
+  pub fn use_immersive_dark_mode(&self, enable: bool) {
     // https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-windows-themes
     const DWMWA_USE_IMMERSIVE_DARK_MODE: u32 = 20;
 

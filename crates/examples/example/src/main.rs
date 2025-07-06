@@ -32,7 +32,7 @@ fn main() -> Result<(), Error> {
     .instance(Some(args.instance))
     .create()?;
 
-  hwnd.set_dark_mode(true);
+  hwnd.use_immersive_dark_mode(true);
 
   for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {
     msg.translate();
