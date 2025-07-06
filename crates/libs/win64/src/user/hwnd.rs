@@ -7,9 +7,11 @@ use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use windows_result::{Error, Result};
 use windows_sys::Win32::{
   Foundation::{LPARAM, WPARAM},
+  System::Threading::GetCurrentThreadId,
   UI::WindowsAndMessaging::{
     self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW,
-    GetWindowTextW, IsWindow, PostQuitMessage, SHOW_WINDOW_CMD, SetWindowLongPtrW, SetWindowTextW, ShowWindow,
+    GetWindowTextW, GetWindowThreadProcessId, IsWindow, PostQuitMessage, SHOW_WINDOW_CMD, SetWindowLongPtrW,
+    SetWindowTextW, ShowWindow,
   },
 };
 
@@ -280,14 +282,10 @@ impl WindowBuilder<Class, Proc> {
 }
 
 impl Window {
-  /// Returns whether or not the handle identifies an existing window.
-  /// # Safety
-  /// A thread should not use [`WindowId::is_window`] for a window that it did not create because the window could be destroyed after this function was called. Further, because window handles are recycled the handle could even point to a different window.
-  ///
+  /// Returns whether or not the handle identifies an existing window. Will also return false if the window is not owned by the current thread.
   #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-iswindow"]
-  pub unsafe fn is_window(&self) -> bool {
-    // check for null here is probably redundant, but allows for a short-circuit which may or may not be faster.
-    !self.is_null() && unsafe { IsWindow(self.to_raw() as _) != 0 }
+  pub fn is_window(&self) -> bool {
+    self.is_current_thread() && unsafe { IsWindow(self.to_raw() as _) != 0 }
   }
 }
 
@@ -360,7 +358,7 @@ impl Window {
   }
 
   pub fn destroy(&self) -> Result<()> {
-    if unsafe { self.is_window() } {
+    if self.is_window() {
       if let Some(state) = self.state() {
         state.set_destroying();
         reset_last_error();
@@ -371,6 +369,20 @@ impl Window {
       }
     }
     Ok(())
+  }
+
+  pub fn get_thread_id(&self) -> Option<u32> {
+    let id = unsafe { GetWindowThreadProcessId(self.to_ptr(), std::ptr::null_mut()) };
+    match id {
+      0 => None,
+      _ => Some(id),
+    }
+  }
+
+  pub fn is_current_thread(&self) -> bool {
+    let current_thread = unsafe { GetCurrentThreadId() };
+    let window_thread = self.get_thread_id();
+    window_thread.is_some_and(|id| id == current_thread)
   }
 
   pub fn quit(&self) {
