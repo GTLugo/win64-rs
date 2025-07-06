@@ -5,7 +5,7 @@
 The idea for this library is to offer safer wrappers for the `windows` and `windows-sys` crates that offer low-level control while also helping to prevent invalid states.
 
 ```rs
-use win64::{Error, dpi::PhysicalSize, user::*};
+use win64::prelude::*;
 
 struct State;
 
