@@ -5,14 +5,20 @@ use std::{
 
 use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use windows_result::{Error, Result};
-use windows_sys::Win32::{Foundation::{LPARAM, WPARAM}, UI::WindowsAndMessaging::{
-  self, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW, GetWindowTextW, IsWindow, PostQuitMessage, SetWindowLongPtrW, SetWindowTextW, ShowWindow, CW_USEDEFAULT, SHOW_WINDOW_CMD
-}};
+use windows_sys::Win32::{
+  Foundation::{LPARAM, WPARAM},
+  UI::WindowsAndMessaging::{
+    self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW,
+    GetWindowTextW, IsWindow, PostQuitMessage, SHOW_WINDOW_CMD, SetWindowLongPtrW, SetWindowTextW, ShowWindow,
+  },
+};
 
 use crate::{Handle, declare_handle, get_last_error, reset_last_error};
 
 use super::{
-  procedure::{WindowProcedure, WindowState}, styles::ExtendedWindowStyle, Instance, LResult, Message, WindowClass, WindowPtrIndex, WindowStyle
+  Instance, LResult, Message, WindowClass, WindowPtrIndex, WindowStyle,
+  procedure::{WindowProcedure, WindowState},
+  styles::ExtendedWindowStyle,
 };
 
 declare_handle!(
@@ -77,6 +83,7 @@ pub fn create_window(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProced
     wnd_proc: Some(wnd_proc),
   }));
   let lp_param = unsafe { lp_param_ptr.as_ref() }.unwrap();
+
   let name: Vec<u16> = OsStr::new(&lp_param.create_struct.name)
     .encode_wide()
     .chain(std::iter::once(0))
@@ -388,15 +395,24 @@ impl Window {
 
   pub fn get_window_text(&self) -> Result<String> {
     reset_last_error();
-    let text_len = unsafe { GetWindowTextLengthW(self.to_ptr()) };
-    let mut buffer = Vec::with_capacity(text_len as usize + 1);
-    if unsafe { GetWindowTextW(self.to_ptr(), buffer.as_mut_ptr(), text_len) } == 0 {
+
+    let text_len = unsafe { GetWindowTextLengthW(self.to_ptr()) } as usize;
+    if text_len == 0 {
       if let Some(error) = get_last_error() {
         return Err(error);
       }
     };
 
-    Ok(OsString::from_wide(&buffer).to_string_lossy().into())
+    let mut buffer: Vec<u16> = vec![0; text_len + 1];
+
+    let result = unsafe { GetWindowTextW(self.to_ptr(), buffer.as_mut_ptr(), buffer.len() as i32) };
+    if result == 0 {
+      if let Some(error) = get_last_error() {
+        return Err(error);
+      }
+    };
+
+    Ok(OsString::from_wide(&buffer).to_string_lossy().into_owned())
   }
 
   pub(crate) fn get_window_ptr(&self, index: WindowPtrIndex) -> isize {
