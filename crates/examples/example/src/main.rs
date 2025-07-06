@@ -1,4 +1,4 @@
-use win64::{Error, dpi::PhysicalSize, user::*};
+use win64::prelude::*;
 
 struct State;
 

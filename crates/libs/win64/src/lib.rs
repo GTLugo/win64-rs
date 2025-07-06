@@ -34,3 +34,7 @@ pub use rwh_05 as raw_window_handle;
 
 #[cfg(all(feature = "rwh_06", not(any(feature = "rwh_05"))))]
 pub use rwh_06 as raw_window_handle;
+
+pub mod prelude {
+  pub use crate::{Error, dpi::*, user::*};
+}
