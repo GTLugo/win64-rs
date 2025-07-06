@@ -6,9 +6,10 @@ pub use response::*;
 
 use cursor_icon::CursorIcon;
 use win64_macro::ClassAtom;
+use windows_result::Error;
 use windows_sys::Win32::UI::WindowsAndMessaging::{RegisterClassExW, WNDCLASSEXW};
 
-use crate::Handle;
+use crate::{Handle, get_last_error, reset_last_error};
 
 use super::{Class, Instance, LoadCursor, NoProc, Window, WindowBuilder, styles::WindowClassStyle};
 
@@ -90,7 +91,7 @@ impl<N> WindowClassBuilder<N> {
 }
 
 impl WindowClassBuilder<Name> {
-  pub fn register(self) -> WindowClass {
+  pub fn register(self) -> Result<WindowClass, Error> {
     let wc = WNDCLASSEXW {
       cbSize: core::mem::size_of::<WNDCLASSEXW>() as _,
       hInstance: self.instance.to_ptr(),
@@ -101,12 +102,17 @@ impl WindowClassBuilder<Name> {
       ..Default::default()
     };
 
-    unsafe { RegisterClassExW(&wc) };
+    reset_last_error();
+    let atom = unsafe { RegisterClassExW(&wc) };
+    let error = get_last_error();
 
-    WindowClass::Custom(CustomClass {
-      name: self.name.0,
-      style: self.style,
-      instance: self.instance,
-    })
+    match (atom, error) {
+      (0, Some(error)) => Err(error),
+      _ => Ok(WindowClass::Custom(CustomClass {
+        name: self.name.0,
+        style: self.style,
+        instance: self.instance,
+      })),
+    }
   }
 }

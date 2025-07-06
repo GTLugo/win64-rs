@@ -1,4 +1,4 @@
-use win64::{dpi::PhysicalSize, user::*, Error};
+use win64::{Error, dpi::PhysicalSize, user::*};
 
 struct State;
 
@@ -21,7 +21,7 @@ impl WindowProcedure for State {
 fn main() -> Result<(), Error> {
   let args = Args::get();
 
-  let class = WindowClass::builder().name("Window Class").register();
+  let class = WindowClass::builder().name("Window Class").register()?;
 
   let hwnd = class
     .window_builder()
