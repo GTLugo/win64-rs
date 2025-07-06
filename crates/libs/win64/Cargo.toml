@@ -59,3 +59,7 @@ features = [
 # I would like to strip this out eventually, but error codes are a practically infinite amount of work.
 [dependencies.windows-result]
 version = "0.3"
+
+# For dark mode detection
+[dependencies.windows-registry]
+version = "0.5"

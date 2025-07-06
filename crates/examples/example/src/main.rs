@@ -27,12 +27,13 @@ fn main() -> Result<(), Error> {
     .window_builder()
     .procedure(State)
     .name("Window")
-    .style(WindowStyle::OverlappedWindow | WindowStyle::Visible)
+    .style(WindowStyle::OverlappedWindow)
     .size(PhysicalSize::new(800, 500))
     .instance(Some(args.instance))
     .create()?;
 
-  hwnd.use_immersive_dark_mode(true);
+  hwnd.use_immersive_dark_mode(is_os_dark_mode());
+  hwnd.show_window(CmdShow::ShowDefault);
 
   for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {
     msg.translate();
