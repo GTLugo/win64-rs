@@ -16,7 +16,7 @@ use windows_sys::Win32::{
   },
 };
 
-use crate::{Handle, declare_handle, get_last_error, reset_last_error};
+use crate::{Handle, declare_handle, get_last_error, reset_last_error, win10_build_version};
 
 use super::{
   Instance, LResult, Message, WindowClass, WindowPtrIndex, WindowStyle,
@@ -379,14 +379,16 @@ impl Window {
   pub fn use_immersive_dark_mode(&self, enable: bool) {
     // https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-windows-themes
     let value = enable as windows_sys::core::BOOL;
-    unsafe {
-      DwmSetWindowAttribute(
-        self.to_ptr(),
-        DWMWA_USE_IMMERSIVE_DARK_MODE as _,
-        (&raw const value).cast(),
-        size_of_val(&value) as _,
-      )
+    let Some(version) = win10_build_version() else {
+      return;
     };
+    // May 2020 Update https://stackoverflow.com/a/70693198/17004103
+    let dw_attribute: u32 = if version < 19041 {
+      19
+    } else {
+      DWMWA_USE_IMMERSIVE_DARK_MODE as _
+    };
+    unsafe { DwmSetWindowAttribute(self.to_ptr(), dw_attribute, (&raw const value).cast(), size_of_val(&value) as _) };
   }
 
   pub fn destroy(&self) -> Result<()> {
