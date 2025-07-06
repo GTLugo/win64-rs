@@ -283,6 +283,7 @@ impl WindowBuilder<Class, Proc> {
 
 impl Window {
   /// Returns whether or not the handle identifies an existing window. Will also return false if the window is not owned by the current thread.
+  /// 
   #[doc = "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-iswindow"]
   pub fn is_window(&self) -> bool {
     self.is_current_thread() && unsafe { IsWindow(self.to_raw() as _) != 0 }
