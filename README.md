@@ -44,7 +44,7 @@ fn main() -> Result<(), Error> {
 ```
 
 > [!WARNING]
-> This crate is largely untested on versions of Windows older than Windows 11. Here be dragons.
+> While efforts are put in place to maintain compatibility, this crate is largely untested on versions of Windows older than Windows 11. Here be dragons.
 
 ## Features
 
