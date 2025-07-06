@@ -21,6 +21,8 @@ impl WindowProcedure for State {
 fn main() -> win64::Result<()> {
   let class = WindowClass::builder().name("Window Class").register()?;
 
+  println!("{:?}", win64::rtl_get_version());
+
   let hwnd = class
     .window_builder()
     .procedure(State)

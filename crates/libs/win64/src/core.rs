@@ -1,9 +1,16 @@
 pub mod handle;
 pub use handle::*;
 
-use std::{ffi::OsString, os::windows::ffi::OsStringExt};
+use libloading::{Library, Symbol};
+use std::{ffi::OsString, os::windows::ffi::OsStringExt, sync::LazyLock};
 use windows_sys::{
-  Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW},
+  Win32::{
+    Foundation::NTSTATUS,
+    System::{
+      SystemInformation::OSVERSIONINFOW,
+      Threading::{GetStartupInfoW, STARTUPINFOW},
+    },
+  },
   core::{PCWSTR, PWSTR},
 };
 
@@ -68,5 +75,58 @@ impl StartupInfo {
       std_output: info.hStdOutput.cast(),
       std_error: info.hStdError.cast(),
     }
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct OsVersionInfo {
+  pub major_version: u32,
+  pub minor_version: u32,
+  pub build_number: u32,
+  pub platform_id: u32,
+  pub csdversion: String,
+}
+
+pub fn rtl_get_version() -> Option<&'static OsVersionInfo> {
+  static VERSION: LazyLock<Option<OsVersionInfo>> = LazyLock::new(|| {
+    let Ok(ntdll) = (unsafe { Library::new("ntdll.dll\0") }) else {
+      return None;
+    };
+
+    let Ok(rtl_get_version): Result<Symbol<unsafe extern "system" fn(*mut OSVERSIONINFOW) -> NTSTATUS>, _> =
+      (unsafe { ntdll.get(b"RtlGetVersion") })
+    else {
+      return None;
+    };
+
+    unsafe {
+      let mut info = OSVERSIONINFOW::default();
+
+      let status = rtl_get_version(&mut info);
+
+      if status >= 0 {
+        Some(OsVersionInfo {
+          major_version: info.dwMajorVersion,
+          minor_version: info.dwMinorVersion,
+          build_number: info.dwBuildNumber,
+          platform_id: info.dwPlatformId,
+          csdversion: String::from_utf16_lossy(&info.szCSDVersion)
+            .trim_matches('\0')
+            .to_string(),
+        })
+      } else {
+        None
+      }
+    }
+  });
+  VERSION.as_ref()
+}
+
+pub fn win10_build_version() -> Option<u32> {
+  let version = rtl_get_version()?;
+  if version.major_version == 10 && version.minor_version == 0 {
+    Some(version.build_number)
+  } else {
+    None
   }
 }
