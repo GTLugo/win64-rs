@@ -19,8 +19,6 @@ impl WindowProcedure for State {
 }
 
 fn main() -> Result<(), Error> {
-  let args = Args::get();
-
   let class = WindowClass::builder().name("Window Class").register()?;
 
   let hwnd = class
@@ -29,7 +27,6 @@ fn main() -> Result<(), Error> {
     .name("Window")
     .style(WindowStyle::OverlappedWindow)
     .size(PhysicalSize::new(800, 500))
-    .instance(Some(args.instance))
     .create()?;
 
   hwnd.use_immersive_dark_mode(is_os_dark_mode());
