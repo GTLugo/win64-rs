@@ -1,4 +1,4 @@
-use win64::{dpi::PhysicalSize, raw_window_handle::HasRawDisplayHandle, user::*, Error};
+use win64::{dpi::PhysicalSize, user::*, Error};
 
 struct State;
 
