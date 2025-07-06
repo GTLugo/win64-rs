@@ -22,7 +22,7 @@ thiserror = "2.0"
 cursor-icon    = "1.1"
 dpi            = "0.1"
 keyboard-types = "0.8"
-widestring     = "1.2"
+# widestring     = "1.2"
 
 [dependencies.win64-macro]
 version = "0.1"

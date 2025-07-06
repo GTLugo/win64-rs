@@ -14,7 +14,7 @@ use windows_sys::Win32::{
 
 use crate::Handle;
 
-use super::{CreateStruct, LResult, LpParam, PeekMessageFlags, Point, Window};
+use super::{CreateStruct, LResult, LpParam, PeekMessageFlags, Point, Window, WindowProcedure};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WParam(pub usize);
@@ -622,38 +622,19 @@ pub trait MessageHandler {
     Self: Sized;
 }
 
-impl NcCreateMessage {
-  #[allow(clippy::mut_from_ref)]
-  pub(crate) fn create_struct(&self) -> &mut CREATESTRUCTW {
-    unsafe { (self.l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap()
-  }
-
-  pub(crate) fn lp_param(&self) -> *mut LpParam {
-    self.create_struct().lpCreateParams.cast()
-  }
-}
-
 impl MessageHandler for NcCreateMessage {
-  type In<'a> = &'a mut LpParam;
+  type In<'a> = Box<dyn WindowProcedure>;
 
   type Out = bool;
 
   fn handle<'a>(&'a self, f: impl Fn(Self::In<'a>) -> Self::Out) -> Option<LResult> {
-    Some(match f(unsafe { self.lp_param().as_mut() }.unwrap()) {
+    let create_struct = unsafe { (self.l.0 as *mut CREATESTRUCTW).as_ref() }.unwrap();
+    let lp_param = unsafe { (create_struct.lpCreateParams as *mut LpParam).as_mut() }.unwrap();
+
+    Some(match f(lp_param.wnd_proc.take().unwrap()) {
       true => LResult::TRUE,
       false => LResult::FALSE,
     })
-  }
-}
-
-impl CreateMessage {
-  #[allow(clippy::mut_from_ref)]
-  pub(crate) fn create_struct(&self) -> &mut CREATESTRUCTW {
-    unsafe { (self.l.0 as *mut CREATESTRUCTW).as_mut() }.unwrap()
-  }
-
-  pub(crate) fn lp_param(&self) -> *mut LpParam {
-    self.create_struct().lpCreateParams.cast()
   }
 }
 
@@ -664,19 +645,19 @@ pub enum CreateMessageResult {
 }
 
 impl MessageHandler for CreateMessage {
-  type In<'a> = &'a CreateStruct;
+  type In<'a> = CreateStruct;
 
   type Out = CreateMessageResult;
 
   fn handle<'a>(&'a self, f: impl FnOnce(Self::In<'a>) -> Self::Out) -> Option<LResult> {
-    let result = Some(LResult(match f(unsafe { self.lp_param().as_ref() }.map(|p| &p.create_struct).unwrap()) {
+    let create_struct = unsafe { (self.l.0 as *mut CREATESTRUCTW).as_ref() }.unwrap();
+    let lp_param = unsafe { (create_struct.lpCreateParams as *mut LpParam).as_mut() }.unwrap();
+    let boxed = unsafe { Box::from_raw(lp_param) };
+
+    Some(LResult(match f(boxed.create_struct) {
       CreateMessageResult::Create => 0,
       CreateMessageResult::Destroy => -1,
-    }));
-
-    drop(unsafe { Box::from_raw(self.lp_param()) });
-
-    result
+    }))
   }
 }
 
@@ -684,13 +665,13 @@ impl KeyDownMessage {}
 
 impl KeyUpMessage {}
 
-impl MessageHandler for SetTextMessage {
-  type In<'a> = ();
+// impl MessageHandler for SetTextMessage {
+//   type In<'a> = ();
 
-  type Out = ();
+//   type Out = ();
 
-  fn handle<'a>(&'a self, f: impl FnOnce(Self::In<'a>) -> Self::Out) -> Option<LResult> {
-    f(());
-    Some(LResult::TRUE)
-  }
-}
+//   fn handle<'a>(&'a self, f: impl FnOnce(Self::In<'a>) -> Self::Out) -> Option<LResult> {
+//     f(());
+//     Some(LResult::TRUE)
+//   }
+// }

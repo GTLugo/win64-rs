@@ -1,18 +1,18 @@
-use std::{ffi::OsStr, os::windows::ffi::OsStrExt};
+use std::{
+  ffi::{OsStr, OsString},
+  os::windows::ffi::{OsStrExt, OsStringExt},
+};
 
 use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use windows_result::{Error, Result};
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-  self, CW_USEDEFAULT, CreateWindowExW, DestroyWindow, GetWindowTextLengthW, GetWindowTextW, IsWindow, PostQuitMessage,
-  SHOW_WINDOW_CMD, SetWindowTextW, ShowWindow,
-};
+use windows_sys::Win32::{Foundation::{LPARAM, WPARAM}, UI::WindowsAndMessaging::{
+  self, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW, GetWindowTextW, IsWindow, PostQuitMessage, SetWindowLongPtrW, SetWindowTextW, ShowWindow, CW_USEDEFAULT, SHOW_WINDOW_CMD
+}};
 
 use crate::{Handle, declare_handle, get_last_error, reset_last_error};
 
 use super::{
-  Instance, WindowClass, WindowPtrIndex, WindowStyle,
-  procedure::{WindowProcedure, WindowState},
-  styles::ExtendedWindowStyle,
+  procedure::{WindowProcedure, WindowState}, styles::ExtendedWindowStyle, Instance, LResult, Message, WindowClass, WindowPtrIndex, WindowStyle
 };
 
 declare_handle!(
@@ -344,6 +344,14 @@ impl Window {
     todo!()
   }
 
+  pub(crate) fn def_window_proc_raw(&self, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LResult {
+    LResult(unsafe { DefWindowProcW(self.to_ptr(), msg, w_param, l_param) })
+  }
+
+  pub fn def_window_proc(&self, message: &Message) -> Option<LResult> {
+    Some(self.def_window_proc_raw(message.id().to_raw(), message.w().0, message.l().0))
+  }
+
   pub fn destroy(&self) -> Result<()> {
     if unsafe { self.is_window() } {
       if let Some(state) = self.state() {
@@ -387,23 +395,18 @@ impl Window {
         return Err(error);
       }
     };
-    Ok(String::from_utf16(&buffer).expect("Invalid string parts"))
+
+    Ok(OsString::from_wide(&buffer).to_string_lossy().into())
   }
 
   pub(crate) fn get_window_ptr(&self, index: WindowPtrIndex) -> isize {
-    unsafe {
-      use windows_sys::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW;
-      GetWindowLongPtrW(self.to_ptr(), index.to_raw()) as _
-    }
+    unsafe { GetWindowLongPtrW(self.to_ptr(), index.to_raw()) as _ }
   }
 
   pub(crate) fn set_window_ptr(&self, index: WindowPtrIndex, value: isize) -> Result<isize> {
     reset_last_error();
 
-    let result = unsafe {
-      use windows_sys::Win32::UI::WindowsAndMessaging::SetWindowLongPtrW;
-      SetWindowLongPtrW(self.to_ptr(), index.to_raw(), value) as _
-    };
+    let result = unsafe { SetWindowLongPtrW(self.to_ptr(), index.to_raw(), value) as _ };
 
     match (result == 0, get_last_error()) {
       (true, Some(error)) => Err(error),

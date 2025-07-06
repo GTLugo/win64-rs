@@ -5,12 +5,11 @@ struct State;
 impl WindowProcedure for State {
   fn on_message(&mut self, window: &Window, message: &Message) -> Option<LResult> {
     match message {
-      Message::Create(wm_create) => wm_create.handle(|_create_struct| {
-        println!("[{window:?}] Window created!");
+      Message::Create(wm_create) => wm_create.handle(|create_struct| {
+        println!("[{window:?}] Window created! {} {:?}", create_struct.name, create_struct.class);
         CreateMessageResult::Create
       }),
       Message::Paint => {
-        window.set_window_text("Uhhh, why"); // So this works now...
         println!("[{window:?} | {}] {message:?}", window.get_window_text().unwrap()); // but this still doesn't...
         None
       }
