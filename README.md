@@ -23,7 +23,7 @@ fn main() -> Result<(), Error> {
     .name("Window Class")
     .register()?;
 
-  class
+  let hwnd = class
     .window_builder()
     .procedure(State)
     .name("Window")
