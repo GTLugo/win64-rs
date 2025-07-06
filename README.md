@@ -42,6 +42,7 @@ fn main() -> Result<(), Error> {
   Ok(())
 }
 ```
+
 > [!WARNING]
 > This crate is largely untested on versions of Windows older than Windows 11. Here be dragons.
 
