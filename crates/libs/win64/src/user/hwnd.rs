@@ -7,7 +7,7 @@ use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use windows_result::{Error, Result};
 use windows_sys::Win32::{
   Foundation::{LPARAM, WPARAM},
-  Graphics::Dwm::DwmSetWindowAttribute,
+  Graphics::Dwm::{DWMWA_USE_IMMERSIVE_DARK_MODE, DwmSetWindowAttribute},
   System::Threading::GetCurrentThreadId,
   UI::WindowsAndMessaging::{
     self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW,
@@ -378,13 +378,11 @@ impl Window {
 
   pub fn use_immersive_dark_mode(&self, enable: bool) {
     // https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-windows-themes
-    const DWMWA_USE_IMMERSIVE_DARK_MODE: u32 = 20;
-
     let value = enable as windows_sys::core::BOOL;
     unsafe {
       DwmSetWindowAttribute(
         self.to_ptr(),
-        DWMWA_USE_IMMERSIVE_DARK_MODE,
+        DWMWA_USE_IMMERSIVE_DARK_MODE as _,
         (&raw const value).cast(),
         size_of_val(&value) as _,
       )
