@@ -6,7 +6,7 @@ use std::{
 use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
 use windows_result::{Error, Result};
 use windows_sys::Win32::{
-  Foundation::{LPARAM, TRUE, WPARAM},
+  Foundation::{LPARAM, WPARAM},
   Graphics::Dwm::DwmSetWindowAttribute,
   System::Threading::GetCurrentThreadId,
   UI::WindowsAndMessaging::{
