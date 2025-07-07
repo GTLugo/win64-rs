@@ -1,6 +1,6 @@
-use windows_sys::Win32::Graphics::Gdi::{BeginPaint, EndPaint, PAINTSTRUCT};
+use windows_sys::Win32::Graphics::Gdi::{BeginPaint, COLOR_WINDOW, EndPaint, PAINTSTRUCT};
 
-use crate::{Handle, Rect, user::DeviceContext};
+use crate::{Handle, Rect, declare_handle, user::DeviceContext};
 
 use super::Window;
 
@@ -75,5 +75,17 @@ impl Window {
   fn end_paint(&self, paint: Paint) {
     let raw = paint.to_raw();
     unsafe { EndPaint(self.to_ptr(), &raw const raw) };
+  }
+}
+
+declare_handle!(
+  Brush,
+  alias = "HBRUSH",
+  doc = "https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#hbrush"
+);
+
+impl Brush {
+  pub fn color_window() -> Self {
+    unsafe { Self::from_raw((COLOR_WINDOW + 1) as _) }
   }
 }

@@ -1,6 +1,8 @@
-use windows_sys::Win32::Graphics::Gdi::{COLOR_WINDOW, FillRect, HBRUSH};
+use windows_sys::Win32::Graphics::Gdi::FillRect;
 
 use crate::{Handle, Rect, declare_handle};
+
+use super::Brush;
 
 declare_handle!(
   DeviceContext,
@@ -9,8 +11,8 @@ declare_handle!(
 );
 
 impl DeviceContext {
-  pub fn fill_rect_color_window(&self, rect: Rect) {
+  pub fn fill_rect(&self, rect: Rect, brush: Brush) {
     let r = rect.to_raw();
-    unsafe { FillRect(self.to_ptr(), &raw const r, (COLOR_WINDOW + 1) as HBRUSH) };
+    unsafe { FillRect(self.to_ptr(), &raw const r, brush.to_ptr()) };
   }
 }
