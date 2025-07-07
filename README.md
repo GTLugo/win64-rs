@@ -15,6 +15,10 @@ impl WindowProcedure for State {
       Message::Create(_) | Message::SettingChange(_) => {
         window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(is_os_dark_mode()));
       }
+      Message::Destroy => {
+        window.quit();
+        None
+      }
       Message::Paint => {
         window.begin_paint(|hdc, ps| {
           hdc.fill_rect(ps.paint, Brush::color_window());

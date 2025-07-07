@@ -14,21 +14,21 @@ pub trait WindowProcedure {
 
 pub(crate) enum WindowState {
   Creating,
-  Running(Box<dyn WindowProcedure>),
+  Running,
   Destroying,
 }
 
-impl WindowState {
-  pub fn new() -> Self {
-    Self::Creating
-  }
+pub(crate) struct UserData {
+  pub proc: Box<dyn WindowProcedure>,
+  pub state: WindowState,
+}
 
-  pub fn set_running(&mut self, wnd_proc: Box<dyn WindowProcedure>) {
-    *self = Self::Running(wnd_proc);
-  }
-
-  pub fn set_destroying(&mut self) {
-    *self = Self::Destroying;
+impl UserData {
+  pub fn new(proc: Box<dyn WindowProcedure>) -> Self {
+    Self {
+      proc,
+      state: WindowState::Creating,
+    }
   }
 }
 
@@ -42,32 +42,32 @@ pub(crate) unsafe extern "system" fn window_procedure(
 ) -> LRESULT {
   let window = unsafe { Window::from_ptr(hwnd) };
   let message = Message::new(msg, WParam(w_param), LParam(l_param));
-  let result = on_message(window, message).unwrap_or_else(|| window.def_window_proc_raw(msg, w_param, l_param));
+  let result = on_message(&window, &message).unwrap_or_else(|| window.def_window_proc_raw(msg, w_param, l_param));
   result.0
 }
 
-fn on_message(window: Window, message: Message) -> Option<LResult> {
-  match (window.state(), message) {
+fn on_message(window: &Window, message: &Message) -> Option<LResult> {
+  match (window.user_data(), message) {
     (None, Message::NcCreate(nc_create_message)) => {
       nc_create_message.handle(|wnd_proc| {
-        let state_ptr = Box::into_raw(Box::new(WindowState::new()));
+        let data_ptr = Box::into_raw(Box::new(UserData::new(wnd_proc)));
+        let _ = window.set_window_ptr(WindowPtrIndex::UserData, data_ptr as isize);
 
-        let _ = window.set_window_ptr(WindowPtrIndex::UserData, state_ptr as isize);
-
-        unsafe { state_ptr.as_mut() }
-          .expect("window state ptr went invalid during creation")
-          .set_running(wnd_proc);
+        unsafe { data_ptr.as_mut() }
+          .expect("window user data ptr went invalid during creation")
+          .state = WindowState::Running;
 
         true
       });
-      None
+
+      let data = (unsafe { (window.get_window_ptr(WindowPtrIndex::UserData) as *mut UserData).as_mut() })?;
+      data.proc.on_message(window, message)
     }
-    (Some(state), Message::NcDestroy) => {
-      window.quit();
-      drop(unsafe { Box::from_raw(state) });
-      Some(LResult(0))
+    (Some(data), Message::NcDestroy) => {
+      let mut data = unsafe { Box::from_raw(data) };
+      data.proc.on_message(window, message)
     }
-    (Some(WindowState::Running(state)), message) => state.on_message(&window, &message),
+    (Some(data), message) => data.proc.on_message(window, message),
     (_, _) => None,
   }
 }

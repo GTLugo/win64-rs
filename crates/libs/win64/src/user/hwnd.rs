@@ -29,7 +29,7 @@ use windows_sys::Win32::{
 use crate::{Handle, declare_handle, get_last_error, reset_last_error, win10_build_version};
 
 use super::{
-  Instance, LResult, Message, WindowClass, WindowPtrIndex, WindowStyle,
+  Instance, LResult, Message, UserData, WindowClass, WindowPtrIndex, WindowStyle,
   procedure::{WindowProcedure, WindowState},
   styles::ExtendedWindowStyle,
 };
@@ -512,15 +512,16 @@ impl Window {
   }
 
   pub fn destroy(&self) -> Result<()> {
-    if self.is_window() {
-      if let Some(state) = self.state() {
-        state.set_destroying();
-        reset_last_error();
-        return match unsafe { DestroyWindow(self.to_ptr()) } {
-          0 => Ok(()),
-          _ => Err(get_last_error().unwrap_or(Error::empty())),
-        };
-      }
+    if self.is_window()
+      && let Some(data) = self.user_data()
+      && let WindowState::Running = data.state
+    {
+      data.state = WindowState::Destroying;
+      reset_last_error();
+      return match unsafe { DestroyWindow(self.to_ptr()) } {
+        0 => Ok(()),
+        _ => Err(get_last_error().unwrap_or(Error::empty())),
+      };
     }
     Ok(())
   }
@@ -602,7 +603,7 @@ impl Window {
 
   #[allow(clippy::mut_from_ref)] // This is fine because self is just a handle.
   #[inline]
-  pub(crate) fn state(&self) -> Option<&mut WindowState> {
-    unsafe { (self.get_window_ptr(WindowPtrIndex::UserData) as *mut WindowState).as_mut() }
+  pub(crate) fn user_data(&self) -> Option<&mut UserData> {
+    unsafe { (self.get_window_ptr(WindowPtrIndex::UserData) as *mut UserData).as_mut() }
   }
 }

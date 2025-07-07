@@ -1,4 +1,3 @@
-use fps_counter::FPSCounter;
 use win64::prelude::*;
 
 struct State {}
@@ -11,9 +10,15 @@ impl State {
 
 impl WindowProcedure for State {
   fn on_message(&mut self, window: &Window, message: &Message) -> Option<LResult> {
+    println!("[{window:?}] {message:?}");
+
     match message {
       Message::Create(_) | Message::SettingChange(_) => {
         window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(is_os_dark_mode()));
+        None
+      }
+      Message::Destroy => {
+        window.quit();
         None
       }
       Message::Paint => {
@@ -40,7 +45,7 @@ fn main() -> win64::Result<()> {
 
   hwnd.show_window(CmdShow::ShowDefault);
 
-  let mut counter = FPSCounter::new();
+  // let mut counter = fps_counter::FPSCounter::new();
 
   for msg in Msg::peek(MsgQueue::CurrentThread, None, PeekMessageFlags::Remove) {
     if let Some(msg) = msg.ok() {
@@ -48,8 +53,8 @@ fn main() -> win64::Result<()> {
       msg.dispatch();
     }
 
-    let fps = counter.tick();
-    hwnd.set_window_text(format!("WINDOW | {fps}"))?;
+    // let fps = counter.tick();
+    // hwnd.set_window_text(format!("WINDOW | {fps}"))?;
   }
 
   Ok(())
