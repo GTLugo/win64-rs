@@ -14,15 +14,13 @@ impl WindowProcedure for State {
     match message {
       Message::Create(_) | Message::SettingChange(_) => {
         window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(is_os_dark_mode()));
-        None
       }
       Message::Paint => {
         window.begin_paint(|hdc, ps| {
           hdc.fill_rect(ps.paint, Brush::color_window());
         });
-        None
       }
-      _ => None,
+      _ => (),
     }
     None
   }

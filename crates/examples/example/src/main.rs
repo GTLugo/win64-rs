@@ -43,25 +43,13 @@ fn main() -> win64::Result<()> {
   let mut counter = FPSCounter::new();
 
   for msg in Msg::peek(MsgQueue::CurrentThread, None, PeekMessageFlags::Remove) {
-    match &msg {
-      PeekResult::Msg(msg) => {
-        msg.translate();
-        msg.dispatch();
-      }
-      PeekResult::None => (),
-      PeekResult::Err(error) => eprintln!("{error}"),
+    if let Some(msg) = msg.ok() {
+      msg.translate();
+      msg.dispatch();
     }
 
-    match msg.ok() {
-      Some(Msg {
-        message: Message::SetText(_),
-        ..
-      }) => (),
-      _ => {
-        let fps = counter.tick();
-        hwnd.set_window_text(format!("WINDOW | {fps}"))?;
-      }
-    }
+    let fps = counter.tick();
+    hwnd.set_window_text(format!("WINDOW | {fps}"))?;
   }
 
   Ok(())
