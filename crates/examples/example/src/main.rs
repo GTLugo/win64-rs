@@ -1,3 +1,4 @@
+use fps_counter::FPSCounter;
 use win64::prelude::*;
 
 struct State {}
@@ -39,9 +40,30 @@ fn main() -> win64::Result<()> {
 
   hwnd.show_window(CmdShow::ShowDefault);
 
-  for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {
-    msg.translate();
-    msg.dispatch();
+  let mut counter = FPSCounter::new();
+
+  for msg in Msg::peek(MsgQueue::CurrentThread, None, PeekMessageFlags::Remove) {
+    match &msg {
+      PeekResult::Msg(msg) => {
+        msg.translate();
+        msg.dispatch();
+      }
+      PeekResult::None => (),
+      PeekResult::Err(error) => eprintln!("{error}"),
+    }
+
+    match msg.message() {
+      Some(Msg {
+        message: Message::SetText(_),
+        ..
+      }) => (),
+      _ => {
+        let fps = counter.tick();
+        hwnd.set_window_text(format!("WINDOW | {fps}"));
+      }
+    }
+
+    // println!("[FPS] {fps}");
   }
 
   Ok(())

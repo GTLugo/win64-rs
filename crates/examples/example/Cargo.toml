@@ -12,3 +12,6 @@ repository.workspace = true
 [dependencies.win64]
 version = "*"
 path = "../../libs/win64"
+
+[dependencies]
+fps_counter = "3"
