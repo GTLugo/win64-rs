@@ -54,7 +54,7 @@ impl Paint {
 
 impl Window {
   // TODO: make this return a guard object to ensure end paint is always called.
-  pub fn begin_paint(&self, mut f: impl FnMut(Paint)) {
+  pub fn begin_paint(&self, mut f: impl FnMut(DeviceContext, Paint)) {
     let mut paint = PAINTSTRUCT::default();
     let hdc = unsafe { BeginPaint(self.to_ptr(), &raw mut paint) };
     let hdc = unsafe { DeviceContext::from_ptr(hdc) };
@@ -68,7 +68,7 @@ impl Window {
         rgb_reserved: paint.rgbReserved,
       },
     };
-    f(paint);
+    f(hdc, paint);
     self.end_paint(paint);
   }
 

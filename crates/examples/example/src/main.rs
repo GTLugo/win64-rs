@@ -16,8 +16,8 @@ impl WindowProcedure for State {
         None
       }
       Message::Paint => {
-        window.begin_paint(|ps| {
-          ps.hdc.fill_rect(ps.paint, Brush::solid(0x2C2020));
+        window.begin_paint(|hdc, ps| {
+          hdc.fill_rect(ps.paint, Brush::solid(0x2C2020));
         });
         None
       }
