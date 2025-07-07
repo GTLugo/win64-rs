@@ -9,7 +9,7 @@ edition     = "2024"
 authors     = ["Gabriel A. Lugo-Maldonado <me@gtlugo.com>"]
 license     = "MIT OR Apache-2.0"
 keywords    = ["windows", "windowing"]
-categories  = ["windows-apis", "rendering", "gui"]
+categories  = ["api-bindings", "os::windows-apis", "gui"]
 repository  = "https://github.com/GTLugo/win64-rs"
 
 [profile.dev.package.win64]
