@@ -1,16 +1,24 @@
 use win64::prelude::*;
 
-struct State;
+struct State {}
+
+impl State {
+  pub fn new() -> Self {
+    Self {}
+  }
+}
 
 impl WindowProcedure for State {
   fn on_message(&mut self, window: &Window, message: &Message) -> Option<LResult> {
     match message {
-      Message::Create(wm_create) => wm_create.handle(|create_struct| {
-        println!("[{window:?}] Window created! {} {:?}", create_struct.name, create_struct.class);
-        CreateMessageResult::Create
-      }),
-      Message::SettingChange(_) => {
-        window.use_immersive_dark_mode(is_os_dark_mode());
+      Message::Create(_) | Message::SettingChange(_) => {
+        window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(is_os_dark_mode()));
+        None
+      }
+      Message::Paint => {
+        window.begin_paint(|ps| {
+          ps.hdc.fill_rect_color_window(ps.paint);
+        });
         None
       }
       _ => None,
@@ -21,26 +29,19 @@ impl WindowProcedure for State {
 fn main() -> win64::Result<()> {
   let class = WindowClass::builder().name("Window Class").register()?;
 
-  println!("{:?}", win64::rtl_get_version());
-
   let hwnd = class
     .window_builder()
-    .procedure(State)
+    .procedure(State::new())
     .name("Window")
     .style(WindowStyle::OverlappedWindow)
     .size(PhysicalSize::new(800, 500))
     .create()?;
 
-  hwnd.use_immersive_dark_mode(is_os_dark_mode());
   hwnd.show_window(CmdShow::ShowDefault);
 
   for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {
     msg.translate();
     msg.dispatch();
-  }
-
-  if !hwnd.is_window() {
-    println!("[{hwnd:?}] Window destroyed!");
   }
 
   Ok(())

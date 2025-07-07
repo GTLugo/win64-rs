@@ -11,7 +11,19 @@ struct State;
 
 impl WindowProcedure for State {
   fn on_message(&mut self, window: &Window, message: &Message) -> Option<LResult> {
-    println!("[{window:?}] {message:?}");
+    match message {
+      Message::Create(_) | Message::SettingChange(_) => {
+        window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(is_os_dark_mode()));
+        None
+      }
+      Message::Paint => {
+        window.begin_paint(|ps| {
+          ps.hdc.fill_rect_color_window(ps.paint);
+        });
+        None
+      }
+      _ => None,
+    }
     None
   }
 }
@@ -31,8 +43,6 @@ fn main() -> Result<(), Error> {
     .style(WindowStyle::OverlappedWindow | WindowStyle::Visible)
     .size(PhysicalSize::new(800, 500))
     .create()?;
-
-  hwnd.use_immersive_dark_mode(is_os_dark_mode());
 
   for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {
     msg.translate();

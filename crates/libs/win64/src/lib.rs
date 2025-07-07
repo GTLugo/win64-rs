@@ -26,6 +26,7 @@ pub use error::*;
 
 pub mod sys {
   pub use windows_sys::Win32::Foundation::*;
+  pub use windows_sys::Win32::Graphics::*;
   pub use windows_sys::Win32::UI::WindowsAndMessaging::*;
 }
 

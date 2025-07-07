@@ -64,3 +64,7 @@ version = "0.3"
 # For dark mode detection
 [dependencies.windows-registry]
 version = "0.5"
+
+# For dark mode detection
+[dependencies.cppwinrt]
+version = "0.3"

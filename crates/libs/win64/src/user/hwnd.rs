@@ -1,13 +1,23 @@
+pub mod paint;
+pub use paint::*;
+
 use std::{
   ffi::{OsStr, OsString},
   os::windows::ffi::{OsStrExt, OsStringExt},
 };
 
 use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
+use libloading::Symbol;
 use windows_result::{Error, Result};
 use windows_sys::Win32::{
-  Foundation::{LPARAM, WPARAM},
-  Graphics::Dwm::{DWMWA_USE_IMMERSIVE_DARK_MODE, DwmSetWindowAttribute},
+  Foundation::{HWND, LPARAM, WPARAM},
+  Graphics::{
+    Dwm::{
+      DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_SYSTEMBACKDROP_TYPE, DWMWA_USE_IMMERSIVE_DARK_MODE,
+      DWMWINDOWATTRIBUTE, DwmSetWindowAttribute,
+    },
+    Gdi::UpdateWindow,
+  },
   System::Threading::GetCurrentThreadId,
   UI::WindowsAndMessaging::{
     self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW,
@@ -360,7 +370,132 @@ impl Window {
   }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum DwmWindowAttribute {
+  UseImmersiveDarkMode(bool),
+  SystemBackdropType(i32),
+  CaptionColor(u32),
+  BorderColor(u32),
+}
+
 impl Window {
+  // WIP
+  pub fn dwm_set_window_attribute(&self, attribute: DwmWindowAttribute) {
+    match attribute {
+      DwmWindowAttribute::UseImmersiveDarkMode(enable) => self.use_immersive_dark_mode(enable),
+      DwmWindowAttribute::SystemBackdropType(backdrop_type) => self.system_backdrop_type(backdrop_type),
+      DwmWindowAttribute::CaptionColor(color) => self.caption_color(color),
+      DwmWindowAttribute::BorderColor(color) => self.border_color(color),
+    }
+  }
+
+  fn border_color(&self, color: u32) {
+    unsafe {
+      DwmSetWindowAttribute(
+        self.to_ptr(),
+        DWMWA_CAPTION_COLOR as u32,
+        &raw const color as *const std::ffi::c_void,
+        std::mem::size_of::<DWMWINDOWATTRIBUTE>() as u32,
+      )
+    };
+  }
+
+  fn caption_color(&self, color: u32) {
+    unsafe {
+      DwmSetWindowAttribute(
+        self.to_ptr(),
+        DWMWA_BORDER_COLOR as u32,
+        &raw const color as *const std::ffi::c_void,
+        std::mem::size_of::<DWMWINDOWATTRIBUTE>() as u32,
+      )
+    };
+  }
+
+  fn system_backdrop_type(&self, backdrop_type: i32) {
+    unsafe {
+      DwmSetWindowAttribute(
+        self.to_ptr(),
+        DWMWA_SYSTEMBACKDROP_TYPE as u32,
+        &raw const backdrop_type as *const std::ffi::c_void,
+        std::mem::size_of::<DWMWINDOWATTRIBUTE>() as u32,
+      )
+    };
+  }
+
+  // Work in progress. Need to fix titlebar colors.
+  pub(crate) fn set_acrylic_background(&self, color: u32) {
+    // Keeping this internal for now while I figure out this API
+    #[repr(C)]
+    struct AccentPolicy {
+      accent_state: u32,
+      accent_flags: u32,
+      gradient_color: u32,
+      animation_id: u32,
+    }
+
+    #[repr(C)]
+    struct WindowCompositionAttributeData {
+      attribute: u32,
+      data: *mut std::ffi::c_void,
+      size: usize,
+    }
+
+    let user32 = unsafe { libloading::Library::new("user32.dll\0") }.unwrap();
+
+    let set_window_composition_attribute: Symbol<
+      unsafe extern "system" fn(hwnd: HWND, data: *mut WindowCompositionAttributeData) -> i32,
+    > = unsafe { user32.get(b"SetWindowCompositionAttribute") }.unwrap();
+
+    const ACCENT_ENABLE_ACRYLIC: u32 = 4;
+    let policy = AccentPolicy {
+      accent_state: ACCENT_ENABLE_ACRYLIC,
+      accent_flags: 2,
+      gradient_color: color,
+      animation_id: 0,
+    };
+
+    const WCA_ACCENT_POLICY: u32 = 19;
+    let mut data = WindowCompositionAttributeData {
+      attribute: WCA_ACCENT_POLICY,
+      data: &policy as *const _ as *mut std::ffi::c_void,
+      size: std::mem::size_of::<AccentPolicy>(),
+    };
+
+    unsafe {
+      set_window_composition_attribute(self.to_ptr(), &mut data);
+    }
+  }
+
+  fn use_immersive_dark_mode(&self, enable: bool) {
+    // https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-windows-themes
+    let value = enable as windows_sys::core::BOOL;
+    let Some(version) = win10_build_version() else {
+      return;
+    };
+    // May 2020 Update https://stackoverflow.com/a/70693198/17004103
+    let dw_attribute: u32 = if version < 19041 {
+      19
+    } else {
+      DWMWA_USE_IMMERSIVE_DARK_MODE as _
+    };
+    unsafe {
+      DwmSetWindowAttribute(
+        self.to_ptr(),
+        dw_attribute,
+        (&raw const value).cast(),
+        std::mem::size_of::<DWMWINDOWATTRIBUTE>() as u32,
+      )
+    };
+  }
+
+  pub fn update(&self) -> Result<()> {
+    reset_last_error();
+    match unsafe { UpdateWindow(self.to_ptr()) } {
+      0 => Err(get_last_error().unwrap_or(Error::empty())),
+      _ => Ok(()),
+    }
+  }
+
   pub(crate) fn send_message(&self) {
     // TODO: somehow ensure these are always sent to the correct thread, even when called from a different thread.
     // maybe do it by storing the thread id?
@@ -374,21 +509,6 @@ impl Window {
 
   pub fn def_window_proc(&self, message: &Message) -> Option<LResult> {
     Some(self.def_window_proc_raw(message.id().to_raw(), message.w().0, message.l().0))
-  }
-
-  pub fn use_immersive_dark_mode(&self, enable: bool) {
-    // https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-windows-themes
-    let value = enable as windows_sys::core::BOOL;
-    let Some(version) = win10_build_version() else {
-      return;
-    };
-    // May 2020 Update https://stackoverflow.com/a/70693198/17004103
-    let dw_attribute: u32 = if version < 19041 {
-      19
-    } else {
-      DWMWA_USE_IMMERSIVE_DARK_MODE as _
-    };
-    unsafe { DwmSetWindowAttribute(self.to_ptr(), dw_attribute, (&raw const value).cast(), size_of_val(&value) as _) };
   }
 
   pub fn destroy(&self) -> Result<()> {

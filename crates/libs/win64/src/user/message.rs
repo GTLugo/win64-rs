@@ -12,9 +12,9 @@ use windows_sys::Win32::{
   UI::WindowsAndMessaging::{self, CREATESTRUCTW, DispatchMessageW, MSG, TranslateMessage},
 };
 
-use crate::Handle;
+use crate::{Handle, Point};
 
-use super::{CreateStruct, LResult, LpParam, PeekMessageFlags, Point, Window, WindowProcedure};
+use super::{CreateStruct, LResult, LpParam, PeekMessageFlags, Window, WindowProcedure};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WParam(pub usize);

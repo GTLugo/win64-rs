@@ -1,6 +1,12 @@
 pub mod handle;
 pub use handle::*;
 
+pub mod point;
+pub use point::*;
+
+pub mod rect;
+pub use rect::*;
+
 use libloading::{Library, Symbol};
 use std::{ffi::OsString, os::windows::ffi::OsStringExt, sync::LazyLock};
 use windows_sys::{
