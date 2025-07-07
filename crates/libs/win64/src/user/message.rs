@@ -532,10 +532,10 @@ impl Message {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Msg {
-  window: Window,
-  message: Message,
-  time: u32,
-  point: Point,
+  pub window: Window,
+  pub message: Message,
+  pub time: u32,
+  pub point: Point,
 }
 
 impl Msg {
