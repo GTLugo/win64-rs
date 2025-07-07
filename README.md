@@ -17,7 +17,6 @@ impl WindowProcedure for State {
       }
       Message::Destroy => {
         window.quit();
-        None
       }
       Message::Paint => {
         window.begin_paint(|hdc, ps| {
