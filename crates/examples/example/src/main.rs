@@ -52,7 +52,7 @@ fn main() -> win64::Result<()> {
       PeekResult::Err(error) => eprintln!("{error}"),
     }
 
-    match msg.message() {
+    match msg.ok() {
       Some(Msg {
         message: Message::SetText(_),
         ..

@@ -42,7 +42,7 @@ pub enum PeekResult {
 }
 
 impl PeekResult {
-  pub fn message(self) -> Option<Msg> {
+  pub fn ok(self) -> Option<Msg> {
     match self {
       Self::Msg(msg) => Some(msg),
       _ => None,
@@ -62,7 +62,7 @@ impl Iterator for PeekMessageResultIntoIterator {
   type Item = Msg;
 
   fn next(&mut self) -> Option<Self::Item> {
-    self.pm.take().message()
+    self.pm.take().ok()
   }
 }
 
