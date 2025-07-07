@@ -59,11 +59,9 @@ fn main() -> win64::Result<()> {
       }) => (),
       _ => {
         let fps = counter.tick();
-        hwnd.set_window_text(format!("WINDOW | {fps}"));
+        hwnd.set_window_text(format!("WINDOW | {fps}"))?;
       }
     }
-
-    // println!("[FPS] {fps}");
   }
 
   Ok(())
