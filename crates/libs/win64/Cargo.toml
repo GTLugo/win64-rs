@@ -1,6 +1,6 @@
 [package]
 name = "win64"
-version = "0.0.3"
+version = "0.0.4"
 rust-verison = "1.88"
 description = "Hand-crafted, idiomatic Rust wrappers for Win32"
 readme.workspace = true
@@ -33,7 +33,7 @@ rwh_05 = { package = "raw-window-handle", version = "0.5", features = ["std"], o
 rwh_06 = { package = "raw-window-handle", version = "0.6", features = ["std"], optional = true }
 
 [dependencies.win64-macro]
-version = "0.2"
+version = "0.3"
 path    = "../win64-macro"
 
 [dependencies.windows-sys]

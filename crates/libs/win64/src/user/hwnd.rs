@@ -13,16 +13,13 @@ use windows_sys::Win32::{
   Foundation::{HWND, LPARAM, WPARAM},
   Graphics::{
     Dwm::{
-      DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_SYSTEMBACKDROP_TYPE, DWMWA_USE_IMMERSIVE_DARK_MODE,
-      DWMWINDOWATTRIBUTE, DwmSetWindowAttribute,
+      DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_SYSTEMBACKDROP_TYPE, DWMWA_USE_IMMERSIVE_DARK_MODE, DWMWINDOWATTRIBUTE
     },
     Gdi::UpdateWindow,
   },
   System::Threading::GetCurrentThreadId,
   UI::WindowsAndMessaging::{
-    self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW,
-    GetWindowTextW, GetWindowThreadProcessId, IsWindow, PostQuitMessage, SHOW_WINDOW_CMD, SetWindowLongPtrW,
-    SetWindowTextW, ShowWindow,
+    self, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId, IsWindow, PostMessageW, PostQuitMessage, SendMessageW, SetWindowLongPtrW, SetWindowTextW, ShowWindow, CW_USEDEFAULT, SHOW_WINDOW_CMD
   },
 };
 
@@ -496,11 +493,24 @@ impl Window {
     }
   }
 
-  pub(crate) fn send_message(&self) {
+  pub fn send_message(&self, message: Message) -> LResult {
     // TODO: somehow ensure these are always sent to the correct thread, even when called from a different thread.
     // maybe do it by storing the thread id?
     // Reference winit for this!
-    todo!()
+    let lresult = unsafe { SendMessageW(self.to_ptr(), message.id().to_raw(), message.w().0, message.l().0) };
+    lresult.into()
+  }
+
+  pub fn post_message(&self, message: Message) -> Result<()> {
+    // TODO: somehow ensure these are always sent to the correct thread, even when called from a different thread.
+    // maybe do it by storing the thread id?
+    // Reference winit for this!
+    reset_last_error();
+    let result = unsafe { PostMessageW(self.to_ptr(), message.id().to_raw(), message.w().0, message.l().0) };
+    match result != 0 {
+      true => Ok(()),
+      false => Err(get_last_error().unwrap_or(Error::empty())),
+    }
   }
 
   pub(crate) fn def_window_proc_raw(&self, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LResult {

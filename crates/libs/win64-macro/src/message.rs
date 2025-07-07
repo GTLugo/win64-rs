@@ -63,8 +63,8 @@ pub fn macro_impl(input: TokenStream) -> TokenStream {
     }
 
     impl Message {
-      pub fn new(msg: u32, w: WParam, l: LParam) -> Self {
-        match #ident::from(msg) {
+      pub fn new(id: #ident, w: WParam, l: LParam) -> Self {
+        match id {
           #( #new_arms )*
           #ident::#fallback_ident(id) => Self::#fallback_ident(#fallback_substruct_name { id, w, l }),
         }

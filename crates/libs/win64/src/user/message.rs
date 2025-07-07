@@ -569,7 +569,7 @@ impl From<MSG> for Msg {
     let window = unsafe { Window::from_ptr(msg.hwnd) };
     let time = msg.time;
     let point = Point::from(msg.pt);
-    let message = Message::new(msg.message, WParam(msg.wParam), LParam(msg.lParam));
+    let message = Message::new(msg.message.into(), WParam(msg.wParam), LParam(msg.lParam));
     Self {
       window,
       message,

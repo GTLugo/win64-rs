@@ -41,7 +41,7 @@ pub(crate) unsafe extern "system" fn window_procedure(
   l_param: LPARAM,
 ) -> LRESULT {
   let window = unsafe { Window::from_ptr(hwnd) };
-  let message = Message::new(msg, WParam(w_param), LParam(l_param));
+  let message = Message::new(msg.into(), WParam(w_param), LParam(l_param));
   let result = on_message(&window, &message).unwrap_or_else(|| window.def_window_proc_raw(msg, w_param, l_param));
   result.0
 }
