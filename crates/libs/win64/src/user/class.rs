@@ -11,14 +11,14 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{RegisterClassExW, WNDCLASSEXW}
 
 use crate::{Handle, get_last_error, reset_last_error};
 
-use super::{Class, Instance, LoadCursor, NoProc, Window, WindowBuilder, styles::WindowClassStyle};
+use super::{Brush, Class, Instance, LoadCursor, NoProc, Window, WindowBuilder, styles::WindowClassStyle};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CustomClass {
   name: &'static str, // Class names are stored as static string slices to ensure their pointers remain valid.
   style: WindowClassStyle,
   instance: Instance,
-  // I will add more fields later :)
+  background: Brush, // I will add more fields later :)
 }
 
 impl CustomClass {
@@ -63,6 +63,7 @@ pub struct WindowClassBuilder<N> {
   name: N,
   style: WindowClassStyle,
   instance: Instance,
+  background: Brush,
 }
 
 impl Default for WindowClassBuilder<NoName> {
@@ -71,6 +72,7 @@ impl Default for WindowClassBuilder<NoName> {
       name: NoName,
       style: WindowClassStyle::default(),
       instance: Instance::get(),
+      background: Brush::default(),
     }
   }
 }
@@ -81,6 +83,7 @@ impl WindowClassBuilder<NoName> {
       name: Name(name),
       style: self.style,
       instance: self.instance,
+      background: self.background,
     }
   }
 }
@@ -95,6 +98,11 @@ impl<N> WindowClassBuilder<N> {
     self.style = style;
     self
   }
+
+  pub fn background_brush(mut self, brush: Brush) -> Self {
+    self.background = brush;
+    self
+  }
 }
 
 impl WindowClassBuilder<Name> {
@@ -106,6 +114,7 @@ impl WindowClassBuilder<Name> {
       lpfnWndProc: Some(window_procedure),
       style: self.style.to_raw(),
       hCursor: CursorIcon::Default.load(),
+      hbrBackground: self.background.to_ptr(),
       ..Default::default()
     };
 
@@ -119,6 +128,7 @@ impl WindowClassBuilder<Name> {
         name: self.name.0,
         style: self.style,
         instance: self.instance,
+        background: self.background,
       })),
     }
   }

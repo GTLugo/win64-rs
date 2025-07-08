@@ -1,4 +1,6 @@
-use windows_sys::Win32::Graphics::Gdi::{BeginPaint, COLOR_WINDOW, CreateSolidBrush, EndPaint, PAINTSTRUCT};
+use windows_sys::Win32::Graphics::Gdi::{
+  BeginPaint, COLOR_BACKGROUND, COLOR_WINDOW, CreateSolidBrush, EndPaint, PAINTSTRUCT,
+};
 
 use crate::{Handle, Rect, declare_handle, user::DeviceContext};
 
@@ -87,6 +89,10 @@ declare_handle!(
 impl Brush {
   pub fn color_window() -> Self {
     unsafe { Self::from_raw((COLOR_WINDOW + 1) as _) }
+  }
+
+  pub fn color_background() -> Self {
+    unsafe { Self::from_raw((COLOR_BACKGROUND + 1) as _) }
   }
 
   pub fn solid(color: u32) -> Self {

@@ -13,13 +13,19 @@ use windows_sys::Win32::{
   Foundation::{HWND, LPARAM, WPARAM},
   Graphics::{
     Dwm::{
-      DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_SYSTEMBACKDROP_TYPE, DWMWA_USE_IMMERSIVE_DARK_MODE, DWMWINDOWATTRIBUTE
+      DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_SYSTEMBACKDROP_TYPE, DWMWA_USE_IMMERSIVE_DARK_MODE,
+      DWMWINDOWATTRIBUTE, DwmExtendFrameIntoClientArea, DwmSetWindowAttribute,
     },
     Gdi::UpdateWindow,
   },
   System::Threading::GetCurrentThreadId,
-  UI::WindowsAndMessaging::{
-    self, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId, IsWindow, PostMessageW, PostQuitMessage, SendMessageW, SetWindowLongPtrW, SetWindowTextW, ShowWindow, CW_USEDEFAULT, SHOW_WINDOW_CMD
+  UI::{
+    Controls::MARGINS,
+    WindowsAndMessaging::{
+      self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetSystemMetrics, GetWindowLongPtrW,
+      GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId, IsWindow, PostMessageW, PostQuitMessage,
+      SHOW_WINDOW_CMD, SM_CYCAPTION, SendMessageW, SetWindowLongPtrW, SetWindowTextW, ShowWindow,
+    },
   },
 };
 
@@ -419,48 +425,112 @@ impl Window {
     };
   }
 
-  // Work in progress. Need to fix titlebar colors.
-  pub(crate) fn set_acrylic_background(&self, color: u32) {
-    // Keeping this internal for now while I figure out this API
-    #[repr(C)]
-    struct AccentPolicy {
-      accent_state: u32,
-      accent_flags: u32,
-      gradient_color: u32,
-      animation_id: u32,
-    }
-
-    #[repr(C)]
-    struct WindowCompositionAttributeData {
-      attribute: u32,
-      data: *mut std::ffi::c_void,
-      size: usize,
-    }
-
-    let user32 = unsafe { libloading::Library::new("user32.dll\0") }.unwrap();
-
-    let set_window_composition_attribute: Symbol<
-      unsafe extern "system" fn(hwnd: HWND, data: *mut WindowCompositionAttributeData) -> i32,
-    > = unsafe { user32.get(b"SetWindowCompositionAttribute") }.unwrap();
-
-    const ACCENT_ENABLE_ACRYLIC: u32 = 4;
-    let policy = AccentPolicy {
-      accent_state: ACCENT_ENABLE_ACRYLIC,
-      accent_flags: 2,
-      gradient_color: color,
-      animation_id: 0,
-    };
-
-    const WCA_ACCENT_POLICY: u32 = 19;
-    let mut data = WindowCompositionAttributeData {
-      attribute: WCA_ACCENT_POLICY,
-      data: &policy as *const _ as *mut std::ffi::c_void,
-      size: std::mem::size_of::<AccentPolicy>(),
+  pub fn extend_into_client_all(&self) {
+    let margins = MARGINS {
+      cxLeftWidth: -1,
+      cxRightWidth: -1,
+      cyTopHeight: -1,
+      cyBottomHeight: -1,
     };
 
     unsafe {
-      set_window_composition_attribute(self.to_ptr(), &mut data);
+      DwmExtendFrameIntoClientArea(self.to_ptr(), &margins);
     }
+  }
+
+  // Work in progress. Need to fix titlebar colors.
+  pub fn set_acrylic_background(&self, color: u32) {
+    // Reference: https://gist.github.com/xv/43bd4c944202a593ac8ec6daa299b471
+    // Keeping this internal for now while I figure out this API
+    // #[allow(unused)]
+    // #[repr(u32)]
+    // enum WindowCompositionAttribute {
+    //   Undefined = 0,
+    //   NcRenderingEnabled = 1,
+    //   NcRenderingPolicy = 2,
+    //   TransitionsForceDisabled = 3,
+    //   AllowNcPaint = 4,
+    //   CaptionButtonBounds = 5,
+    //   NonclientRtlLayout = 6,
+    //   ForceIconicRepresentation = 7,
+    //   ExtendedFrameBounds = 8,
+    //   HasIconicBitmap = 9,
+    //   ThemeAttributes = 10,
+    //   NcRenderingExiled = 11,
+    //   NcAdornmentInfo = 12,
+    //   ExcludedFromLivePreview = 13,
+    //   VideoOverlayActive = 14,
+    //   ForceActiveWindowAppearance = 15,
+    //   DisallowPeek = 16,
+    //   Cloak = 17,
+    //   Cloaked = 18,
+    //   AccentPolicy = 19,
+    //   FreezeRepresentation = 20,
+    //   EverUncloaked = 21,
+    //   VisualOwner = 22,
+    //   Holographic = 23,
+    //   ExcludedFromDda = 24,
+    //   PassiveUpdateMode = 25,
+    //   Last = 26,
+    // }
+
+    // #[allow(unused)]
+    // #[repr(u32)]
+    // enum AccentState {
+    //   Disabled = 0,
+    //   EnableGradient = 1,
+    //   EnableTransparentGradient = 2,
+    //   EnableBlurBehind = 3,
+    //   EnableAcrylicBlurBehind = 4, // RS4 1803.17063
+    //   EnableHostBackdrop = 5,      // RS5 1809
+    //   InvalidState = 6,
+    // }
+
+    // #[repr(C)]
+    // struct AccentPolicy {
+    //   accent_state: AccentState,
+    //   accent_flags: u32,
+    //   gradient_color: u32,
+    //   animation_id: u32,
+    // }
+
+    // #[repr(C)]
+    // struct WindowCompositionAttributeData {
+    //   attribute: WindowCompositionAttribute,
+    //   data: *mut std::ffi::c_void,
+    //   size: usize,
+    // }
+
+    // let user32 = unsafe { libloading::Library::new("user32.dll\0") }.unwrap();
+
+    // let set_window_composition_attribute: Symbol<
+    //   unsafe extern "system" fn(hwnd: HWND, data: *mut WindowCompositionAttributeData) -> i32,
+    // > = unsafe { user32.get(b"SetWindowCompositionAttribute") }.unwrap();
+
+    // let policy = AccentPolicy {
+    //   accent_state: AccentState::EnableAcrylicBlurBehind,
+    //   accent_flags: 2,
+    //   gradient_color: color,
+    //   animation_id: 0,
+    // };
+
+    // let mut data = WindowCompositionAttributeData {
+    //   attribute: WindowCompositionAttribute::AccentPolicy,
+    //   data: &raw const policy as *mut std::ffi::c_void,
+    //   size: std::mem::size_of::<AccentPolicy>(),
+    // };
+
+    // unsafe {
+    //   set_window_composition_attribute(self.to_ptr(), &mut data);
+    // }
+
+    // let titlebar_height = unsafe { GetSystemMetrics(SM_CYCAPTION) };
+    // let margins = MARGINS {
+    //   cxLeftWidth: 0,
+    //   cxRightWidth: 0,
+    //   cyTopHeight: titlebar_height,
+    //   cyBottomHeight: 0,
+    // };
   }
 
   fn use_immersive_dark_mode(&self, enable: bool) {
