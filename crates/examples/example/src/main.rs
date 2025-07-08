@@ -19,6 +19,7 @@ impl WindowProcedure for State {
       Message::Destroy => {
         window.quit();
       }
+      Message::Paint => {}
       _ => (),
     }
 
@@ -29,7 +30,7 @@ impl WindowProcedure for State {
 fn main() -> win64::Result<()> {
   let class = WindowClass::builder()
     .name("Window Class")
-    .background_brush(Brush::color_window())
+    .background_brush(Brush::color_window_auto_dark())
     .register()?;
 
   let hwnd = class
