@@ -13,8 +13,9 @@ use windows_sys::Win32::{
   Foundation::{HWND, LPARAM, WPARAM},
   Graphics::{
     Dwm::{
-      DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_SYSTEMBACKDROP_TYPE, DWMWA_USE_IMMERSIVE_DARK_MODE,
-      DWMWINDOWATTRIBUTE, DwmExtendFrameIntoClientArea, DwmSetWindowAttribute,
+      DWMSBT_AUTO, DWMSBT_MAINWINDOW, DWMSBT_NONE, DWMSBT_TABBEDWINDOW, DWMSBT_TRANSIENTWINDOW, DWMWA_BORDER_COLOR,
+      DWMWA_CAPTION_COLOR, DWMWA_SYSTEMBACKDROP_TYPE, DWMWA_USE_IMMERSIVE_DARK_MODE, DWMWINDOWATTRIBUTE,
+      DwmExtendFrameIntoClientArea, DwmSetWindowAttribute,
     },
     Gdi::UpdateWindow,
   },
@@ -376,9 +377,30 @@ impl Window {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DwmWindowAttribute {
   UseImmersiveDarkMode(bool),
-  SystemBackdropType(i32),
+  SystemBackdropType(SystemBackdropType),
   CaptionColor(u32),
   BorderColor(u32),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum SystemBackdropType {
+  Auto,
+  None,
+  MainWindow,
+  TransientWindow,
+  TabbedWindow,
+}
+
+impl SystemBackdropType {
+  pub const fn to_raw(&self) -> i32 {
+    match self {
+      Self::Auto => DWMSBT_AUTO,
+      Self::None => DWMSBT_NONE,
+      Self::MainWindow => DWMSBT_MAINWINDOW,
+      Self::TransientWindow => DWMSBT_TRANSIENTWINDOW,
+      Self::TabbedWindow => DWMSBT_TABBEDWINDOW,
+    }
+  }
 }
 
 impl Window {
@@ -386,7 +408,7 @@ impl Window {
   pub fn dwm_set_window_attribute(&self, attribute: DwmWindowAttribute) {
     match attribute {
       DwmWindowAttribute::UseImmersiveDarkMode(enable) => self.use_immersive_dark_mode(enable),
-      DwmWindowAttribute::SystemBackdropType(backdrop_type) => self.system_backdrop_type(backdrop_type),
+      DwmWindowAttribute::SystemBackdropType(backdrop_type) => self.system_backdrop_type(backdrop_type.to_raw()),
       DwmWindowAttribute::CaptionColor(color) => self.caption_color(color),
       DwmWindowAttribute::BorderColor(color) => self.border_color(color),
     }

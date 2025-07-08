@@ -1,4 +1,4 @@
-use win64::prelude::*;
+use win64::{Point, prelude::*};
 
 struct State {}
 
@@ -13,13 +13,24 @@ impl WindowProcedure for State {
     println!("[{window:?}] {message:?}");
 
     match message {
-      Message::Create(_) | Message::SettingChange(_) => {
+      Message::Create(_) => {
+        window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(is_os_dark_mode()));
+        window.dwm_set_window_attribute(DwmWindowAttribute::SystemBackdropType(SystemBackdropType::TransientWindow));
+      }
+      Message::SettingChange(_) => {
         window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(is_os_dark_mode()));
       }
       Message::Destroy => {
         window.quit();
       }
-      Message::Paint => {}
+      Message::Paint => {
+        window.begin_paint(|hdc, ps| {
+          let brush = Brush::solid(0x000000FF);
+          const POINTS: &[Point] = &[Point::new(100, 250), Point::new(300, 250), Point::new(200, 100)];
+          hdc.polygon(POINTS, &brush);
+          brush.delete();
+        });
+      }
       _ => (),
     }
 

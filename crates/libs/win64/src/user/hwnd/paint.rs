@@ -1,5 +1,5 @@
 use windows_sys::Win32::Graphics::Gdi::{
-  BeginPaint, COLOR_BACKGROUND, COLOR_WINDOW, CreateSolidBrush, EndPaint, PAINTSTRUCT,
+  BeginPaint, COLOR_BACKGROUND, COLOR_WINDOW, CreateSolidBrush, DeleteObject, EndPaint, PAINTSTRUCT,
 };
 
 use crate::{
@@ -89,7 +89,17 @@ declare_handle!(
   doc = "https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#hbrush"
 );
 
+// impl Drop for Brush {
+//     fn drop(&mut self) {
+//         // TODO!
+//     }
+// }
+
 impl Brush {
+  pub fn delete(self) {
+    unsafe { DeleteObject(self.to_ptr()) };
+  }
+
   pub fn color_window_auto_dark() -> Self {
     match is_os_dark_mode() {
       true => Self::solid(0x00323232),
