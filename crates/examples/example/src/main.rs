@@ -8,6 +8,8 @@ impl State {
   }
 }
 
+const POINTS: &[Point] = &[Point::new(100, 250), Point::new(300, 250), Point::new(200, 100)];
+
 impl WindowProcedure for State {
   fn on_message(&mut self, window: &Window, message: &Message) -> Option<LResult> {
     println!("[{window:?}] {message:?}");
@@ -26,7 +28,6 @@ impl WindowProcedure for State {
       Message::Paint => {
         window.begin_paint(|hdc, ps| {
           let brush = Brush::solid(0x000000FF);
-          const POINTS: &[Point] = &[Point::new(100, 250), Point::new(300, 250), Point::new(200, 100)];
           hdc.polygon(POINTS, &brush);
           brush.delete();
         });

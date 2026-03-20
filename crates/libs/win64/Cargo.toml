@@ -19,15 +19,15 @@ rwh_06  = ["dep:rwh_06"]
 
 [dependencies]
 bitflags   = "2.9"
-strum      = { version = "0.27", features = ["derive"] }
+strum      = { version = "0.28.0", features = ["derive"] }
 thiserror  = "2.0"
-libloading = "0.8"
+libloading = "0.9.0"
 
 # Standard windowing types for compatibility with other windowing libraries
 cursor-icon    = "1.1"
 dpi            = "0.1"
 keyboard-types = "0.8"
-# widestring     = "1.2"
+widestring     = "1.2"
 
 rwh_05 = { package = "raw-window-handle", version = "0.5", features = ["std"], optional = true }
 rwh_06 = { package = "raw-window-handle", version = "0.6", features = ["std"], optional = true }
@@ -37,7 +37,7 @@ version = "0.3"
 path    = "../win64-macro"
 
 [dependencies.windows-sys]
-version  = "0.60"
+version  = "0.61"
 features = [
   # "UI_ViewManagement", # UWP api, so sadly can't use :(
   "Win32_Devices_HumanInterfaceDevice", 
@@ -61,11 +61,11 @@ features = [
 
 # I would like to strip this out eventually, but error codes are a practically infinite amount of work.
 [dependencies.windows-result]
-version = "0.3"
+version = "0.4"
 
 # For dark mode detection
 [dependencies.windows-registry]
-version = "0.5"
+version = "0.6"
 
 # For dark mode detection
 [dependencies.cppwinrt]

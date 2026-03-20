@@ -7,10 +7,9 @@ use std::{
 };
 
 use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
-use libloading::Symbol;
 use windows_result::{Error, Result};
 use windows_sys::Win32::{
-  Foundation::{HWND, LPARAM, WPARAM},
+  Foundation::{LPARAM, WPARAM},
   Graphics::{
     Dwm::{
       DWMSBT_AUTO, DWMSBT_MAINWINDOW, DWMSBT_NONE, DWMSBT_TABBEDWINDOW, DWMSBT_TRANSIENTWINDOW, DWMWA_BORDER_COLOR,
@@ -23,14 +22,14 @@ use windows_sys::Win32::{
   UI::{
     Controls::MARGINS,
     WindowsAndMessaging::{
-      self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetSystemMetrics, GetWindowLongPtrW,
-      GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId, IsWindow, PostMessageW, PostQuitMessage,
-      SHOW_WINDOW_CMD, SM_CYCAPTION, SendMessageW, SetWindowLongPtrW, SetWindowTextW, ShowWindow,
+      self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW,
+      GetWindowTextW, GetWindowThreadProcessId, IsWindow, PostMessageW, PostQuitMessage, SHOW_WINDOW_CMD, SendMessageW,
+      SetWindowLongPtrW, SetWindowTextW, ShowWindow,
     },
   },
 };
 
-use crate::{Handle, declare_handle, get_last_error, reset_last_error, win10_build_version};
+use crate::{Handle, declare_handle, get_last_error, last_error, reset_last_error, win10_build_version};
 
 use super::{
   Instance, LResult, Message, UserData, WindowClass, WindowPtrIndex, WindowStyle,
@@ -461,7 +460,8 @@ impl Window {
   }
 
   // Work in progress. Need to fix titlebar colors.
-  pub fn set_acrylic_background(&self, color: u32) {
+  pub fn set_acrylic_background(&self, _color: u32) {
+    todo!()
     // Reference: https://gist.github.com/xv/43bd4c944202a593ac8ec6daa299b471
     // Keeping this internal for now while I figure out this API
     // #[allow(unused)]
@@ -667,18 +667,14 @@ impl Window {
 
     let text_len = unsafe { GetWindowTextLengthW(self.to_ptr()) } as usize;
     if text_len == 0 {
-      if let Some(error) = get_last_error() {
-        return Err(error);
-      }
+      last_error()?;
     };
 
     let mut buffer: Vec<u16> = vec![0; text_len + 1];
 
     let result = unsafe { GetWindowTextW(self.to_ptr(), buffer.as_mut_ptr(), buffer.len() as i32) };
     if result == 0 {
-      if let Some(error) = get_last_error() {
-        return Err(error);
-      }
+      last_error()?;
     };
 
     Ok(OsString::from_wide(&buffer).to_string_lossy().into_owned())

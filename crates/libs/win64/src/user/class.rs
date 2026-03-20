@@ -1,10 +1,13 @@
 pub mod procedure;
+use std::sync::OnceLock;
+
 pub use procedure::*;
 
 pub mod response;
 pub use response::*;
 
 use cursor_icon::CursorIcon;
+use widestring::U16CString;
 use win64_macro::ClassAtom;
 use windows_result::Error;
 use windows_sys::Win32::UI::WindowsAndMessaging::{RegisterClassExW, WNDCLASSEXW};
@@ -13,17 +16,17 @@ use crate::{Handle, get_last_error, reset_last_error};
 
 use super::{Brush, Class, Instance, LoadCursor, NoProc, Window, WindowBuilder, styles::WindowClassStyle};
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CustomClass {
-  name: &'static str, // Class names are stored as static string slices to ensure their pointers remain valid.
+  name: &'static U16CString, // Class names are stored as static string slices to ensure their pointers remain valid.
   style: WindowClassStyle,
   instance: Instance,
   background: Brush, // I will add more fields later :)
 }
 
 impl CustomClass {
-  pub const fn atom(&self) -> *const u16 {
-    self.name.as_ptr().cast()
+  pub fn atom(&self) -> *const u16 {
+    self.name.as_ptr()
   }
 }
 
@@ -57,7 +60,7 @@ impl WindowClass {
 }
 
 pub struct NoName;
-pub struct Name(&'static str);
+pub struct Name<'s>(&'s str);
 
 pub struct WindowClassBuilder<N> {
   name: N,
@@ -78,7 +81,7 @@ impl Default for WindowClassBuilder<NoName> {
 }
 
 impl WindowClassBuilder<NoName> {
-  pub fn name(self, name: &'static str) -> WindowClassBuilder<Name> {
+  pub fn name<'s>(self, name: &'s str) -> WindowClassBuilder<Name<'s>> {
     WindowClassBuilder {
       name: Name(name),
       style: self.style,
@@ -105,12 +108,14 @@ impl<N> WindowClassBuilder<N> {
   }
 }
 
-impl WindowClassBuilder<Name> {
+impl WindowClassBuilder<Name<'_>> {
   pub fn register(self) -> Result<WindowClass, Error> {
+    static WIDE_STRING: OnceLock<U16CString> = OnceLock::new();
+    let name = WIDE_STRING.get_or_init(|| U16CString::from_str_truncate(self.name.0));
     let wc = WNDCLASSEXW {
       cbSize: core::mem::size_of::<WNDCLASSEXW>() as _,
       hInstance: self.instance.to_ptr(),
-      lpszClassName: self.name.0.as_ptr().cast(),
+      lpszClassName: name.as_ptr(),
       lpfnWndProc: Some(window_procedure),
       style: self.style.to_raw(),
       hCursor: CursorIcon::Default.load(),
@@ -125,7 +130,7 @@ impl WindowClassBuilder<Name> {
     match (atom, error) {
       (0, Some(error)) => Err(error),
       _ => Ok(WindowClass::Custom(CustomClass {
-        name: self.name.0,
+        name,
         style: self.style,
         instance: self.instance,
         background: self.background,

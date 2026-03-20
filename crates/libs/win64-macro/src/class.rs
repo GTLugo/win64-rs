@@ -21,7 +21,7 @@ pub fn macro_impl(input: TokenStream) -> TokenStream {
 
   let output = quote! {
     impl WindowClass {
-      pub const fn atom(&self) -> *const u16 {
+      pub fn atom(&self) -> *const u16 {
         struct ClassName(*const u16);
         unsafe impl Sync for ClassName {}
 
