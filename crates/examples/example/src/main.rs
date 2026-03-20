@@ -26,7 +26,7 @@ impl WindowProcedure for State {
         window.quit();
       }
       Message::Paint => {
-        window.begin_paint(|hdc, ps| {
+        window.begin_paint(|hdc, _| {
           let brush = Brush::solid(0x000000FF);
           hdc.polygon(POINTS, &brush);
           brush.delete();
