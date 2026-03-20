@@ -1,6 +1,6 @@
 [package]
 name = "win64-macro"
-version = "0.3.1"
+version = "0.3.2"
 rust-version = "1.88"
 description = "A set of procedural macros for win64"
 readme.workspace = true
@@ -18,4 +18,4 @@ proc-macro = true
 syn          = { version = "2.0", features = ["full"] }
 quote        = "1.0"
 proc-macro2  = "1.0"
-convert_case = "0.8"
+convert_case = "0.11"
