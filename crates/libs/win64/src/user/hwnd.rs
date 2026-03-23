@@ -46,6 +46,7 @@ use {
   },
   windows_sys::Win32::{
     Foundation::{
+      self,
       LPARAM,
       WPARAM,
     },
@@ -79,7 +80,9 @@ use {
         CreateWindowExW,
         DefWindowProcW,
         DestroyWindow,
+        GetClientRect,
         GetWindowLongPtrW,
+        GetWindowRect,
         GetWindowTextLengthW,
         GetWindowTextW,
         GetWindowThreadProcessId,
@@ -762,6 +765,46 @@ impl Window {
     };
 
     Ok(OsString::from_wide(&buffer).to_string_lossy().into_owned())
+  }
+
+  pub fn outer_size(&self) -> Size {
+    let mut window_rect = Foundation::RECT::default();
+    let _ = unsafe { GetWindowRect(self.to_ptr(), &mut window_rect) };
+    PhysicalSize {
+      width: (window_rect.right - window_rect.left) as u32,
+      height: (window_rect.bottom - window_rect.top) as u32,
+    }
+    .into()
+  }
+
+  pub fn inner_size(&self) -> Size {
+    let mut client_rect = Foundation::RECT::default();
+    let _ = unsafe { GetClientRect(self.to_ptr(), &mut client_rect) };
+    PhysicalSize {
+      width: (client_rect.right - client_rect.left) as u32,
+      height: (client_rect.bottom - client_rect.top) as u32,
+    }
+    .into()
+  }
+
+  pub fn outer_position(&self) -> Position {
+    let mut window_rect = Foundation::RECT::default();
+    let _ = unsafe { GetWindowRect(self.to_ptr(), &mut window_rect) };
+    PhysicalPosition {
+      x: window_rect.left,
+      y: window_rect.top,
+    }
+    .into()
+  }
+
+  pub fn inner_position(&self) -> Position {
+    let mut window_rect = Foundation::RECT::default();
+    let _ = unsafe { GetClientRect(self.to_ptr(), &mut window_rect) };
+    PhysicalPosition {
+      x: window_rect.left,
+      y: window_rect.top,
+    }
+    .into()
   }
 
   pub(crate) fn get_window_ptr(&self, index: WindowPtrIndex) -> isize {
