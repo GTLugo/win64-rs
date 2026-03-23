@@ -27,6 +27,15 @@ use {
           STARTUPINFOW,
         },
       },
+      UI::HiDpi::{
+        DPI_AWARENESS_CONTEXT,
+        DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE,
+        DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
+        DPI_AWARENESS_CONTEXT_SYSTEM_AWARE,
+        DPI_AWARENESS_CONTEXT_UNAWARE,
+        DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED,
+        SetProcessDpiAwarenessContext,
+      },
     },
     core::{
       PCWSTR,
@@ -147,5 +156,33 @@ pub fn win10_build_version() -> Option<u32> {
     Some(version.build_number)
   } else {
     None
+  }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum DPIAwarenessContext {
+  Unaware,
+  SystemAware,
+  PerMonitorAware,
+  PerMonitorAwareV2,
+  UnawareGdiscaled,
+}
+
+impl DPIAwarenessContext {
+  const fn to_raw(self) -> DPI_AWARENESS_CONTEXT {
+    match self {
+      DPIAwarenessContext::Unaware => DPI_AWARENESS_CONTEXT_UNAWARE,
+      DPIAwarenessContext::SystemAware => DPI_AWARENESS_CONTEXT_SYSTEM_AWARE,
+      DPIAwarenessContext::PerMonitorAware => DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE,
+      DPIAwarenessContext::PerMonitorAwareV2 => DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
+      DPIAwarenessContext::UnawareGdiscaled => DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED,
+    }
+  }
+}
+
+pub fn set_process_dpi_awareness(context: DPIAwarenessContext) -> Option<()> {
+  match unsafe { SetProcessDpiAwarenessContext(context.to_raw()) } {
+    1 => Some(()),
+    _ => None,
   }
 }
