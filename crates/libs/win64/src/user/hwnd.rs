@@ -69,6 +69,7 @@ use {
     System::Threading::GetCurrentThreadId,
     UI::{
       Controls::MARGINS,
+      HiDpi::GetDpiForWindow,
       WindowsAndMessaging::{
         self,
         CW_USEDEFAULT,
@@ -618,6 +619,17 @@ impl Window {
     //   cyTopHeight: titlebar_height,
     //   cyBottomHeight: 0,
     // };
+  }
+
+  pub fn get_dpi(&self) -> u32 {
+    match unsafe { GetDpiForWindow(self.to_ptr()) } {
+      0 => WindowsAndMessaging::USER_DEFAULT_SCREEN_DPI,
+      dpi => dpi,
+    }
+  }
+
+  pub fn scale_factor(&self) -> f64 {
+    self.get_dpi() as f64 / WindowsAndMessaging::USER_DEFAULT_SCREEN_DPI as f64
   }
 
   fn use_immersive_dark_mode(&self, enable: bool) {
