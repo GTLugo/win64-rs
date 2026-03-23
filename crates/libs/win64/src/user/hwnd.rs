@@ -69,7 +69,10 @@ use {
     System::Threading::GetCurrentThreadId,
     UI::{
       Controls::MARGINS,
-      HiDpi::GetDpiForWindow,
+      HiDpi::{
+        EnableNonClientDpiScaling,
+        GetDpiForWindow,
+      },
       WindowsAndMessaging::{
         self,
         CW_USEDEFAULT,
@@ -469,6 +472,10 @@ impl SystemBackdropType {
 }
 
 impl Window {
+  pub fn enable_non_client_dpi_scaling(&self) {
+    unsafe { EnableNonClientDpiScaling(self.to_ptr()) };
+  }
+
   // WIP
   pub fn dwm_set_window_attribute(&self, attribute: DwmWindowAttribute) {
     match attribute {
