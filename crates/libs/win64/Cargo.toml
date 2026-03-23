@@ -1,6 +1,6 @@
 [package]
 name = "win64"
-version = "0.0.5"
+version = "0.0.6"
 rust-version = "1.88"
 description = "Hand-crafted, idiomatic Rust wrappers for Win32"
 readme.workspace = true
