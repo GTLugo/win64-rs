@@ -1,13 +1,24 @@
-use windows_sys::Win32::Graphics::Gdi::{
-  BeginPaint, COLOR_BACKGROUND, COLOR_WINDOW, CreateSolidBrush, DeleteObject, EndPaint, PAINTSTRUCT,
+use {
+  super::Window,
+  crate::{
+    Handle,
+    Rect,
+    declare_handle,
+    user::{
+      DeviceContext,
+      is_os_dark_mode,
+    },
+  },
+  windows_sys::Win32::Graphics::Gdi::{
+    BeginPaint,
+    COLOR_BACKGROUND,
+    COLOR_WINDOW,
+    CreateSolidBrush,
+    DeleteObject,
+    EndPaint,
+    PAINTSTRUCT,
+  },
 };
-
-use crate::{
-  Handle, Rect, declare_handle,
-  user::{DeviceContext, is_os_dark_mode},
-};
-
-use super::Window;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Reserved {

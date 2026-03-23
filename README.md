@@ -42,7 +42,7 @@ fn main() -> Result<(), Error> {
     .procedure(State)
     .name("Window")
     .style(WindowStyle::OverlappedWindow | WindowStyle::Visible)
-    .size(PhysicalSize::new(800, 500))
+    .size(Some(PhysicalSize::new(800, 500)))
     .create()?;
 
   for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {

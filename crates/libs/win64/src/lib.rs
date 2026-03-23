@@ -18,24 +18,30 @@ pub mod safe;
 
 pub mod user;
 
-pub use dpi;
-pub use keyboard_types;
+pub use {
+  dpi,
+  keyboard_types,
+};
 
 pub mod error;
 pub use error::*;
 
 pub mod sys {
-  pub use windows_sys::Win32::Foundation::*;
-  pub use windows_sys::Win32::Graphics::*;
-  pub use windows_sys::Win32::UI::WindowsAndMessaging::*;
+  pub use windows_sys::Win32::{
+    Foundation::*,
+    Graphics::*,
+    UI::WindowsAndMessaging::*,
+  };
 }
 
 #[cfg(all(feature = "rwh_05", not(any(feature = "rwh_06"))))]
 pub use rwh_05 as raw_window_handle;
-
 #[cfg(all(feature = "rwh_06", not(any(feature = "rwh_05"))))]
 pub use rwh_06 as raw_window_handle;
 
 pub mod prelude {
-  pub use crate::{dpi::*, user::*};
+  pub use crate::{
+    dpi::*,
+    user::*,
+  };
 }

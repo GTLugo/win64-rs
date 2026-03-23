@@ -5,16 +5,31 @@ pub use procedure::*;
 
 pub mod response;
 pub use response::*;
-
-use cursor_icon::CursorIcon;
-use widestring::U16CString;
-use win64_macro::ClassAtom;
-use windows_result::Error;
-use windows_sys::Win32::UI::WindowsAndMessaging::{RegisterClassExW, WNDCLASSEXW};
-
-use crate::{Handle, get_last_error, reset_last_error};
-
-use super::{Brush, Class, Instance, LoadCursor, NoProc, Window, WindowBuilder, styles::WindowClassStyle};
+use {
+  super::{
+    Brush,
+    Class,
+    Instance,
+    LoadCursor,
+    NoProc,
+    Window,
+    WindowBuilder,
+    styles::WindowClassStyle,
+  },
+  crate::{
+    Handle,
+    get_last_error,
+    reset_last_error,
+  },
+  cursor_icon::CursorIcon,
+  widestring::U16CString,
+  win64_macro::ClassAtom,
+  windows_result::Error,
+  windows_sys::Win32::UI::WindowsAndMessaging::{
+    RegisterClassExW,
+    WNDCLASSEXW,
+  },
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CustomClass {

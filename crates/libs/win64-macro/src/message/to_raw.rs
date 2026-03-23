@@ -1,8 +1,8 @@
-use quote::quote;
-
-use crate::message::attributes;
-
-use super::variants::Variants;
+use {
+  super::variants::Variants,
+  crate::message::attributes,
+  quote::quote,
+};
 
 pub fn to_raw(variants: &Variants) -> Vec<proc_macro2::TokenStream> {
   variants

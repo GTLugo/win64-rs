@@ -1,7 +1,19 @@
-use convert_case::{Case, Casing};
-use proc_macro::TokenStream;
-use quote::{format_ident, quote};
-use syn::{ItemEnum, LitStr, parse_macro_input};
+use {
+  convert_case::{
+    Case,
+    Casing,
+  },
+  proc_macro::TokenStream,
+  quote::{
+    format_ident,
+    quote,
+  },
+  syn::{
+    ItemEnum,
+    LitStr,
+    parse_macro_input,
+  },
+};
 
 pub fn macro_impl(input: TokenStream) -> TokenStream {
   let ItemEnum { variants, .. } = parse_macro_input!(input as ItemEnum);

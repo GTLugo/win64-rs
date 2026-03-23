@@ -1,17 +1,25 @@
-use convert_case::Casing;
-use quote::{format_ident, quote};
-use syn::{Expr, Variant};
+use {
+  convert_case::Casing,
+  quote::{
+    format_ident,
+    quote,
+  },
+  syn::{
+    Expr,
+    Variant,
+  },
+};
 
 pub fn id(variant: &Variant) -> proc_macro2::TokenStream {
   match variant.attrs.iter().find(|a| a.path().is_ident("id")) {
     None => {
       let wm = format_ident!("WM_{}", variant.ident.to_string().to_case(convert_case::Case::UpperFlat));
       quote! { WindowsAndMessaging::#wm }
-    }
+    },
     Some(attr) => {
       let id: Expr = attr.parse_args().unwrap();
       quote! { #id }
-    }
+    },
   }
 }
 

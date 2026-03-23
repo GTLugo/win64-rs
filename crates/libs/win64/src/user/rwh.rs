@@ -4,12 +4,26 @@ pub use inner::*;
 
 #[cfg(all(feature = "rwh_05", not(any(feature = "rwh_06"))))]
 pub mod inner {
-  use rwh_05::{
-    ActiveHandle, DisplayHandle, HandleError, HasDisplayHandle, HasRawDisplayHandle, HasRawWindowHandle,
-    HasWindowHandle, RawDisplayHandle, RawWindowHandle, Win32WindowHandle, WindowHandle, WindowsDisplayHandle,
+  use {
+    crate::{
+      Handle,
+      user::Window,
+    },
+    rwh_05::{
+      ActiveHandle,
+      DisplayHandle,
+      HandleError,
+      HasDisplayHandle,
+      HasRawDisplayHandle,
+      HasRawWindowHandle,
+      HasWindowHandle,
+      RawDisplayHandle,
+      RawWindowHandle,
+      Win32WindowHandle,
+      WindowHandle,
+      WindowsDisplayHandle,
+    },
   };
-
-  use crate::{Handle, user::Window};
 
   impl HasWindowHandle for Window {
     fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {
@@ -41,14 +55,24 @@ pub mod inner {
 
 #[cfg(all(feature = "rwh_06", not(any(feature = "rwh_05"))))]
 mod inner {
-  use std::num::NonZero;
-
-  use rwh_06::{
-    DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, RawDisplayHandle, RawWindowHandle,
-    Win32WindowHandle, WindowHandle, WindowsDisplayHandle,
+  use {
+    crate::{
+      Handle,
+      user::Window,
+    },
+    rwh_06::{
+      DisplayHandle,
+      HandleError,
+      HasDisplayHandle,
+      HasWindowHandle,
+      RawDisplayHandle,
+      RawWindowHandle,
+      Win32WindowHandle,
+      WindowHandle,
+      WindowsDisplayHandle,
+    },
+    std::num::NonZero,
   };
-
-  use crate::{Handle, user::Window};
 
   impl HasWindowHandle for Window {
     fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {

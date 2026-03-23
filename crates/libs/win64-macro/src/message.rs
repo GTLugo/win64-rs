@@ -5,11 +5,18 @@ mod new;
 mod to_raw;
 mod variants;
 
-use proc_macro::TokenStream;
-use quote::{format_ident, quote};
-use syn::{ItemEnum, parse_macro_input};
-
-use self::variants::Variants;
+use {
+  self::variants::Variants,
+  proc_macro::TokenStream,
+  quote::{
+    format_ident,
+    quote,
+  },
+  syn::{
+    ItemEnum,
+    parse_macro_input,
+  },
+};
 
 pub fn macro_impl(input: TokenStream) -> TokenStream {
   let ItemEnum { ident, variants, .. } = parse_macro_input!(input as ItemEnum);

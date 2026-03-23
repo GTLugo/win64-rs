@@ -1,9 +1,15 @@
-use quote::{format_ident, quote};
-use syn::Ident;
-
-use crate::message::attributes::{self, Params};
-
-use super::variants::Variants;
+use {
+  super::variants::Variants,
+  crate::message::attributes::{
+    self,
+    Params,
+  },
+  quote::{
+    format_ident,
+    quote,
+  },
+  syn::Ident,
+};
 
 pub fn id(ident: &Ident, variants: &Variants) -> Vec<proc_macro2::TokenStream> {
   variants
@@ -21,13 +27,13 @@ pub fn id(ident: &Ident, variants: &Variants) -> Vec<proc_macro2::TokenStream> {
           quote! {
             Self::#variant_ident #params => #ident::#variant_ident,
           }
-        }
+        },
         false => {
           let params = quote! { (#substruct_name { id, .. }) };
           quote! {
             Self::#variant_ident #params => #ident::#variant_ident(*id),
           }
-        }
+        },
       }
     })
     .collect()

@@ -1,7 +1,18 @@
-use quote::{format_ident, quote};
-use syn::{Token, Variant, punctuated::Punctuated};
-
-use crate::message::attributes::{self, Params};
+use {
+  crate::message::attributes::{
+    self,
+    Params,
+  },
+  quote::{
+    format_ident,
+    quote,
+  },
+  syn::{
+    Token,
+    Variant,
+    punctuated::Punctuated,
+  },
+};
 
 pub struct Variants {
   pub regular: Vec<Variant>,

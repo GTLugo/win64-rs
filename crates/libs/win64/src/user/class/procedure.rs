@@ -1,9 +1,23 @@
-use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
-
-use crate::Handle;
-use crate::user::{LParam, Message, MessageHandler, WParam, Window, WindowPtrIndex};
-
-use super::LResult;
+use {
+  super::LResult,
+  crate::{
+    Handle,
+    user::{
+      LParam,
+      Message,
+      MessageHandler,
+      WParam,
+      Window,
+      WindowPtrIndex,
+    },
+  },
+  windows_sys::Win32::Foundation::{
+    HWND,
+    LPARAM,
+    LRESULT,
+    WPARAM,
+  },
+};
 
 #[allow(unused_variables)]
 pub trait WindowProcedure {
@@ -62,12 +76,12 @@ fn on_message(window: &Window, message: &Message) -> Option<LResult> {
 
       let data = (unsafe { (window.get_window_ptr(WindowPtrIndex::UserData) as *mut UserData).as_mut() })?;
       data.proc.on_message(window, message)
-    }
+    },
     (Some(data), Message::NcDestroy) => {
       let mut data = unsafe { Box::from_raw(data) };
       data.proc.on_message(window, message)
-    }
+    },
     (Some(data), message) => data.proc.on_message(window, message),
-    (_, _) => None,
+    (..) => None,
   }
 }

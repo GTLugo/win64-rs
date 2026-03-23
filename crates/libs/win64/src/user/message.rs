@@ -3,18 +3,35 @@ pub use peek::*;
 
 pub mod get;
 pub use get::*;
-
-use std::ops::{Deref, RangeInclusive};
-
-use windows_result::Error;
-use windows_sys::Win32::{
-  Foundation::POINT,
-  UI::WindowsAndMessaging::{self, CREATESTRUCTW, DispatchMessageW, MSG, TranslateMessage},
+use {
+  super::{
+    CreateStruct,
+    LResult,
+    LpParam,
+    PeekMessageFlags,
+    Window,
+    WindowProcedure,
+  },
+  crate::{
+    Handle,
+    Point,
+  },
+  std::ops::{
+    Deref,
+    RangeInclusive,
+  },
+  windows_result::Error,
+  windows_sys::Win32::{
+    Foundation::POINT,
+    UI::WindowsAndMessaging::{
+      self,
+      CREATESTRUCTW,
+      DispatchMessageW,
+      MSG,
+      TranslateMessage,
+    },
+  },
 };
-
-use crate::{Handle, Point};
-
-use super::{CreateStruct, LResult, LpParam, PeekMessageFlags, Window, WindowProcedure};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WParam(pub usize);
@@ -624,7 +641,6 @@ pub trait MessageHandler {
 
 impl MessageHandler for NcCreateMessage {
   type In<'a> = Box<dyn WindowProcedure>;
-
   type Out = bool;
 
   fn handle<'a>(&'a self, f: impl Fn(Self::In<'a>) -> Self::Out) -> Option<LResult> {
@@ -646,7 +662,6 @@ pub enum CreateMessageResult {
 
 impl MessageHandler for CreateMessage {
   type In<'a> = CreateStruct;
-
   type Out = CreateMessageResult;
 
   fn handle<'a>(&'a self, f: impl FnOnce(Self::In<'a>) -> Self::Out) -> Option<LResult> {

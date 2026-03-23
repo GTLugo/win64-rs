@@ -3,7 +3,6 @@ pub use styles::*;
 
 pub mod peek_message;
 pub use peek_message::*;
-
 use windows_sys::Win32::UI::WindowsAndMessaging;
 
 // pub const GWLP_HINSTANCE: WINDOW_LONG_PTR_INDEX = WINDOW_LONG_PTR_INDEX(-6i32);

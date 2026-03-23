@@ -9,12 +9,15 @@
 */
 
 // Should the need arise for extensions, newtypes should be favored over ext traits.
-pub use windows_result::Error;
-pub use windows_result::HRESULT as HResult;
-pub use windows_result::Result;
-
-use windows_sys::Win32::Foundation::SetLastError;
-use windows_sys::Win32::Foundation::WIN32_ERROR;
+pub use windows_result::{
+  Error,
+  HRESULT as HResult,
+  Result,
+};
+use windows_sys::Win32::Foundation::{
+  SetLastError,
+  WIN32_ERROR,
+};
 
 #[inline]
 pub fn convert_error(error: WIN32_ERROR) -> Error {
@@ -29,7 +32,7 @@ pub fn reset_last_error() {
 #[inline]
 pub fn get_last_error() -> Option<Error> {
   let error = Error::from_thread();
-  
+
   match error == Error::empty() {
     true => None,
     false => Some(error),

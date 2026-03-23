@@ -1,5 +1,12 @@
-use bitflags::bitflags;
-use windows_sys::Win32::UI::WindowsAndMessaging::{self, WINDOW_EX_STYLE, WINDOW_STYLE, WNDCLASS_STYLES};
+use {
+  bitflags::bitflags,
+  windows_sys::Win32::UI::WindowsAndMessaging::{
+    self,
+    WINDOW_EX_STYLE,
+    WINDOW_STYLE,
+    WNDCLASS_STYLES,
+  },
+};
 
 bitflags! {
   #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

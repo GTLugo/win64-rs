@@ -79,12 +79,15 @@ macro_rules! declare_handle_body {
       unsafe fn from_raw(raw: usize) -> Self {
         Self(raw as _)
       }
+
       unsafe fn from_ptr(raw: *mut std::ffi::c_void) -> Self {
         Self(raw.cast())
       }
+
       fn to_raw(self) -> usize {
         self.0 as _
       }
+
       fn to_ptr(self) -> *mut std::ffi::c_void {
         self.0.cast()
       }

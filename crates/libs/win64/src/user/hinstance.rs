@@ -1,6 +1,7 @@
-use windows_sys::Win32::System::SystemServices::IMAGE_DOS_HEADER;
-
-use crate::declare_handle;
+use {
+  crate::declare_handle,
+  windows_sys::Win32::System::SystemServices::IMAGE_DOS_HEADER,
+};
 
 declare_handle!(
   Instance,

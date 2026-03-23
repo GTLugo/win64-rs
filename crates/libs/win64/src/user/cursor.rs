@@ -1,5 +1,11 @@
-use cursor_icon::CursorIcon;
-use windows_sys::Win32::UI::WindowsAndMessaging::{self, HCURSOR, LoadCursorW};
+use {
+  cursor_icon::CursorIcon,
+  windows_sys::Win32::UI::WindowsAndMessaging::{
+    self,
+    HCURSOR,
+    LoadCursorW,
+  },
+};
 
 const DEFAULT_CURSOR: *const u16 = WindowsAndMessaging::IDC_ARROW;
 

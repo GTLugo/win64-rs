@@ -1,11 +1,20 @@
-use std::ops::RangeInclusive;
-
-use windows_result::Error;
-use windows_sys::Win32::UI::WindowsAndMessaging::{GetMessageW, MSG};
-
-use crate::{Handle, get_last_error, user::Message};
-
-use super::{Msg, MsgQueue};
+use {
+  super::{
+    Msg,
+    MsgQueue,
+  },
+  crate::{
+    Handle,
+    get_last_error,
+    user::Message,
+  },
+  std::ops::RangeInclusive,
+  windows_result::Error,
+  windows_sys::Win32::UI::WindowsAndMessaging::{
+    GetMessageW,
+    MSG,
+  },
+};
 
 pub fn get_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>) -> Result<Msg, Error> {
   let (min, max) = filter.map(RangeInclusive::into_inner).unwrap_or_default();
@@ -40,10 +49,10 @@ impl Iterator for GetMessageIterator {
               *self = GetMessageIterator::Quitting;
             }
             Some(Ok(msg))
-          }
+          },
           Err(e) => Some(Err(e)),
         }
-      }
+      },
       GetMessageIterator::Quitting => None,
     }
   }

@@ -1,40 +1,95 @@
 pub mod paint;
 pub use paint::*;
-
-use std::{
-  ffi::{OsStr, OsString},
-  os::windows::ffi::{OsStrExt, OsStringExt},
-};
-
-use dpi::{PhysicalPosition, PhysicalSize, PixelUnit, Position, Size};
-use windows_result::{Error, Result};
-use windows_sys::Win32::{
-  Foundation::{LPARAM, WPARAM},
-  Graphics::{
-    Dwm::{
-      DWMSBT_AUTO, DWMSBT_MAINWINDOW, DWMSBT_NONE, DWMSBT_TABBEDWINDOW, DWMSBT_TRANSIENTWINDOW, DWMWA_BORDER_COLOR,
-      DWMWA_CAPTION_COLOR, DWMWA_SYSTEMBACKDROP_TYPE, DWMWA_USE_IMMERSIVE_DARK_MODE, DWMWINDOWATTRIBUTE,
-      DwmExtendFrameIntoClientArea, DwmSetWindowAttribute,
+use {
+  super::{
+    Instance,
+    LResult,
+    Message,
+    UserData,
+    WindowClass,
+    WindowPtrIndex,
+    WindowStyle,
+    procedure::{
+      WindowProcedure,
+      WindowState,
     },
-    Gdi::UpdateWindow,
+    styles::ExtendedWindowStyle,
   },
-  System::Threading::GetCurrentThreadId,
-  UI::{
-    Controls::MARGINS,
-    WindowsAndMessaging::{
-      self, CW_USEDEFAULT, CreateWindowExW, DefWindowProcW, DestroyWindow, GetWindowLongPtrW, GetWindowTextLengthW,
-      GetWindowTextW, GetWindowThreadProcessId, IsWindow, PostMessageW, PostQuitMessage, SHOW_WINDOW_CMD, SendMessageW,
-      SetWindowLongPtrW, SetWindowTextW, ShowWindow,
+  crate::{
+    Handle,
+    declare_handle,
+    get_last_error,
+    last_error,
+    reset_last_error,
+    win10_build_version,
+  },
+  dpi::{
+    PhysicalPosition,
+    PhysicalSize,
+    PixelUnit,
+    Position,
+    Size,
+  },
+  std::{
+    ffi::{
+      OsStr,
+      OsString,
+    },
+    os::windows::ffi::{
+      OsStrExt,
+      OsStringExt,
     },
   },
-};
-
-use crate::{Handle, declare_handle, get_last_error, last_error, reset_last_error, win10_build_version};
-
-use super::{
-  Instance, LResult, Message, UserData, WindowClass, WindowPtrIndex, WindowStyle,
-  procedure::{WindowProcedure, WindowState},
-  styles::ExtendedWindowStyle,
+  windows_result::{
+    Error,
+    Result,
+  },
+  windows_sys::Win32::{
+    Foundation::{
+      LPARAM,
+      WPARAM,
+    },
+    Graphics::{
+      Dwm::{
+        DWMSBT_AUTO,
+        DWMSBT_MAINWINDOW,
+        DWMSBT_NONE,
+        DWMSBT_TABBEDWINDOW,
+        DWMSBT_TRANSIENTWINDOW,
+        DWMWA_BORDER_COLOR,
+        DWMWA_CAPTION_COLOR,
+        DWMWA_SYSTEMBACKDROP_TYPE,
+        DWMWA_USE_IMMERSIVE_DARK_MODE,
+        DWMWINDOWATTRIBUTE,
+        DwmExtendFrameIntoClientArea,
+        DwmSetWindowAttribute,
+      },
+      Gdi::UpdateWindow,
+    },
+    System::Threading::GetCurrentThreadId,
+    UI::{
+      Controls::MARGINS,
+      WindowsAndMessaging::{
+        self,
+        CW_USEDEFAULT,
+        CreateWindowExW,
+        DefWindowProcW,
+        DestroyWindow,
+        GetWindowLongPtrW,
+        GetWindowTextLengthW,
+        GetWindowTextW,
+        GetWindowThreadProcessId,
+        IsWindow,
+        PostMessageW,
+        PostQuitMessage,
+        SHOW_WINDOW_CMD,
+        SendMessageW,
+        SetWindowLongPtrW,
+        SetWindowTextW,
+        ShowWindow,
+      },
+    },
+  },
 };
 
 declare_handle!(
@@ -237,9 +292,14 @@ impl<WndClass, WndProc> WindowBuilder<WndClass, WndProc> {
     self
   }
 
-  pub fn position(mut self, position: impl Into<Position>) -> WindowBuilder<WndClass, WndProc> {
-    let pos: PhysicalPosition<i32> = position.into().to_physical(1.0);
-    self.position = (Some(PixelUnit::Physical(pos.x.into())), Some(PixelUnit::Physical(pos.y.into())));
+  pub fn position(mut self, position: Option<impl Into<Position>>) -> WindowBuilder<WndClass, WndProc> {
+    match position {
+      Some(position) => {
+        let pos: PhysicalPosition<i32> = position.into().to_physical(1.0);
+        self.position = (Some(PixelUnit::Physical(pos.x.into())), Some(PixelUnit::Physical(pos.y.into())));
+      },
+      None => self.position = (None, None),
+    };
     self
   }
 
@@ -254,9 +314,14 @@ impl<WndClass, WndProc> WindowBuilder<WndClass, WndProc> {
     self
   }
 
-  pub fn size(mut self, size: impl Into<Size>) -> WindowBuilder<WndClass, WndProc> {
-    let size: PhysicalSize<i32> = size.into().to_physical(1.0);
-    self.size = (Some(PixelUnit::Physical(size.width.into())), Some(PixelUnit::Physical(size.height.into())));
+  pub fn size(mut self, size: Option<impl Into<Size>>) -> WindowBuilder<WndClass, WndProc> {
+    match size {
+      Some(size) => {
+        let size: PhysicalSize<i32> = size.into().to_physical(1.0);
+        self.size = (Some(PixelUnit::Physical(size.width.into())), Some(PixelUnit::Physical(size.height.into())));
+      },
+      None => self.size = (None, None),
+    };
     self
   }
 

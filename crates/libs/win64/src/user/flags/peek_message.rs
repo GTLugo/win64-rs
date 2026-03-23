@@ -1,5 +1,10 @@
-use bitflags::bitflags;
-use windows_sys::Win32::UI::WindowsAndMessaging::{self, PEEK_MESSAGE_REMOVE_TYPE};
+use {
+  bitflags::bitflags,
+  windows_sys::Win32::UI::WindowsAndMessaging::{
+    self,
+    PEEK_MESSAGE_REMOVE_TYPE,
+  },
+};
 
 bitflags! {
   #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

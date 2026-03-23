@@ -1,6 +1,10 @@
-use crate::StartupInfo;
-
-use super::{CmdShow, Instance};
+use {
+  super::{
+    CmdShow,
+    Instance,
+  },
+  crate::StartupInfo,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Args {

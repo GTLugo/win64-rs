@@ -1,14 +1,24 @@
-use std::ops::RangeInclusive;
-
-use windows_result::Error;
-use windows_sys::Win32::UI::WindowsAndMessaging::{MSG, PeekMessageW};
-
-use crate::{
-  Handle, get_last_error, reset_last_error,
-  user::{Message, PeekMessageFlags},
+use {
+  super::{
+    Msg,
+    MsgQueue,
+  },
+  crate::{
+    Handle,
+    get_last_error,
+    reset_last_error,
+    user::{
+      Message,
+      PeekMessageFlags,
+    },
+  },
+  std::ops::RangeInclusive,
+  windows_result::Error,
+  windows_sys::Win32::UI::WindowsAndMessaging::{
+    MSG,
+    PeekMessageW,
+  },
 };
-
-use super::{Msg, MsgQueue};
 
 pub fn peek_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>, flags: PeekMessageFlags) -> PeekResult {
   let (min, max) = filter.map(RangeInclusive::into_inner).unwrap_or_default();
@@ -67,8 +77,8 @@ impl Iterator for PeekMessageResultIntoIterator {
 }
 
 impl IntoIterator for PeekResult {
-  type Item = Msg;
   type IntoIter = PeekMessageResultIntoIterator;
+  type Item = Msg;
 
   fn into_iter(self) -> Self::IntoIter {
     PeekMessageResultIntoIterator { pm: self }
@@ -92,7 +102,7 @@ impl Iterator for PeekMessageIterator {
         }
 
         Some(message)
-      }
+      },
       PeekMessageIterator::Quitting => None,
     }
   }

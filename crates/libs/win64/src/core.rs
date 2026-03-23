@@ -6,21 +6,34 @@ pub use point::*;
 
 pub mod rect;
 pub use rect::*;
-
-use libloading::{Library, Symbol};
-use std::{ffi::OsString, os::windows::ffi::OsStringExt, sync::LazyLock};
-use windows_sys::{
-  Win32::{
-    Foundation::NTSTATUS,
-    System::{
-      SystemInformation::OSVERSIONINFOW,
-      Threading::{GetStartupInfoW, STARTUPINFOW},
+use {
+  crate::user::CmdShow,
+  libloading::{
+    Library,
+    Symbol,
+  },
+  std::{
+    ffi::OsString,
+    os::windows::ffi::OsStringExt,
+    sync::LazyLock,
+  },
+  windows_sys::{
+    Win32::{
+      Foundation::NTSTATUS,
+      System::{
+        SystemInformation::OSVERSIONINFOW,
+        Threading::{
+          GetStartupInfoW,
+          STARTUPINFOW,
+        },
+      },
+    },
+    core::{
+      PCWSTR,
+      PWSTR,
     },
   },
-  core::{PCWSTR, PWSTR},
 };
-
-use crate::user::CmdShow;
 
 /// # Safety
 /// Must be null-terminated, valid UTF16

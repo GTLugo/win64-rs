@@ -1,8 +1,17 @@
-use windows_sys::Win32::Graphics::Gdi::{FillRect, Polygon, SelectObject};
-
-use crate::{declare_handle, Handle, Point, Rect};
-
-use super::Brush;
+use {
+  super::Brush,
+  crate::{
+    Handle,
+    Point,
+    Rect,
+    declare_handle,
+  },
+  windows_sys::Win32::Graphics::Gdi::{
+    FillRect,
+    Polygon,
+    SelectObject,
+  },
+};
 
 declare_handle!(
   DeviceContext,

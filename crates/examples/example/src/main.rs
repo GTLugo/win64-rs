@@ -1,4 +1,7 @@
-use win64::{Point, prelude::*};
+use win64::{
+  Point,
+  prelude::*,
+};
 
 struct State {}
 
@@ -12,26 +15,24 @@ const POINTS: &[Point] = &[Point::new(100, 250), Point::new(300, 250), Point::ne
 
 impl WindowProcedure for State {
   fn on_message(&mut self, window: &Window, message: &Message) -> Option<LResult> {
-    println!("[{window:?}] {message:?}");
-
     match message {
       Message::Create(_) => {
         window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(is_os_dark_mode()));
-        window.dwm_set_window_attribute(DwmWindowAttribute::SystemBackdropType(SystemBackdropType::TransientWindow));
-      }
+        // window.dwm_set_window_attribute(DwmWindowAttribute::SystemBackdropType(SystemBackdropType::TransientWindow));
+      },
       Message::SettingChange(_) => {
         window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(is_os_dark_mode()));
-      }
+      },
       Message::Destroy => {
         window.quit();
-      }
+      },
       Message::Paint => {
         window.begin_paint(|hdc, _| {
           let brush = Brush::solid(0x000000FF);
           hdc.polygon(POINTS, &brush);
           brush.delete();
         });
-      }
+      },
       _ => (),
     }
 
@@ -50,7 +51,7 @@ fn main() -> win64::Result<()> {
     .procedure(State::new())
     .name("Window")
     .style(WindowStyle::OverlappedWindow)
-    .size(PhysicalSize::new(800, 500))
+    .size(Some(PhysicalSize::new(800, 500)))
     .create()?;
 
   hwnd.show_window(CmdShow::ShowDefault);
