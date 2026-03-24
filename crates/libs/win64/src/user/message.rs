@@ -1,9 +1,6 @@
-pub mod peek;
-use keyboard_types::{Code, Key, Location};
-pub use peek::*;
-
 pub mod get;
-pub use get::*;
+pub mod peek;
+
 use {
   super::{
     CreateStruct,
@@ -16,6 +13,25 @@ use {
   crate::{
     Handle,
     Point,
+    input::keyboard::{
+      destructure_key_lparam,
+      get_kbd_state,
+      get_location,
+      key::Key,
+      layout::{
+        LAYOUT_CACHE,
+        WindowsModifiers,
+      },
+      new_ex_scancode,
+      scancode_to_code,
+    },
+  },
+  keyboard_types::{
+    Code,
+    KeyState,
+    Location,
+    Modifiers,
+    NamedKey,
   },
   std::ops::{
     Deref,
@@ -24,14 +40,27 @@ use {
   windows_result::Error,
   windows_sys::Win32::{
     Foundation::POINT,
-    UI::WindowsAndMessaging::{
-      self,
-      CREATESTRUCTW,
-      DispatchMessageW,
-      MSG,
-      TranslateMessage,
+    UI::{
+      Input::KeyboardAndMouse::{
+        HKL,
+        MAPVK_VK_TO_VSC_EX,
+        MapVirtualKeyExW,
+        VIRTUAL_KEY,
+        VK_NUMLOCK,
+      },
+      WindowsAndMessaging::{
+        self,
+        CREATESTRUCTW,
+        DispatchMessageW,
+        MSG,
+        TranslateMessage,
+      },
     },
   },
+};
+pub use {
+  get::*,
+  peek::*,
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -677,9 +706,112 @@ impl MessageHandler for CreateMessage {
   }
 }
 
+pub struct KeyEvent {
+  pub state: KeyState,
+  pub key: Key,
+  pub code: Code,
+  pub location: Location,
+  pub modifiers: Modifiers,
+  pub repeat: bool,
+  pub key_without_modifiers: Key,
+}
+
 impl KeyDownMessage {
-  pub fn key(&self) -> Key {
-    todo!()
+  const IS_PRESSED: bool = true;
+
+  // just a helper
+
+  pub fn key(&self) -> KeyEvent {
+    let mut layouts = LAYOUT_CACHE.lock().unwrap();
+    const NO_MODS: WindowsModifiers = WindowsModifiers::empty();
+
+    let modifiers = layouts.get_agnostic_mods();
+    let (_, layout) = layouts.get_current_layout();
+    let lparam_struct = destructure_key_lparam(self.l);
+    let vkey = self.w.0 as VIRTUAL_KEY;
+    let scancode = if lparam_struct.scancode == 0 {
+      // In some cases (often with media keys) the device reports a scancode of 0 but a
+      // valid virtual key. In these cases we obtain the scancode from the virtual key.
+      unsafe { MapVirtualKeyExW(vkey as u32, MAPVK_VK_TO_VSC_EX, layout.hkl as HKL) as u16 }
+    } else {
+      new_ex_scancode(lparam_struct.scancode, lparam_struct.extended)
+    };
+    let code = scancode_to_code(scancode as u32);
+    let location = get_location(scancode, layout.hkl as HKL);
+
+    let kbd_state = get_kbd_state();
+    let mods = WindowsModifiers::active_modifiers(&kbd_state);
+    let mods_without_ctrl = mods.remove_only_ctrl();
+    let num_lock_on = kbd_state[VK_NUMLOCK as usize] & 1 != 0;
+
+    // On Windows Ctrl+NumLock = Pause (and apparently Ctrl+Pause -> NumLock). In these cases
+    // the KeyCode still stores the real key, so in the name of consistency across platforms, we
+    // circumvent this mapping and force the key values to match the keycode.
+    // For more on this, read the article by Raymond Chen, titled:
+    // "Why does Ctrl+ScrollLock cancel dialogs?"
+    // https://devblogs.microsoft.com/oldnewthing/20080211-00/?p=23503
+    let code_as_key = if mods.contains(WindowsModifiers::CONTROL) {
+      match code {
+        Code::NumLock => Some(Key::Named(NamedKey::NumLock)),
+        Code::Pause => Some(Key::Named(NamedKey::Pause)),
+        _ => None,
+      }
+    } else {
+      None
+    };
+
+    let preliminary_logical_key = layout.get_key(mods_without_ctrl, num_lock_on, vkey, &code);
+    // FIXME(madsmtm): Is the `chars != " "` check desired here?
+    let key_is_char = matches!(&preliminary_logical_key, Key::Character(chars) if chars != " ");
+
+    let key = if let Some(key) = code_as_key.clone() {
+      key
+    } else if Self::IS_PRESSED && key_is_char && !mods.contains(WindowsModifiers::CONTROL) {
+      // In some cases we want to use the UNICHAR text for logical_key in order to allow
+      // dead keys to have an effect on the character reported by `logical_key`.
+      preliminary_logical_key
+    } else {
+      preliminary_logical_key
+    };
+    let key_without_modifiers = if let Some(key) = code_as_key {
+      key
+    } else {
+      match layout.get_key(NO_MODS, false, vkey, &code) {
+        // We convert dead keys into their character.
+        // The reason for this is that `key_without_modifiers` is designed for key-bindings,
+        // but the US International layout treats `'` (apostrophe) as a dead key and the
+        // regular US layout treats it a character. In order for a single binding
+        // configuration to work with both layouts, we forward each dead key as a character.
+        Key::Dead(k) => {
+          if let Some(ch) = k {
+            // I'm avoiding the heap allocation. I don't want to talk about it :(
+            let mut utf8 = [0; 4];
+            let s = ch.encode_utf8(&mut utf8);
+            Key::Character(s.to_string())
+          } else {
+            Key::Named(NamedKey::Unidentified)
+          }
+        },
+        key => key,
+      }
+    };
+
+    // let key = match logical_key {
+    //     Key::Named(named_key) => keyboard_types::Key::Named(named_key),
+    //     Key::Character(character) => keyboard_types::Key::Character(character),
+    //     Key::Unidentified(_) => todo!(),
+    //     Key::Dead(_) => todo!(),
+    // };
+
+    KeyEvent {
+      state: KeyState::Down,
+      key,
+      code,
+      location,
+      modifiers,
+      repeat: lparam_struct.is_repeat,
+      key_without_modifiers,
+    }
   }
 
   pub fn code(&self) -> Code {
@@ -689,13 +821,9 @@ impl KeyDownMessage {
   pub fn location(&self) -> Location {
     todo!()
   }
-
-  
 }
 
-impl KeyUpMessage {
-
-}
+impl KeyUpMessage {}
 
 // impl MessageHandler for SetTextMessage {
 //   type In<'a> = ();

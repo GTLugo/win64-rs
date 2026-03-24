@@ -159,6 +159,23 @@ pub fn win10_build_version() -> Option<u32> {
   }
 }
 
+// Courtesy of winit
+
+#[inline(always)]
+pub(crate) const fn primarylangid(lgid: u16) -> u16 {
+    lgid & 0x3ff
+}
+
+#[inline(always)]
+pub(crate) const fn loword(x: u32) -> u16 {
+    (x & 0xffff) as u16
+}
+
+#[inline(always)]
+pub(crate) const fn hiword(x: u32) -> u16 {
+    ((x >> 16) & 0xffff) as u16
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DPIAwarenessContext {
   Unaware,

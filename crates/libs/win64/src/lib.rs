@@ -18,6 +18,8 @@ pub mod safe;
 
 pub mod user;
 
+mod input;
+
 pub use {
   dpi,
   keyboard_types,

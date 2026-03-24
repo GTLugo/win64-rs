@@ -62,5 +62,11 @@ fn main() -> Result<(), Error> {
 * `safe`: This is a set of new API wrappers that aim to provide stronger checks against improper usage
 * `rwh_05 / rwh_06`: Implements the raw_window_handle traits on the window handle type.
 
+## Credits
+
+* Some code (mostly utility functions and the keyboard events) taken from `winit` under the Apache 2.0 license.
+
+---
+
 > [!NOTE]
 > No AI-generated code.
