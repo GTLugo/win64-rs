@@ -33,6 +33,12 @@ impl WindowProcedure for State {
           brush.delete();
         });
       },
+      Message::KeyDown(m) => {
+        eprintln!("{:?}", m.event());
+      },
+      Message::KeyUp(m) => {
+        eprintln!("{:?}", m.event());
+      },
       _ => (),
     }
 

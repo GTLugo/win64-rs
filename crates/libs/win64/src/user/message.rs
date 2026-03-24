@@ -706,6 +706,7 @@ impl MessageHandler for CreateMessage {
   }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct KeyEvent {
   pub state: KeyState,
   pub key: Key,
