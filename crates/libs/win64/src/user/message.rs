@@ -716,19 +716,15 @@ pub struct KeyEvent {
   pub key_without_modifiers: Key,
 }
 
-impl KeyDownMessage {
-  const IS_PRESSED: bool = true;
-
-  // just a helper
-
-  pub fn key(&self) -> KeyEvent {
+impl KeyEvent {
+  fn new(w: WParam, l: LParam, is_pressed: bool) -> Self {
     let mut layouts = LAYOUT_CACHE.lock().unwrap();
     const NO_MODS: WindowsModifiers = WindowsModifiers::empty();
 
     let modifiers = layouts.get_agnostic_mods();
     let (_, layout) = layouts.get_current_layout();
-    let lparam_struct = destructure_key_lparam(self.l);
-    let vkey = self.w.0 as VIRTUAL_KEY;
+    let lparam_struct = destructure_key_lparam(l);
+    let vkey = w.0 as VIRTUAL_KEY;
     let scancode = if lparam_struct.scancode == 0 {
       // In some cases (often with media keys) the device reports a scancode of 0 but a
       // valid virtual key. In these cases we obtain the scancode from the virtual key.
@@ -766,7 +762,7 @@ impl KeyDownMessage {
 
     let key = if let Some(key) = code_as_key.clone() {
       key
-    } else if Self::IS_PRESSED && key_is_char && !mods.contains(WindowsModifiers::CONTROL) {
+    } else if is_pressed && key_is_char && !mods.contains(WindowsModifiers::CONTROL) {
       // In some cases we want to use the UNICHAR text for logical_key in order to allow
       // dead keys to have an effect on the character reported by `logical_key`.
       preliminary_logical_key
@@ -796,15 +792,8 @@ impl KeyDownMessage {
       }
     };
 
-    // let key = match logical_key {
-    //     Key::Named(named_key) => keyboard_types::Key::Named(named_key),
-    //     Key::Character(character) => keyboard_types::Key::Character(character),
-    //     Key::Unidentified(_) => todo!(),
-    //     Key::Dead(_) => todo!(),
-    // };
-
-    KeyEvent {
-      state: KeyState::Down,
+    Self {
+      state: if is_pressed { KeyState::Down } else { KeyState::Up },
       key,
       code,
       location,
@@ -813,17 +802,19 @@ impl KeyDownMessage {
       key_without_modifiers,
     }
   }
+}
 
-  pub fn code(&self) -> Code {
-    todo!()
-  }
-
-  pub fn location(&self) -> Location {
-    todo!()
+impl KeyDownMessage {
+  pub fn event(&self) -> KeyEvent {
+    KeyEvent::new(self.w, self.l, true)
   }
 }
 
-impl KeyUpMessage {}
+impl KeyUpMessage {
+  pub fn event(&self) -> KeyEvent {
+    KeyEvent::new(self.w, self.l, false)
+  }
+}
 
 // impl MessageHandler for SetTextMessage {
 //   type In<'a> = ();
