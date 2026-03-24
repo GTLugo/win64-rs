@@ -1,4 +1,5 @@
 pub mod peek;
+use keyboard_types::{Code, Key, Location};
 pub use peek::*;
 
 pub mod get;
@@ -676,9 +677,25 @@ impl MessageHandler for CreateMessage {
   }
 }
 
-impl KeyDownMessage {}
+impl KeyDownMessage {
+  pub fn key(&self) -> Key {
+    todo!()
+  }
 
-impl KeyUpMessage {}
+  pub fn code(&self) -> Code {
+    todo!()
+  }
+
+  pub fn location(&self) -> Location {
+    todo!()
+  }
+
+  
+}
+
+impl KeyUpMessage {
+
+}
 
 // impl MessageHandler for SetTextMessage {
 //   type In<'a> = ();
