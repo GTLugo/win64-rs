@@ -97,7 +97,7 @@ pub fn get_async_kbd_state() -> [u8; 256] {
   }
 }
 
-pub fn get_location(scancode: ExScancode, hkl: HKL) -> Location {
+pub(crate) fn get_location(scancode: ExScancode, hkl: HKL) -> Location {
   let extension = 0xe000;
   let extended = (scancode & extension) == extension;
   let vkey = unsafe { MapVirtualKeyExW(scancode as u32, KeyboardAndMouse::MAPVK_VSC_TO_VK_EX, hkl) as VIRTUAL_KEY };

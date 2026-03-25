@@ -18,7 +18,7 @@ pub mod safe;
 
 pub mod user;
 
-mod input;
+pub mod input;
 
 pub use {
   dpi,
