@@ -53,7 +53,7 @@ fn main() -> win64::Result<()> {
     .register()?;
 
   let hwnd = class
-    .window_builder()
+    .create_window()
     .with_procedure(State::new())
     .with_name("Window")
     .with_style(WindowStyle::OverlappedWindow)

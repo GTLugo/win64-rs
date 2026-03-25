@@ -33,12 +33,9 @@ use {
     Modifiers,
     NamedKey,
   },
-  std::{
-    ffi::c_void,
-    ops::{
-      Deref,
-      RangeInclusive,
-    },
+  std::ops::{
+    Deref,
+    RangeInclusive,
   },
   windows_result::Error,
   windows_sys::Win32::{

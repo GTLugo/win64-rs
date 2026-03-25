@@ -30,25 +30,23 @@ impl WindowProcedure for State {
 }
 
 fn main() -> Result<(), Error> {
+  // Fetch `winmain` args if you need them
   let args = Args::get();
 
   let class = WindowClass::builder()
     .with_name("Window Class")
-    .with_instance(Some(args.instance))
     .register()?;
 
   let hwnd = class
-    .window_builder()
+    .create_window()
     .with_procedure(State)
     .with_name("Window")
     .with_style(WindowStyle::OverlappedWindow | WindowStyle::Visible)
     .with_size(Some(PhysicalSize::new(800, 500)))
     .create()?;
-
-  for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {
-    msg.translate();
-    msg.dispatch();
-  }
+  
+  // Configure the thread message loop as you wish
+  MessageLoop::new().run();
 
   Ok(())
 }
