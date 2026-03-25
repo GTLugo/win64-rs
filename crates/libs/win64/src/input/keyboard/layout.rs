@@ -279,14 +279,14 @@ static NUMPAD_KEYCODES: LazyLock<HashSet<Code>> = LazyLock::new(|| {
 });
 
 bitflags::bitflags! {
-    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct WindowsModifiers : u8 {
-        const SHIFT = 1 << 0;
-        const CONTROL = 1 << 1;
-        const ALT = 1 << 2;
-        const CAPS_LOCK = 1 << 3;
-        const FLAGS_END = 1 << 4;
-    }
+  #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+  pub struct WindowsModifiers : u8 {
+    const SHIFT = 1 << 0;
+    const CONTROL = 1 << 1;
+    const ALT = 1 << 2;
+    const CAPS_LOCK = 1 << 3;
+    const FLAGS_END = 1 << 4;
+  }
 }
 
 impl WindowsModifiers {
