@@ -7,7 +7,7 @@ pub mod layout;
 
 use {
   crate::{
-    loword,
+    low_word,
     primarylangid,
     user::LParam,
   },
@@ -157,7 +157,7 @@ pub fn code_to_scancode(code: Code) -> Option<u32> {
 
   let hkl = unsafe { GetKeyboardLayout(0) };
 
-  let primary_lang_id = primarylangid(loword(hkl as u32));
+  let primary_lang_id = primarylangid(low_word(hkl as u32));
   let is_korean = primary_lang_id as u32 == LANG_KOREAN;
 
   // let code = match physical_key {

@@ -4,7 +4,7 @@ use {
     scancode_to_code,
   },
   crate::{
-    loword,
+    low_word,
     primarylangid,
   },
   keyboard_types::{
@@ -687,7 +687,7 @@ fn is_numpad_specific(vk: VIRTUAL_KEY) -> bool {
 }
 
 fn keycode_to_vkey(keycode: Code, hkl: u64) -> VIRTUAL_KEY {
-  let primary_lang_id = primarylangid(loword(hkl as u32));
+  let primary_lang_id = primarylangid(low_word(hkl as u32));
   let is_korean = primary_lang_id as u32 == LANG_KOREAN;
   let is_japanese = primary_lang_id as u32 == LANG_JAPANESE;
 
@@ -906,7 +906,7 @@ fn vkey_to_non_char_key(vkey: VIRTUAL_KEY, hkl: u64, has_alt_graph: bool) -> Key
   // List of the Web key names and their corresponding platform-native key names:
   // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
 
-  let primary_lang_id = primarylangid(loword(hkl as u32));
+  let primary_lang_id = primarylangid(low_word(hkl as u32));
   let is_korean = primary_lang_id as u32 == LANG_KOREAN;
   let is_japanese = primary_lang_id as u32 == LANG_JAPANESE;
 
