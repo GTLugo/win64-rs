@@ -48,31 +48,28 @@ impl WindowProcedure for State {
 
 fn main() -> win64::Result<()> {
   let class = WindowClass::builder()
-    .name("Window Class")
-    .background_brush(Brush::color_window_auto_dark())
+    .with_name("Window Class")
+    .with_background_brush(Brush::color_window_auto_dark())
     .register()?;
 
   let hwnd = class
     .window_builder()
-    .procedure(State::new())
-    .name("Window")
-    .style(WindowStyle::OverlappedWindow)
-    .size(Some(PhysicalSize::new(800, 500)))
+    .with_procedure(State::new())
+    .with_name("Window")
+    .with_style(WindowStyle::OverlappedWindow)
+    .with_size(Some(PhysicalSize::new(800, 500)))
     .create()?;
 
   hwnd.show_window(CmdShow::ShowDefault);
 
-  // let mut counter = fps_counter::FPSCounter::new();
+  // let mut counter = fps_counter::FPSCounter::new();\
 
-  for msg in Msg::peek(MsgQueue::CurrentThread, None, PeekMessageFlags::Remove) {
-    if let Some(msg) = msg.ok() {
-      msg.translate();
-      msg.dispatch();
-    }
+  // let message_loop
 
-    // let fps = counter.tick();
-    // hwnd.set_window_text(format!("WINDOW | {fps}"))?;
-  }
+  MessageLoop::new()
+    .with_queue(MessageLoopQueue::Thread)
+    .with_filter(None)
+    .run();
 
   Ok(())
 }

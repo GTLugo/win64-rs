@@ -1,7 +1,7 @@
 use {
   super::{
+    MessageLoopQueue,
     Msg,
-    MsgQueue,
   },
   crate::{
     Handle,
@@ -20,7 +20,11 @@ use {
   },
 };
 
-pub fn peek_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>, flags: PeekMessageFlags) -> PeekResult {
+pub fn peek_message(
+  queue: MessageLoopQueue,
+  filter: Option<RangeInclusive<u32>>,
+  flags: PeekMessageFlags,
+) -> PeekResult {
   let (min, max) = filter.map(RangeInclusive::into_inner).unwrap_or_default();
   let mut msg = MSG::default();
   reset_last_error();
@@ -36,7 +40,7 @@ pub fn peek_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>, flags:
 
 pub enum PeekMessageIterator {
   Iterating {
-    queue: MsgQueue,
+    queue: MessageLoopQueue,
     filter: Option<RangeInclusive<u32>>,
     flags: PeekMessageFlags,
   },

@@ -33,9 +33,12 @@ use {
     Modifiers,
     NamedKey,
   },
-  std::ops::{
-    Deref,
-    RangeInclusive,
+  std::{
+    ffi::c_void,
+    ops::{
+      Deref,
+      RangeInclusive,
+    },
   },
   windows_result::Error,
   windows_sys::Win32::{
@@ -629,30 +632,32 @@ impl From<MSG> for Msg {
 pub struct QuitCode(pub usize);
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum MsgQueue {
+pub enum MessageLoopQueue {
   #[default]
-  CurrentThread,
+  Thread,
   Window(Window),
+  Posted,
 }
 
-impl MsgQueue {
+impl MessageLoopQueue {
   fn unwrap_or_default(self) -> Window {
     match self {
       Self::Window(hwnd) => hwnd,
-      Self::CurrentThread => Default::default(),
+      Self::Thread => Window::null(),
+      Self::Posted => unsafe { Window::from_raw(usize::MAX) }, // this should be the same as -1
     }
   }
 }
 
 impl Msg {
   #[inline]
-  pub fn get(queue: MsgQueue, filter: Option<RangeInclusive<u32>>) -> impl Iterator<Item = Result<Msg, Error>> {
+  pub fn get(queue: MessageLoopQueue, filter: Option<RangeInclusive<u32>>) -> impl Iterator<Item = Result<Msg, Error>> {
     GetMessageIterator::Iterating { queue, filter }
   }
 
   #[inline]
   pub fn peek(
-    queue: MsgQueue,
+    queue: MessageLoopQueue,
     filter: Option<RangeInclusive<u32>>,
     flags: PeekMessageFlags,
   ) -> impl Iterator<Item = PeekResult> {

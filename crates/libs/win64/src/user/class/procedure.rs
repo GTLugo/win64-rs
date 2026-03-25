@@ -9,6 +9,7 @@ use {
       WParam,
       Window,
       WindowPtrIndex,
+      register_window_thread_id,
     },
   },
   windows_sys::Win32::Foundation::{
@@ -63,6 +64,7 @@ pub(crate) unsafe extern "system" fn window_procedure(
 fn on_message(window: &Window, message: &Message) -> Option<LResult> {
   match (window.user_data(), message) {
     (None, Message::NcCreate(nc_create_message)) => {
+      register_window_thread_id(*window);
       nc_create_message.handle(|wnd_proc| {
         let data_ptr = Box::into_raw(Box::new(UserData::new(wnd_proc)));
         let _ = window.set_window_ptr(WindowPtrIndex::UserData, data_ptr as isize);

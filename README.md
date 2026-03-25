@@ -33,16 +33,16 @@ fn main() -> Result<(), Error> {
   let args = Args::get();
 
   let class = WindowClass::builder()
-    .name("Window Class")
-    .instance(Some(args.instance))
+    .with_name("Window Class")
+    .with_instance(Some(args.instance))
     .register()?;
 
   let hwnd = class
     .window_builder()
-    .procedure(State)
-    .name("Window")
-    .style(WindowStyle::OverlappedWindow | WindowStyle::Visible)
-    .size(Some(PhysicalSize::new(800, 500)))
+    .with_procedure(State)
+    .with_name("Window")
+    .with_style(WindowStyle::OverlappedWindow | WindowStyle::Visible)
+    .with_size(Some(PhysicalSize::new(800, 500)))
     .create()?;
 
   for msg in Msg::get(MsgQueue::CurrentThread, None).flatten() {

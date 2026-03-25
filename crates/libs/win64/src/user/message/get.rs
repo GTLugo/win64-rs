@@ -1,7 +1,7 @@
 use {
   super::{
+    MessageLoopQueue,
     Msg,
-    MsgQueue,
   },
   crate::{
     Handle,
@@ -16,7 +16,7 @@ use {
   },
 };
 
-pub fn get_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>) -> Result<Msg, Error> {
+pub fn get_message(queue: MessageLoopQueue, filter: Option<RangeInclusive<u32>>) -> Result<Msg, Error> {
   let (min, max) = filter.map(RangeInclusive::into_inner).unwrap_or_default();
   let mut msg = MSG::default();
   let result = unsafe { GetMessageW(&mut msg, queue.unwrap_or_default().to_ptr(), min, max) };
@@ -30,7 +30,7 @@ pub fn get_message(queue: MsgQueue, filter: Option<RangeInclusive<u32>>) -> Resu
 
 pub enum GetMessageIterator {
   Iterating {
-    queue: MsgQueue,
+    queue: MessageLoopQueue,
     filter: Option<RangeInclusive<u32>>,
   },
   Quitting,

@@ -31,6 +31,7 @@ use {
     Size,
   },
   std::{
+    collections::HashMap,
     ffi::{
       OsStr,
       OsString,
@@ -39,6 +40,11 @@ use {
       OsStrExt,
       OsStringExt,
     },
+    sync::{
+      LazyLock,
+      RwLock,
+    },
+    thread::ThreadId,
   },
   windows_result::{
     Error,
@@ -91,6 +97,7 @@ use {
         PostQuitMessage,
         SHOW_WINDOW_CMD,
         SendMessageW,
+        SendNotifyMessageW,
         SetWindowLongPtrW,
         SetWindowTextW,
         ShowWindow,
@@ -104,6 +111,20 @@ declare_handle!(
   alias = "HWND",
   doc = "https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#hwnd"
 );
+
+pub(crate) static WINDOW_THREAD_IDS: LazyLock<RwLock<HashMap<Window, ThreadId>>> =
+  LazyLock::new(|| RwLock::new(HashMap::new()));
+
+pub(crate) fn register_window_thread_id(window: Window) {
+  WINDOW_THREAD_IDS
+    .write()
+    .unwrap()
+    .insert(window, std::thread::current().id());
+}
+
+pub(crate) fn get_window_thread_id(window: &Window) -> Option<ThreadId> {
+  WINDOW_THREAD_IDS.read().unwrap().get(window).cloned()
+}
 
 pub struct LpParam {
   pub create_struct: CreateStruct,
@@ -240,7 +261,7 @@ impl Default for WindowBuilder<NoClass, NoProc> {
 }
 
 impl<WndProc> WindowBuilder<NoClass, WndProc> {
-  pub fn class(self, class: WindowClass) -> WindowBuilder<Class, WndProc> {
+  pub fn with_class(self, class: WindowClass) -> WindowBuilder<Class, WndProc> {
     WindowBuilder {
       class: Class(class),
       wnd_proc: self.wnd_proc,
@@ -257,7 +278,7 @@ impl<WndProc> WindowBuilder<NoClass, WndProc> {
 }
 
 impl<WndClass> WindowBuilder<WndClass, NoProc> {
-  pub fn procedure(self, wndproc: impl 'static + WindowProcedure) -> WindowBuilder<WndClass, Proc> {
+  pub fn with_procedure(self, wndproc: impl 'static + WindowProcedure) -> WindowBuilder<WndClass, Proc> {
     WindowBuilder {
       class: self.class,
       wnd_proc: Proc(Box::new(wndproc)),
@@ -274,32 +295,32 @@ impl<WndClass> WindowBuilder<WndClass, NoProc> {
 }
 
 impl<WndClass, WndProc> WindowBuilder<WndClass, WndProc> {
-  pub fn name(mut self, name: impl Into<String>) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_name(mut self, name: impl Into<String>) -> WindowBuilder<WndClass, WndProc> {
     self.name = name.into();
     self
   }
 
-  pub fn style(mut self, style: WindowStyle) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_style(mut self, style: WindowStyle) -> WindowBuilder<WndClass, WndProc> {
     self.style = style;
     self
   }
 
-  pub fn ex_style(mut self, ex_style: ExtendedWindowStyle) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_ex_style(mut self, ex_style: ExtendedWindowStyle) -> WindowBuilder<WndClass, WndProc> {
     self.ex_style = ex_style;
     self
   }
 
-  pub fn x(mut self, x: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_x(mut self, x: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
     self.position.0 = x;
     self
   }
 
-  pub fn y(mut self, y: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_y(mut self, y: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
     self.position.1 = y;
     self
   }
 
-  pub fn position(mut self, position: Option<impl Into<Position>>) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_position(mut self, position: Option<impl Into<Position>>) -> WindowBuilder<WndClass, WndProc> {
     match position {
       Some(position) => {
         let pos: PhysicalPosition<i32> = position.into().to_physical(1.0);
@@ -311,17 +332,17 @@ impl<WndClass, WndProc> WindowBuilder<WndClass, WndProc> {
   }
 
   // TODO: Refactor these out. Split into separate x,y,width,height to simplify things. Make each Option<PixelUnit>.
-  pub fn width(mut self, width: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_width(mut self, width: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
     self.size.0 = width;
     self
   }
 
-  pub fn height(mut self, height: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_height(mut self, height: Option<PixelUnit>) -> WindowBuilder<WndClass, WndProc> {
     self.size.1 = height;
     self
   }
 
-  pub fn size(mut self, size: Option<impl Into<Size>>) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_size(mut self, size: Option<impl Into<Size>>) -> WindowBuilder<WndClass, WndProc> {
     match size {
       Some(size) => {
         let size: PhysicalSize<i32> = size.into().to_physical(1.0);
@@ -332,17 +353,17 @@ impl<WndClass, WndProc> WindowBuilder<WndClass, WndProc> {
     self
   }
 
-  pub fn parent(mut self, parent: Option<Window>) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_parent(mut self, parent: Option<Window>) -> WindowBuilder<WndClass, WndProc> {
     self.parent = parent;
     self
   }
 
-  pub fn menu(mut self, menu: Option<*mut ()>) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_menu(mut self, menu: Option<*mut ()>) -> WindowBuilder<WndClass, WndProc> {
     self.menu = menu;
     self
   }
 
-  pub fn instance(mut self, instance: Option<Instance>) -> WindowBuilder<WndClass, WndProc> {
+  pub fn with_instance(mut self, instance: Option<Instance>) -> WindowBuilder<WndClass, WndProc> {
     self.instance = instance;
     self
   }
@@ -680,6 +701,10 @@ impl Window {
     lresult.into()
   }
 
+  pub fn send_notify_message(&self, message: Message) {
+    unsafe { SendNotifyMessageW(self.to_ptr(), message.id().to_raw(), message.w().0, message.l().0) };
+  }
+
   pub fn post_message(&self, message: Message) -> Result<()> {
     // TODO: somehow ensure these are always sent to the correct thread, even when called from a different thread.
     // maybe do it by storing the thread id?
@@ -690,6 +715,10 @@ impl Window {
       true => Ok(()),
       false => Err(get_last_error().unwrap_or(Error::empty())),
     }
+  }
+
+  pub fn get_thread_id(&self) -> ThreadId {
+    get_window_thread_id(self).unwrap()
   }
 
   pub(crate) fn def_window_proc_raw(&self, msg: u32, w_param: WPARAM, l_param: LPARAM) -> LResult {
@@ -715,7 +744,7 @@ impl Window {
     Ok(())
   }
 
-  pub fn get_thread_id(&self) -> Option<u32> {
+  pub fn get_platform_thread_id(&self) -> Option<u32> {
     let id = unsafe { GetWindowThreadProcessId(self.to_ptr(), std::ptr::null_mut()) };
     match id {
       0 => None,
@@ -725,7 +754,7 @@ impl Window {
 
   pub fn is_current_thread(&self) -> bool {
     let current_thread = unsafe { GetCurrentThreadId() };
-    let window_thread = self.get_thread_id();
+    let window_thread = self.get_platform_thread_id();
     window_thread.is_some_and(|id| id == current_thread)
   }
 

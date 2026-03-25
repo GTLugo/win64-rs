@@ -63,7 +63,9 @@ impl WindowClass {
   }
 
   pub fn window_builder(&self) -> WindowBuilder<Class, NoProc> {
-    Window::builder().class(self.clone()).instance(Some(self.instance()))
+    Window::builder()
+      .with_class(self.clone())
+      .with_instance(Some(self.instance()))
   }
 
   pub fn instance(&self) -> Instance {
@@ -96,7 +98,7 @@ impl Default for WindowClassBuilder<NoName> {
 }
 
 impl WindowClassBuilder<NoName> {
-  pub fn name<'s>(self, name: &'s str) -> WindowClassBuilder<Name<'s>> {
+  pub fn with_name<'s>(self, name: &'s str) -> WindowClassBuilder<Name<'s>> {
     WindowClassBuilder {
       name: Name(name),
       style: self.style,
@@ -107,17 +109,17 @@ impl WindowClassBuilder<NoName> {
 }
 
 impl<N> WindowClassBuilder<N> {
-  pub fn instance(mut self, instance: Instance) -> Self {
+  pub fn with_instance(mut self, instance: Instance) -> Self {
     self.instance = instance;
     self
   }
 
-  pub fn style(mut self, style: WindowClassStyle) -> Self {
+  pub fn with_style(mut self, style: WindowClassStyle) -> Self {
     self.style = style;
     self
   }
 
-  pub fn background_brush(mut self, brush: Brush) -> Self {
+  pub fn with_background_brush(mut self, brush: Brush) -> Self {
     self.background = brush;
     self
   }
