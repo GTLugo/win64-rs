@@ -737,8 +737,8 @@ impl Window {
       data.state = WindowState::Destroying;
       reset_last_error();
       return match unsafe { DestroyWindow(self.to_ptr()) } {
-        0 => Ok(()),
-        _ => Err(get_last_error().unwrap_or(Error::empty())),
+        0 => Err(get_last_error().unwrap_or(Error::empty())),
+        _ => Ok(()),
       };
     }
     Ok(())
