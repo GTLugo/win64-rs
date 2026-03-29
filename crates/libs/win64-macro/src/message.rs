@@ -54,6 +54,7 @@ pub fn macro_impl(input: TokenStream) -> TokenStream {
     }
 
     #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[non_exhaustive]
     pub enum Message {
       #( #message_variants )*
       #fallback_ident(#fallback_substruct_name),

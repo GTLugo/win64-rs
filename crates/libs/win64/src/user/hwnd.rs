@@ -5,10 +5,13 @@ use {
     Instance,
     LResult,
     Message,
+    Monitor,
+    MonitorDefault,
     UserData,
     WindowClass,
     WindowPtrIndex,
     WindowStyle,
+    dpi_to_scale_factor,
     procedure::{
       WindowProcedure,
       WindowState,
@@ -146,22 +149,42 @@ pub struct CreateStruct {
 impl CreateStruct {
   #[inline]
   pub fn x(&self) -> i32 {
-    self.position.0.map(|p| p.to_physical(1.0).0).unwrap_or(CW_USEDEFAULT)
+    let scale_factor = Monitor::primary().scale_factor();
+    self
+      .position
+      .0
+      .map(|p| p.to_physical(scale_factor).0)
+      .unwrap_or(CW_USEDEFAULT)
   }
 
   #[inline]
   pub fn y(&self) -> i32 {
-    self.position.1.map(|p| p.to_physical(1.0).0).unwrap_or(CW_USEDEFAULT)
+    let scale_factor = Monitor::primary().scale_factor();
+    self
+      .position
+      .1
+      .map(|p| p.to_physical(scale_factor).0)
+      .unwrap_or(CW_USEDEFAULT)
   }
 
   #[inline]
   pub fn width(&self) -> i32 {
-    self.size.0.map(|p| p.to_physical(1.0).0).unwrap_or(CW_USEDEFAULT)
+    let scale_factor = Monitor::primary().scale_factor();
+    self
+      .size
+      .0
+      .map(|p| p.to_physical(scale_factor).0)
+      .unwrap_or(CW_USEDEFAULT)
   }
 
   #[inline]
   pub fn height(&self) -> i32 {
-    self.size.1.map(|p| p.to_physical(1.0).0).unwrap_or(CW_USEDEFAULT)
+    let scale_factor = Monitor::primary().scale_factor();
+    self
+      .size
+      .1
+      .map(|p| p.to_physical(scale_factor).0)
+      .unwrap_or(CW_USEDEFAULT)
   }
 }
 
@@ -652,15 +675,19 @@ impl Window {
     // };
   }
 
-  pub fn get_dpi(&self) -> u32 {
+  pub fn dpi(&self) -> u32 {
     match unsafe { GetDpiForWindow(self.to_ptr()) } {
-      0 => WindowsAndMessaging::USER_DEFAULT_SCREEN_DPI,
+      0 => Monitor::BASE_DPI,
       dpi => dpi,
     }
   }
 
   pub fn scale_factor(&self) -> f64 {
-    self.get_dpi() as f64 / WindowsAndMessaging::USER_DEFAULT_SCREEN_DPI as f64
+    dpi_to_scale_factor(self.dpi())
+  }
+
+  pub fn monitor(&self) -> Monitor {
+    Monitor::from_window(*self, MonitorDefault::Nearest).unwrap()
   }
 
   fn use_immersive_dark_mode(&self, enable: bool) {

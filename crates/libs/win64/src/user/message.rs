@@ -89,6 +89,7 @@ const REGISTERED_MESSAGES_LOWER: u32 = 0xC000;
 const REGISTERED_MESSAGES_UPPER: u32 = 0xFFFF;
 
 #[derive(win64_macro::Message, Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[non_exhaustive]
 pub enum MessageId {
   #[default]
   Null,

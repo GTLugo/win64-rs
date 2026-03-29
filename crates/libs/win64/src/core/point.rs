@@ -8,8 +8,14 @@ pub struct Point {
 }
 
 impl Point {
+  pub const ORIGIN: Point = Point::new(0, 0);
+
   pub const fn new(x: i32, y: i32) -> Self {
     Self { x, y }
+  }
+
+  pub(crate) const fn to_raw(self) -> POINT {
+    POINT { x: self.x, y: self.y }
   }
 }
 
