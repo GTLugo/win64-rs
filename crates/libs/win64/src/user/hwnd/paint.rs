@@ -9,6 +9,7 @@ use {
       is_os_dark_mode,
     },
   },
+  rgb::RGB8,
   windows_sys::Win32::Graphics::Gdi::{
     BeginPaint,
     COLOR_BACKGROUND,
@@ -113,7 +114,7 @@ impl Brush {
 
   pub fn color_window_auto_dark() -> Self {
     match is_os_dark_mode() {
-      true => Self::solid(0x00323232),
+      true => Self::solid((32, 32, 32)),
       false => unsafe { Self::from_raw((COLOR_WINDOW + 1) as _) },
     }
   }
@@ -126,7 +127,9 @@ impl Brush {
     unsafe { Self::from_raw((COLOR_BACKGROUND + 1) as _) }
   }
 
-  pub fn solid(color: u32) -> Self {
+  pub fn solid(color: impl Into<RGB8>) -> Self {
+    let RGB8 { r, g, b } = color.into();
+    let color: u32 = ((b as u32) << 16) | ((g as u32) << 8) | r as u32;
     unsafe { Self::from_ptr(CreateSolidBrush(color)) }
   }
 }

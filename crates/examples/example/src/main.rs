@@ -28,7 +28,7 @@ impl WindowProcedure for State {
       },
       Message::Paint => {
         window.begin_paint(|hdc, _| {
-          let brush = Brush::solid(0x000000FF);
+          let brush = Brush::solid((255, 0, 0));
           hdc.polygon(POINTS, &brush);
           brush.delete();
         });
@@ -47,9 +47,14 @@ impl WindowProcedure for State {
 }
 
 fn main() -> win64::Result<()> {
+  env_logger::builder()
+    .filter(None, log::LevelFilter::Trace)
+    .format_source_path(true)
+    .init();
+
   let class = WindowClass::builder()
     .with_name("Window Class")
-    .with_background_brush(Brush::color_window_auto_dark())
+    .with_background_brush(Brush::color_window())
     .register()?;
 
   let hwnd = class

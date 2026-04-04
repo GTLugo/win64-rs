@@ -14,4 +14,6 @@ version = "*"
 path = "../../libs/win64"
 
 [dependencies]
+log         = "0.4"
+env_logger  = "0.11"
 fps_counter = "3"
