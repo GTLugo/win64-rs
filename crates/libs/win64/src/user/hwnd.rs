@@ -74,7 +74,11 @@ use {
         DwmExtendFrameIntoClientArea,
         DwmSetWindowAttribute,
       },
-      Gdi::UpdateWindow,
+      Gdi::{
+        self,
+        RedrawWindow,
+        UpdateWindow,
+      },
     },
     System::Threading::GetCurrentThreadId,
     UI::{
@@ -716,6 +720,15 @@ impl Window {
     reset_last_error();
     match unsafe { UpdateWindow(self.to_ptr()) } {
       0 => Err(get_last_error().unwrap_or(Error::empty())),
+      _ => Ok(()),
+    }
+  }
+
+  pub fn redraw(&self) -> Result<()> {
+    reset_last_error();
+    // TODO: expose update region params and redraw flags
+    match unsafe { RedrawWindow(self.to_ptr(), std::ptr::null(), std::ptr::null_mut(), Gdi::RDW_INTERNALPAINT) } {
+      0 => last_error(),
       _ => Ok(()),
     }
   }
