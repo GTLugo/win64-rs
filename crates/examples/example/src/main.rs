@@ -1,7 +1,4 @@
-use win64::{
-  Point,
-  prelude::*,
-};
+use win64::prelude::*;
 
 struct State {}
 
@@ -11,12 +8,17 @@ impl State {
   }
 }
 
-const POINTS: &[Point] = &[Point::new(100, 250), Point::new(300, 250), Point::new(200, 100)];
+const POINTS: &[PhysicalPosition<i32>] = &[
+  PhysicalPosition::new(100, 250),
+  PhysicalPosition::new(300, 250),
+  PhysicalPosition::new(200, 100),
+];
 
 impl WindowProcedure for State {
   fn on_message(&mut self, window: &Window, message: &Message) -> Option<LResult> {
     match message {
       Message::Create(_) => {
+        // message.use_dark_mode(window, is_os_dark_mode());
         window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(is_os_dark_mode()));
         // window.dwm_set_window_attribute(DwmWindowAttribute::SystemBackdropType(SystemBackdropType::TransientWindow));
       },
@@ -34,10 +36,10 @@ impl WindowProcedure for State {
         });
       },
       Message::KeyDown(m) => {
-        eprintln!("{:?}", m.event());
+        log::info!("{:?}", m.event());
       },
       Message::KeyUp(m) => {
-        eprintln!("{:?}", m.event());
+        log::info!("{:?}", m.event());
       },
       _ => (),
     }

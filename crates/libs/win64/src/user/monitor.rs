@@ -5,14 +5,16 @@ use {
   },
   crate::{
     Handle,
-    Point,
+    ORIGIN_POINT,
     declare_handle,
   },
+  dpi::PhysicalPosition,
   std::collections::VecDeque,
   windows_sys::{
     Win32::{
       Foundation::{
         LPARAM,
+        POINT,
         RECT,
       },
       Graphics::Gdi::{
@@ -83,8 +85,8 @@ impl Monitor {
   /// If the point is not contained by a display monitor, the return value depends on the value of `default`.
   /// If `default` is `MonitorDefault::Null`, then the return value would be `None`, otherwise it is always `Some(Monitor)`.
   ///
-  pub fn from_point(pt: Point, default: MonitorDefault) -> Option<Self> {
-    let hmonitor = unsafe { MonitorFromPoint(pt.to_raw(), default.to_raw()) };
+  pub fn from_point(pt: PhysicalPosition<i32>, default: MonitorDefault) -> Option<Self> {
+    let hmonitor = unsafe { MonitorFromPoint(POINT { x: pt.x, y: pt.y }, default.to_raw()) };
     match hmonitor.is_null() {
       true => None,
       false => Some(unsafe { Self::from_ptr(hmonitor) }),
@@ -105,7 +107,7 @@ impl Monitor {
   }
 
   pub fn primary() -> Self {
-    Self::from_point(Point::ORIGIN, MonitorDefault::Primary).unwrap()
+    Self::from_point(ORIGIN_POINT, MonitorDefault::Primary).unwrap()
   }
 
   pub fn from_window(window: Window, default: MonitorDefault) -> Option<Self> {

@@ -4,15 +4,18 @@ pub mod peek;
 use {
   super::{
     CreateStruct,
+    DwmWindowAttribute,
     LResult,
     LpParam,
     PeekMessageFlags,
     Window,
     WindowProcedure,
+    dpi_to_scale_factor,
   },
   crate::{
     Handle,
-    Point,
+    Rect,
+    high_word,
     input::keyboard::{
       destructure_key_lparam,
       get_kbd_state,
@@ -25,6 +28,11 @@ use {
       new_ex_scancode,
       scancode_to_code,
     },
+    low_word,
+  },
+  dpi::{
+    PhysicalPosition,
+    PhysicalSize,
   },
   keyboard_types::{
     Code,
@@ -39,7 +47,10 @@ use {
   },
   windows_result::Error,
   windows_sys::Win32::{
-    Foundation::POINT,
+    Foundation::{
+      POINT,
+      RECT,
+    },
     UI::{
       Input::KeyboardAndMouse::{
         HKL,
@@ -583,7 +594,7 @@ pub struct Msg {
   pub window: Window,
   pub message: Message,
   pub time: u32,
-  pub point: Point,
+  pub point: PhysicalPosition<i32>,
 }
 
 impl Msg {
@@ -616,7 +627,10 @@ impl From<MSG> for Msg {
   fn from(msg: MSG) -> Self {
     let window = unsafe { Window::from_ptr(msg.hwnd) };
     let time = msg.time;
-    let point = Point::from(msg.pt);
+    let point = PhysicalPosition {
+      x: msg.pt.x,
+      y: msg.pt.y,
+    };
     let message = Message::new(msg.message.into(), WParam(msg.wParam), LParam(msg.lParam));
     Self {
       window,
@@ -817,6 +831,64 @@ impl KeyDownMessage {
 impl KeyUpMessage {
   pub fn event(&self) -> KeyEvent {
     KeyEvent::new(self.w, self.l, false)
+  }
+}
+
+impl CharMessage {
+  pub fn char_string(&self) -> String {
+    char::from_u32(self.w.0 as u32).unwrap_or_default().to_string()
+  }
+}
+
+impl MoveMessage {
+  pub fn physical_position(&self) -> PhysicalPosition<i32> {
+    let x = low_word(self.l.0 as u32) as i32;
+    let y = high_word(self.l.0 as u32) as i32;
+    (x, y).into()
+  }
+}
+
+impl SizeMessage {
+  pub fn physical_size(&self) -> PhysicalSize<u32> {
+    let width = low_word(self.l.0 as u32) as u32;
+    let height = high_word(self.l.0 as u32) as u32;
+    (width, height).into()
+  }
+}
+
+impl DpiChangedMessage {
+  pub fn dpi(&self) -> u32 {
+    low_word(self.w.0 as u32) as u32
+  }
+
+  pub fn scale_factor(&self) -> f64 {
+    dpi_to_scale_factor(self.dpi())
+  }
+
+  pub fn suggested_rect(&self) -> Rect {
+    unsafe { *(self.l.0 as *const RECT) }.into()
+  }
+
+  pub fn update_window_size(&self, window: &Window) {
+    let suggested_rect = self.suggested_rect();
+    window
+      .set_position(
+        (suggested_rect.left, suggested_rect.top),
+        (suggested_rect.right - suggested_rect.left, suggested_rect.bottom - suggested_rect.top),
+      )
+      .unwrap();
+  }
+}
+
+impl CreateMessage {
+  pub fn use_dark_mode(&self, window: &Window, enable: bool) {
+    window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(enable));
+  }
+}
+
+impl SettingChangeMessage {
+  pub fn use_dark_mode(&self, window: &Window, enable: bool) {
+    window.dwm_set_window_attribute(DwmWindowAttribute::UseImmersiveDarkMode(enable));
   }
 }
 

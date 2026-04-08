@@ -106,6 +106,7 @@ use {
         SendMessageW,
         SendNotifyMessageW,
         SetWindowLongPtrW,
+        SetWindowPos,
         SetWindowTextW,
         ShowWindow,
       },
@@ -874,6 +875,28 @@ impl Window {
       y: window_rect.top,
     }
     .into()
+  }
+
+  // TODO: Expose flag args
+  pub fn set_position(
+    &self,
+    top_left: impl Into<PhysicalPosition<i32>>,
+    size: impl Into<PhysicalSize<i32>>,
+  ) -> Result<()> {
+    let (top_left, size) = (top_left.into(), size.into());
+    reset_last_error();
+    unsafe {
+      SetWindowPos(
+        self.to_ptr(),
+        std::ptr::null_mut(),
+        top_left.x,
+        top_left.y,
+        size.width,
+        size.height,
+        WindowsAndMessaging::SWP_NOZORDER | WindowsAndMessaging::SWP_NOACTIVATE,
+      )
+    };
+    last_error()
   }
 
   pub(crate) fn get_window_ptr(&self, index: WindowPtrIndex) -> isize {
