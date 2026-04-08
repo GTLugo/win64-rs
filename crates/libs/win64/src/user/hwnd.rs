@@ -20,6 +20,7 @@ use {
   },
   crate::{
     Handle,
+    Rect,
     declare_handle,
     get_last_error,
     last_error,
@@ -720,7 +721,7 @@ impl Window {
   pub fn update(&self) -> Result<()> {
     reset_last_error();
     match unsafe { UpdateWindow(self.to_ptr()) } {
-      0 => Err(get_last_error().unwrap_or(Error::empty())),
+      0 => last_error(),
       _ => Ok(()),
     }
   }
@@ -754,7 +755,7 @@ impl Window {
     let result = unsafe { PostMessageW(self.to_ptr(), message.id().to_raw(), message.w().0, message.l().0) };
     match result != 0 {
       true => Ok(()),
-      false => Err(get_last_error().unwrap_or(Error::empty())),
+      false => last_error(),
     }
   }
 
@@ -778,7 +779,7 @@ impl Window {
       data.state = WindowState::Destroying;
       reset_last_error();
       return match unsafe { DestroyWindow(self.to_ptr()) } {
-        0 => Err(get_last_error().unwrap_or(Error::empty())),
+        0 => last_error(),
         _ => Ok(()),
       };
     }
@@ -814,7 +815,7 @@ impl Window {
       .collect();
     reset_last_error();
     match unsafe { SetWindowTextW(self.to_ptr(), text.as_ptr()) } {
-      0 => Err(get_last_error().unwrap_or(Error::empty())),
+      0 => last_error(),
       _ => Ok(()),
     }
   }
@@ -837,44 +838,52 @@ impl Window {
     Ok(OsString::from_wide(&buffer).to_string_lossy().into_owned())
   }
 
-  pub fn outer_size(&self) -> Size {
+  pub fn get_window_rect(&self) -> Result<Rect> {
     let mut window_rect = Foundation::RECT::default();
-    let _ = unsafe { GetWindowRect(self.to_ptr(), &mut window_rect) };
+    match unsafe { GetWindowRect(self.to_ptr(), &mut window_rect) } {
+      0 => Err(last_error().unwrap_err()),
+      _ => Ok(window_rect.into()),
+    }
+  }
+
+  pub fn get_client_rect(&self) -> Result<Rect> {
+    let mut window_rect = Foundation::RECT::default();
+    match unsafe { GetClientRect(self.to_ptr(), &mut window_rect) } {
+      0 => Err(last_error().unwrap_err()),
+      _ => Ok(window_rect.into()),
+    }
+  }
+
+  pub fn window_size(&self) -> PhysicalSize<u32> {
+    let window_rect = self.get_window_rect().unwrap();
     PhysicalSize {
       width: (window_rect.right - window_rect.left) as u32,
       height: (window_rect.bottom - window_rect.top) as u32,
     }
-    .into()
   }
 
-  pub fn inner_size(&self) -> Size {
-    let mut client_rect = Foundation::RECT::default();
-    let _ = unsafe { GetClientRect(self.to_ptr(), &mut client_rect) };
+  pub fn client_size(&self) -> PhysicalSize<u32> {
+    let client_rect = self.get_client_rect().unwrap();
     PhysicalSize {
       width: (client_rect.right - client_rect.left) as u32,
       height: (client_rect.bottom - client_rect.top) as u32,
     }
-    .into()
   }
 
-  pub fn outer_position(&self) -> Position {
-    let mut window_rect = Foundation::RECT::default();
-    let _ = unsafe { GetWindowRect(self.to_ptr(), &mut window_rect) };
+  pub fn window_position(&self) -> PhysicalPosition<i32> {
+    let window_rect = self.get_window_rect().unwrap();
     PhysicalPosition {
       x: window_rect.left,
       y: window_rect.top,
     }
-    .into()
   }
 
-  pub fn inner_position(&self) -> Position {
-    let mut window_rect = Foundation::RECT::default();
-    let _ = unsafe { GetClientRect(self.to_ptr(), &mut window_rect) };
+  pub fn client_position(&self) -> PhysicalPosition<i32> {
+    let client_rect = self.get_client_rect().unwrap();
     PhysicalPosition {
-      x: window_rect.left,
-      y: window_rect.top,
+      x: client_rect.left,
+      y: client_rect.top,
     }
-    .into()
   }
 
   // TODO: Expose flag args
