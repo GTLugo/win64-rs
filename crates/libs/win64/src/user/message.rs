@@ -1,5 +1,6 @@
 pub mod get;
 pub mod peek;
+pub mod wait;
 
 use {
   super::{
