@@ -41,6 +41,24 @@ impl WindowProcedure for State {
       Message::KeyUp(m) => {
         log::info!("{:?}", m.event());
       },
+      Message::LButtonDown(m) => {
+        log::info!("{:?}", m.event());
+      },
+      Message::LButtonUp(m) => {
+        log::info!("{:?}", m.event());
+      },
+      Message::LButtonDblClk(m) => {
+        log::info!("{:?}", m.event());
+      },
+      Message::RButtonDown(m) => {
+        log::info!("{:?}", m.event());
+      },
+      Message::RButtonUp(m) => {
+        log::info!("{:?}", m.event());
+      },
+      Message::RButtonDblClk(m) => {
+        log::info!("{:?}", m.event());
+      },
       _ => (),
     }
 
@@ -56,6 +74,7 @@ fn main() -> win64::Result<()> {
 
   let class = WindowClass::builder()
     .with_name("Window Class")
+    .with_style(WindowClassStyle::DoubleClicks)
     .with_background_brush(Brush::color_window())
     .register()?;
 
