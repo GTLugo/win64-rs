@@ -12,12 +12,11 @@ use {
     Window,
     WindowProcedure,
     dpi_to_scale_factor,
-  },
-  crate::{
+  }, crate::{
     Handle,
     Rect,
     high_word,
-    input::keyboard::{
+    input::{keyboard::{
       destructure_key_lparam,
       get_kbd_state,
       get_location,
@@ -28,26 +27,21 @@ use {
       },
       new_ex_scancode,
       scancode_to_code,
-    },
+    }, mouse::mouse_event},
     low_word,
-  },
-  dpi::{
+  }, dpi::{
     PhysicalPosition,
     PhysicalSize,
-  },
-  keyboard_types::{
+  }, keyboard_types::{
     Code,
     KeyState,
     Location,
     Modifiers,
     NamedKey,
-  },
-  std::ops::{
+  }, mouse_types::event::MouseEvent, std::ops::{
     Deref,
     RangeInclusive,
-  },
-  windows_result::Error,
-  windows_sys::Win32::{
+  }, windows_result::Error, windows_sys::Win32::{
     Foundation::{
       POINT,
       RECT,
@@ -61,14 +55,10 @@ use {
         VK_NUMLOCK,
       },
       WindowsAndMessaging::{
-        self,
-        CREATESTRUCTW,
-        DispatchMessageW,
-        MSG,
-        TranslateMessage,
+        self, CREATESTRUCTW, DispatchMessageW, MSG, TranslateMessage, WM_LBUTTONDBLCLK, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDBLCLK, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_RBUTTONDBLCLK, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_XBUTTONDBLCLK, WM_XBUTTONDOWN, WM_XBUTTONUP
       },
     },
-  },
+  }
 };
 pub use {
   get::*,
@@ -820,6 +810,78 @@ impl KeyEvent {
       repeat: lparam_struct.is_repeat,
       key_without_modifiers,
     }
+  }
+}
+
+impl LButtonDownMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_LBUTTONDOWN, self.w, self.l)
+  }
+}
+
+impl LButtonUpMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_LBUTTONUP, self.w, self.l)
+  }
+}
+
+impl LButtonDblClkMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_LBUTTONDBLCLK, self.w, self.l)
+  }
+}
+
+impl RButtonUpMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_RBUTTONUP, self.w, self.l)
+  }
+}
+
+impl RButtonDownMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_RBUTTONDOWN, self.w, self.l)
+  }
+}
+
+impl RButtonDblClkMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_RBUTTONDBLCLK, self.w, self.l)
+  }
+}
+
+impl MButtonDownMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_MBUTTONDOWN, self.w, self.l)
+  }
+}
+
+impl MButtonUpMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_MBUTTONUP, self.w, self.l)
+  }
+}
+
+impl MButtonDblClkMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_MBUTTONDBLCLK, self.w, self.l)
+  }
+}
+
+impl XButtonDownMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_XBUTTONDOWN, self.w, self.l)
+  }
+}
+
+impl XButtonUpMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_XBUTTONUP, self.w, self.l)
+  }
+}
+
+impl XButtonDblClkMessage {
+  pub fn event(&self) -> MouseEvent {
+    mouse_event(WM_XBUTTONDBLCLK, self.w, self.l)
   }
 }
 

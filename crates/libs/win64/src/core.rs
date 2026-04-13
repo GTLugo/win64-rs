@@ -169,3 +169,39 @@ pub(crate) const fn low_word(x: u32) -> u16 {
 pub(crate) const fn high_word(x: u32) -> u16 {
   ((x >> 16) & 0xffff) as u16
 }
+
+#[allow(unused)]
+#[inline(always)]
+pub fn signed_low_word(dword: i32) -> i16 {
+  dword as i16
+}
+
+#[allow(unused)]
+#[inline(always)]
+pub fn signed_high_word(dword: i32) -> i16 {
+  (dword >> 16) as i16
+}
+
+#[allow(unused)]
+#[inline(always)]
+pub fn low_byte(word: u16) -> u8 {
+  word as u8
+}
+
+#[allow(unused)]
+#[inline(always)]
+pub fn high_byte(word: u16) -> u8 {
+  (word >> 8) as u8
+}
+
+#[allow(unused)]
+#[inline(always)]
+pub fn signed_low_byte(word: i16) -> i8 {
+  word as i8
+}
+
+#[allow(unused)]
+#[inline(always)]
+pub fn signed_high_byte(word: i16) -> i8 {
+  (word >> 8) as i8
+}

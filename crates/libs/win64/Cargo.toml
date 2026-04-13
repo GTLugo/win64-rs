@@ -1,6 +1,6 @@
 [package]
 name = "win64"
-version = "0.0.18"
+version = "0.0.19"
 rust-version = "1.94"
 description = "Hand-crafted, idiomatic Rust wrappers for Win32"
 readme.workspace = true
@@ -28,6 +28,7 @@ log        = "0.4"
 cursor-icon    = "1.1"
 dpi            = "0.1"
 keyboard-types = "0.8"
+mouse-types    = "0.2"
 widestring     = "1.2"
 rgb            = "0.8"
 
