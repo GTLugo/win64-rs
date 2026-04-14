@@ -49,6 +49,7 @@ use {
   std::{
     ops::{
       Deref,
+      Range,
       RangeInclusive,
     },
     sync::atomic::{
@@ -120,10 +121,15 @@ impl Deref for LParam {
   }
 }
 
-pub const REGISTERED_MESSAGES_LOWER: u32 = 0xC000;
-pub const REGISTERED_MESSAGES_UPPER: u32 = 0xFFFF;
-
 impl Message {
+  pub const APP: u32 = WindowsAndMessaging::WM_APP;
+  pub const APP_IDS: Range<u32> = Self::APP..Self::APP;
+  pub const MESSAGE_END: u32 = 0xFFFF;
+  pub const REGISTERED: u32 = 0xC000;
+  pub const REGISTERED_IDS: RangeInclusive<u32> = Self::REGISTERED..=Self::MESSAGE_END;
+  pub const USER: u32 = WindowsAndMessaging::WM_USER;
+  pub const USER_IDS: Range<u32> = Self::USER..Self::APP;
+
   pub fn new_user_id() -> u32 {
     static COUNTER: AtomicU32 = AtomicU32::new(WindowsAndMessaging::WM_USER);
     let id = COUNTER.fetch_add(1, Ordering::Relaxed);
@@ -136,7 +142,7 @@ impl Message {
   pub fn new_app_id() -> u32 {
     static COUNTER: AtomicU32 = AtomicU32::new(WindowsAndMessaging::WM_APP);
     let id = COUNTER.fetch_add(1, Ordering::Relaxed);
-    if id >= REGISTERED_MESSAGES_LOWER {
+    if id >= Self::REGISTERED {
       panic!("Exceeded maximum number of app message ids");
     }
     id
@@ -159,13 +165,13 @@ pub enum MessageId {
   #[fallback]
   #[params(w, l)]
   Other(u32),
-  #[id(WindowsAndMessaging::WM_USER..WindowsAndMessaging::WM_APP)]
+  #[id(Message::USER..Message::APP)]
   #[params(w, l)]
   User(u32),
-  #[id(WindowsAndMessaging::WM_APP..REGISTERED_MESSAGES_LOWER)]
+  #[id(Message::APP..Message::REGISTERED)]
   #[params(w, l)]
   App(u32),
-  #[id(REGISTERED_MESSAGES_LOWER..=REGISTERED_MESSAGES_UPPER)]
+  #[id(Message::REGISTERED..=Message::MESSAGE_END)]
   #[params(w, l)]
   Registered(u32),
   #[params(w, l)]
