@@ -12,36 +12,53 @@ use {
     Window,
     WindowProcedure,
     dpi_to_scale_factor,
-  }, crate::{
+  },
+  crate::{
     Handle,
     Rect,
     high_word,
-    input::{keyboard::{
-      destructure_key_lparam,
-      get_kbd_state,
-      get_location,
-      key::Key,
-      layout::{
-        LAYOUT_CACHE,
-        WindowsModifiers,
+    input::{
+      keyboard::{
+        destructure_key_lparam,
+        get_kbd_state,
+        get_location,
+        key::Key,
+        layout::{
+          LAYOUT_CACHE,
+          WindowsModifiers,
+        },
+        new_ex_scancode,
+        scancode_to_code,
       },
-      new_ex_scancode,
-      scancode_to_code,
-    }, mouse::mouse_event},
+      mouse::mouse_event,
+    },
     low_word,
-  }, dpi::{
+  },
+  dpi::{
     PhysicalPosition,
     PhysicalSize,
-  }, keyboard_types::{
+  },
+  keyboard_types::{
     Code,
     KeyState,
     Location,
     Modifiers,
     NamedKey,
-  }, mouse_types::event::MouseEvent, std::ops::{
-    Deref,
-    RangeInclusive,
-  }, windows_result::Error, windows_sys::Win32::{
+  },
+  mouse_types::event::MouseEvent,
+  std::{
+    ops::{
+      Deref,
+      RangeInclusive,
+    },
+    sync::atomic::{
+      AtomicU32,
+      Ordering,
+    },
+  },
+  widestring::WideCString,
+  windows_result::Error,
+  windows_sys::Win32::{
     Foundation::{
       POINT,
       RECT,
@@ -55,10 +72,26 @@ use {
         VK_NUMLOCK,
       },
       WindowsAndMessaging::{
-        self, CREATESTRUCTW, DispatchMessageW, MSG, TranslateMessage, WM_LBUTTONDBLCLK, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDBLCLK, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_RBUTTONDBLCLK, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_XBUTTONDBLCLK, WM_XBUTTONDOWN, WM_XBUTTONUP
+        self,
+        CREATESTRUCTW,
+        DispatchMessageW,
+        MSG,
+        TranslateMessage,
+        WM_LBUTTONDBLCLK,
+        WM_LBUTTONDOWN,
+        WM_LBUTTONUP,
+        WM_MBUTTONDBLCLK,
+        WM_MBUTTONDOWN,
+        WM_MBUTTONUP,
+        WM_RBUTTONDBLCLK,
+        WM_RBUTTONDOWN,
+        WM_RBUTTONUP,
+        WM_XBUTTONDBLCLK,
+        WM_XBUTTONDOWN,
+        WM_XBUTTONUP,
       },
     },
-  }
+  },
 };
 pub use {
   get::*,
@@ -87,8 +120,33 @@ impl Deref for LParam {
   }
 }
 
-const REGISTERED_MESSAGES_LOWER: u32 = 0xC000;
-const REGISTERED_MESSAGES_UPPER: u32 = 0xFFFF;
+pub const REGISTERED_MESSAGES_LOWER: u32 = 0xC000;
+pub const REGISTERED_MESSAGES_UPPER: u32 = 0xFFFF;
+
+impl Message {
+  pub fn new_user_id() -> u32 {
+    static COUNTER: AtomicU32 = AtomicU32::new(WindowsAndMessaging::WM_USER);
+    let id = COUNTER.fetch_add(1, Ordering::Relaxed);
+    if id >= WindowsAndMessaging::WM_APP {
+      panic!("Exceeded maximum number of user message ids");
+    }
+    id
+  }
+
+  pub fn new_app_id() -> u32 {
+    static COUNTER: AtomicU32 = AtomicU32::new(WindowsAndMessaging::WM_APP);
+    let id = COUNTER.fetch_add(1, Ordering::Relaxed);
+    if id >= REGISTERED_MESSAGES_LOWER {
+      panic!("Exceeded maximum number of app message ids");
+    }
+    id
+  }
+
+  pub fn register_message(name: &str) -> u32 {
+    let wide = WideCString::from_str(name).unwrap();
+    unsafe { WindowsAndMessaging::RegisterWindowMessageW(wide.as_ptr()) }
+  }
+}
 
 #[derive(win64_macro::Message, Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]

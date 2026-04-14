@@ -36,20 +36,13 @@ use {
   },
   std::{
     collections::HashMap,
-    ffi::{
-      OsStr,
-      OsString,
-    },
-    os::windows::ffi::{
-      OsStrExt,
-      OsStringExt,
-    },
     sync::{
       LazyLock,
       RwLock,
     },
     thread::ThreadId,
   },
+  widestring::WideCString,
   windows_result::{
     Error,
     Result,
@@ -212,10 +205,7 @@ pub fn create_window(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProced
   }));
   let lp_param = unsafe { lp_param_ptr.as_ref() }.unwrap();
 
-  let name: Vec<u16> = OsStr::new(&lp_param.create_struct.name)
-    .encode_wide()
-    .chain(std::iter::once(0))
-    .collect();
+  let name = WideCString::from_str(&lp_param.create_struct.name).unwrap();
 
   let hwnd = unsafe {
     CreateWindowExW(
@@ -809,10 +799,7 @@ impl Window {
   }
 
   pub fn set_window_text(&self, text: impl Into<String>) -> Result<()> {
-    let text: Vec<u16> = OsStr::new(&text.into())
-      .encode_wide()
-      .chain(std::iter::once(0))
-      .collect();
+    let text = WideCString::from_str(text.into()).unwrap();
     reset_last_error();
     match unsafe { SetWindowTextW(self.to_ptr(), text.as_ptr()) } {
       0 => last_error(),
@@ -828,14 +815,14 @@ impl Window {
       last_error()?;
     };
 
-    let mut buffer: Vec<u16> = vec![0; text_len + 1];
+    let mut buffer = vec![0u16; text_len + 1];
 
     let result = unsafe { GetWindowTextW(self.to_ptr(), buffer.as_mut_ptr(), buffer.len() as i32) };
     if result == 0 {
       last_error()?;
     };
 
-    Ok(OsString::from_wide(&buffer).to_string_lossy().into_owned())
+    Ok(WideCString::from_vec_truncate(buffer).to_string_lossy())
   }
 
   pub fn get_window_rect(&self) -> Result<Rect> {
