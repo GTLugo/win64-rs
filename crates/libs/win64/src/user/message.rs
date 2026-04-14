@@ -154,6 +154,33 @@ impl Message {
   }
 }
 
+impl UserMessage {
+  pub fn empty(id: u32) -> Self {
+    Self {
+      id,
+      ..Default::default()
+    }
+  }
+}
+
+impl AppMessage {
+  pub fn empty(id: u32) -> Self {
+    Self {
+      id,
+      ..Default::default()
+    }
+  }
+}
+
+impl RegisteredMessage {
+  pub fn empty(id: u32) -> Self {
+    Self {
+      id,
+      ..Default::default()
+    }
+  }
+}
+
 #[derive(win64_macro::Message, Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub enum MessageId {
