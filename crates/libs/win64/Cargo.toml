@@ -1,13 +1,13 @@
 [package]
-name = "win64"
-version = "0.0.22"
+name         = "win64"
+version      = "0.0.23"
 rust-version = "1.94"
-description = "Hand-crafted, idiomatic Rust wrappers for Win32"
-readme.workspace = true
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-keywords.workspace = true
+description  = "Hand-crafted, idiomatic Rust wrappers for Win32"
+readme.workspace     = true
+edition.workspace    = true
+authors.workspace    = true
+license.workspace    = true
+keywords.workspace   = true
 categories.workspace = true
 repository.workspace = true
 
