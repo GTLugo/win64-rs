@@ -10,10 +10,12 @@ use {
   },
   dpi::PhysicalPosition,
   keyboard_types::Modifiers,
-  mouse_types::{
-    button::MouseButton,
-    event::MouseEvent,
-    state::ButtonState,
+  pointer_types::{
+    ButtonState,
+    mouse::{
+      MouseButton,
+      MouseEvent,
+    },
   },
   windows_sys::Win32::{
     System::SystemServices::{
@@ -84,9 +86,9 @@ pub(crate) fn mouse_event(message: u32, w_param: WParam, l_param: LParam) -> Mou
 
   let (x, y) = (signed_low_word(l_param.0 as i32), signed_high_word(l_param.0 as i32));
 
-  let position = PhysicalPosition::new(x as i32, y as i32);
+  let position = PhysicalPosition::new(x as f64, y as f64);
 
-  MouseEvent {
+  MouseEvent::Button {
     position,
     state,
     button,

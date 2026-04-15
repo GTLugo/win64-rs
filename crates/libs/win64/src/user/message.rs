@@ -45,7 +45,7 @@ use {
     Modifiers,
     NamedKey,
   },
-  mouse_types::event::MouseEvent,
+  pointer_types::mouse::MouseEvent,
   std::{
     ops::{
       Deref,
