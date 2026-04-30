@@ -167,7 +167,7 @@ impl BoxedMessageData {
 impl From<BoxedMessageData> for LParam {
   fn from(value: BoxedMessageData) -> Self {
     let boxed = Box::into_raw(Box::new(value));
-    LParam(boxed as *mut () as isize)
+    LParam(boxed as isize)
   }
 }
 
