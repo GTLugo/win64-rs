@@ -86,7 +86,10 @@ pub fn get_async_kbd_state() -> [u8; 256] {
       let is_down = (async_state & (1 << 15)) != 0;
       *state = if is_down { 0x80 } else { 0 };
 
-      if matches!(vk, KeyboardAndMouse::VK_CAPITAL | KeyboardAndMouse::VK_NUMLOCK | KeyboardAndMouse::VK_SCROLL) {
+      if matches!(
+        vk,
+        KeyboardAndMouse::VK_CAPITAL | KeyboardAndMouse::VK_NUMLOCK | KeyboardAndMouse::VK_SCROLL
+      ) {
         // Toggle states aren't reported by `GetAsyncKeyState`
         let toggle_state = GetKeyState(vk as i32);
         let is_active = (toggle_state & 1) != 0;
@@ -100,7 +103,8 @@ pub fn get_async_kbd_state() -> [u8; 256] {
 pub(crate) fn get_location(scancode: ExScancode, hkl: HKL) -> Location {
   let extension = 0xe000;
   let extended = (scancode & extension) == extension;
-  let vkey = unsafe { MapVirtualKeyExW(scancode as u32, KeyboardAndMouse::MAPVK_VSC_TO_VK_EX, hkl) as VIRTUAL_KEY };
+  let vkey =
+    unsafe { MapVirtualKeyExW(scancode as u32, KeyboardAndMouse::MAPVK_VSC_TO_VK_EX, hkl) as VIRTUAL_KEY };
 
   // Use the native VKEY and the extended flag to cover most cases
   // This is taken from the `druid` GUI library, specifically

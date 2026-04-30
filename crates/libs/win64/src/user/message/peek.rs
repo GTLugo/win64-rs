@@ -28,7 +28,8 @@ pub fn peek_message(
   let (min, max) = filter.map(RangeInclusive::into_inner).unwrap_or_default();
   let mut msg = MSG::default();
   reset_last_error();
-  let result = unsafe { PeekMessageW(&mut msg, queue.unwrap_or_default().to_ptr(), min, max, flags.to_raw()) };
+  let result =
+    unsafe { PeekMessageW(&mut msg, queue.unwrap_or_default().to_ptr(), min, max, flags.to_raw()) };
   // If a message is available, the return value is nonzero.
   // If no messages are available, the return value is zero.
   match (result, get_last_error()) {
@@ -39,11 +40,7 @@ pub fn peek_message(
 }
 
 pub enum PeekMessageIterator {
-  Iterating {
-    queue: MessageLoopQueue,
-    filter: Option<RangeInclusive<u32>>,
-    flags: PeekMessageFlags,
-  },
+  Iterating { queue: MessageLoopQueue, filter: Option<RangeInclusive<u32>>, flags: PeekMessageFlags },
   Quitting,
 }
 
@@ -97,11 +94,7 @@ impl Iterator for PeekMessageIterator {
       PeekMessageIterator::Iterating { queue, filter, flags } => {
         let message = peek_message(*queue, filter.clone(), *flags);
 
-        if let PeekResult::Msg(Msg {
-          message: Message::Quit(_),
-          ..
-        }) = message
-        {
+        if let PeekResult::Msg(Msg { message: Message::Quit(_), .. }) = message {
           *self = PeekMessageIterator::Quitting;
         }
 

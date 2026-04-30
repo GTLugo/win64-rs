@@ -8,11 +8,8 @@ impl State {
   }
 }
 
-const POINTS: &[PhysicalPosition<i32>] = &[
-  PhysicalPosition::new(100, 250),
-  PhysicalPosition::new(300, 250),
-  PhysicalPosition::new(200, 100),
-];
+const POINTS: &[PhysicalPosition<i32>] =
+  &[PhysicalPosition::new(100, 250), PhysicalPosition::new(300, 250), PhysicalPosition::new(200, 100)];
 
 impl WindowProcedure for State {
   fn on_message(&mut self, window: &Window, message: &Message) -> Option<LResult> {
@@ -67,10 +64,7 @@ impl WindowProcedure for State {
 }
 
 fn main() -> win64::Result<()> {
-  env_logger::builder()
-    .filter(None, log::LevelFilter::Trace)
-    .format_source_path(true)
-    .init();
+  env_logger::builder().filter(None, log::LevelFilter::Trace).format_source_path(true).init();
 
   let class = WindowClass::builder()
     .with_name("Window Class")
@@ -92,10 +86,7 @@ fn main() -> win64::Result<()> {
 
   // let message_loop
 
-  MessageLoop::new()
-    .with_queue(MessageLoopQueue::Thread)
-    .with_filter(None)
-    .run();
+  MessageLoop::new().with_queue(MessageLoopQueue::Thread).with_filter(None).run();
 
   Ok(())
 }

@@ -47,6 +47,7 @@ use {
   },
   pointer_types::mouse::MouseEvent,
   std::{
+    any::Any,
     ops::{
       Deref,
       Range,
@@ -154,30 +155,74 @@ impl Message {
   }
 }
 
-impl UserMessage {
-  pub fn empty(id: u32) -> Self {
-    Self {
-      id,
-      ..Default::default()
+pub struct BoxedMessageData(Box<dyn Any>);
+
+impl BoxedMessageData {
+  fn new<T: 'static>(value: T) -> Self {
+    let b: Box<dyn Any> = Box::new(value);
+    Self(b)
+  }
+}
+
+impl From<BoxedMessageData> for LParam {
+  fn from(value: BoxedMessageData) -> Self {
+    let boxed = Box::into_raw(Box::new(value));
+    LParam(boxed as *mut () as isize)
+  }
+}
+
+impl LParam {
+  pub(crate) fn downcast<T: 'static>(self) -> Result<T, LParam> {
+    let data = *unsafe { Box::from_raw(self.0 as *mut BoxedMessageData) };
+    match data.0.downcast() {
+      Ok(t) => Ok(*t),
+      Err(b) => Err(BoxedMessageData(b).into()),
     }
+  }
+}
+
+impl UserMessage {
+  pub fn new(id: u32) -> Self {
+    Self { id, ..Default::default() }
+  }
+
+  pub fn with_data<T: 'static>(self, value: T) -> Self {
+    Self { l: BoxedMessageData::new(value).into(), ..self }
+  }
+
+  pub fn try_read<T: 'static>(self) -> Result<T, Self> {
+    let (id, w) = (self.id, self.w);
+    self.l.downcast().map_err(|l| Self { id, w, l })
   }
 }
 
 impl AppMessage {
-  pub fn empty(id: u32) -> Self {
-    Self {
-      id,
-      ..Default::default()
-    }
+  pub fn new(id: u32) -> Self {
+    Self { id, ..Default::default() }
+  }
+
+  pub fn with_data<T: 'static>(self, value: T) -> Self {
+    Self { l: BoxedMessageData::new(value).into(), ..self }
+  }
+
+  pub fn try_read<T: 'static>(self) -> Result<T, Self> {
+    let (id, w) = (self.id, self.w);
+    self.l.downcast().map_err(|l| Self { id, w, l })
   }
 }
 
 impl RegisteredMessage {
-  pub fn empty(id: u32) -> Self {
-    Self {
-      id,
-      ..Default::default()
-    }
+  pub fn new(id: u32) -> Self {
+    Self { id, ..Default::default() }
+  }
+
+  pub fn with_data<T: 'static>(self, value: T) -> Self {
+    Self { l: BoxedMessageData::new(value).into(), ..self }
+  }
+
+  pub fn try_read<T: 'static>(self) -> Result<T, Self> {
+    let (id, w) = (self.id, self.w);
+    self.l.downcast().map_err(|l| Self { id, w, l })
   }
 }
 
@@ -651,7 +696,8 @@ pub enum MessageId {
 }
 
 impl Message {
-  pub const KEY_MESSAGES: RangeInclusive<u32> = WindowsAndMessaging::WM_KEYFIRST..=WindowsAndMessaging::WM_KEYLAST;
+  pub const KEY_MESSAGES: RangeInclusive<u32> =
+    WindowsAndMessaging::WM_KEYFIRST..=WindowsAndMessaging::WM_KEYLAST;
   pub const MOUSE_MESSAGES: RangeInclusive<u32> =
     WindowsAndMessaging::WM_MOUSEFIRST..=WindowsAndMessaging::WM_MOUSELAST;
 
@@ -687,10 +733,7 @@ impl Msg {
       wParam: self.message.w().0,
       lParam: self.message.l().0,
       time: self.time,
-      pt: POINT {
-        x: self.point.x,
-        y: self.point.y,
-      },
+      pt: POINT { x: self.point.x, y: self.point.y },
     }
   }
 
@@ -709,17 +752,9 @@ impl From<MSG> for Msg {
   fn from(msg: MSG) -> Self {
     let window = unsafe { Window::from_ptr(msg.hwnd) };
     let time = msg.time;
-    let point = PhysicalPosition {
-      x: msg.pt.x,
-      y: msg.pt.y,
-    };
+    let point = PhysicalPosition { x: msg.pt.x, y: msg.pt.y };
     let message = Message::new(msg.message.into(), WParam(msg.wParam), LParam(msg.lParam));
-    Self {
-      window,
-      message,
-      time,
-      point,
-    }
+    Self { window, message, time, point }
   }
 }
 
@@ -745,7 +780,10 @@ impl MessageLoopQueue {
 
 impl Msg {
   #[inline]
-  pub fn get(queue: MessageLoopQueue, filter: Option<RangeInclusive<u32>>) -> impl Iterator<Item = Result<Msg, Error>> {
+  pub fn get(
+    queue: MessageLoopQueue,
+    filter: Option<RangeInclusive<u32>>,
+  ) -> impl Iterator<Item = Result<Msg, Error>> {
     GetMessageIterator::Iterating { queue, filter }
   }
 

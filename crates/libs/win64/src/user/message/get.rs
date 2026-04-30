@@ -29,10 +29,7 @@ pub fn get_message(queue: MessageLoopQueue, filter: Option<RangeInclusive<u32>>)
 }
 
 pub enum GetMessageIterator {
-  Iterating {
-    queue: MessageLoopQueue,
-    filter: Option<RangeInclusive<u32>>,
-  },
+  Iterating { queue: MessageLoopQueue, filter: Option<RangeInclusive<u32>> },
   Quitting,
 }
 

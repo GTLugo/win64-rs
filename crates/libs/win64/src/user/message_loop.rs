@@ -24,11 +24,7 @@ impl Default for MessageLoop {
 
 impl MessageLoop {
   pub fn new() -> MessageLoop {
-    Self {
-      queue: MessageLoopQueue::default(),
-      filter: None,
-      peek: None,
-    }
+    Self { queue: MessageLoopQueue::default(), filter: None, peek: None }
   }
 
   pub fn with_queue(mut self, queue: MessageLoopQueue) -> Self {

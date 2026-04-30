@@ -232,7 +232,8 @@ use {
   },
 };
 
-pub(crate) static LAYOUT_CACHE: LazyLock<Mutex<LayoutCache>> = LazyLock::new(|| Mutex::new(LayoutCache::default()));
+pub(crate) static LAYOUT_CACHE: LazyLock<Mutex<LayoutCache>> =
+  LazyLock::new(|| Mutex::new(LayoutCache::default()));
 
 fn key_pressed(vkey: VIRTUAL_KEY) -> bool {
   unsafe { (GetKeyState(vkey as i32) & (1 << 15)) == (1 << 15) }
@@ -917,7 +918,7 @@ fn vkey_to_non_char_key(vkey: VIRTUAL_KEY, hkl: u64, has_alt_graph: bool) -> Key
     // I don't think this can be represented with a Key
     VK_CANCEL => Key::Named(NamedKey::Cancel),
 
-    VK_MBUTTON => Key::Named(NamedKey::Unidentified),  // Mouse
+    VK_MBUTTON => Key::Named(NamedKey::Unidentified), // Mouse
     VK_XBUTTON1 => Key::Named(NamedKey::Unidentified), // Mouse
     VK_XBUTTON2 => Key::Named(NamedKey::Unidentified), // Mouse
     VK_BACK => Key::Named(NamedKey::Backspace),

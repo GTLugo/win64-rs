@@ -40,10 +40,7 @@ pub(crate) struct UserData {
 
 impl UserData {
   pub fn new(proc: Box<dyn WindowProcedure>) -> Self {
-    Self {
-      proc,
-      state: WindowState::Creating,
-    }
+    Self { proc, state: WindowState::Creating }
   }
 }
 
@@ -57,7 +54,8 @@ pub(crate) unsafe extern "system" fn window_procedure(
 ) -> LRESULT {
   let window = unsafe { Window::from_ptr(hwnd) };
   let message = Message::new(msg.into(), WParam(w_param), LParam(l_param));
-  let result = on_message(&window, &message).unwrap_or_else(|| window.def_window_proc_raw(msg, w_param, l_param));
+  let result =
+    on_message(&window, &message).unwrap_or_else(|| window.def_window_proc_raw(msg, w_param, l_param));
   result.0
 }
 
@@ -69,9 +67,8 @@ fn on_message(window: &Window, message: &Message) -> Option<LResult> {
         let data_ptr = Box::into_raw(Box::new(UserData::new(wnd_proc)));
         let _ = window.set_window_ptr(WindowPtrIndex::UserData, data_ptr as isize);
 
-        unsafe { data_ptr.as_mut() }
-          .expect("window user data ptr went invalid during creation")
-          .state = WindowState::Running;
+        unsafe { data_ptr.as_mut() }.expect("window user data ptr went invalid during creation").state =
+          WindowState::Running;
 
         true
       });

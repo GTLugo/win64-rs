@@ -7,9 +7,7 @@ pub fn is_os_dark_mode() -> bool {
     .open(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
     .expect("failed to open registry key");
 
-  let light_theme = key
-    .get_u32("AppsUseLightTheme")
-    .expect("failed to read value from registry key");
+  let light_theme = key.get_u32("AppsUseLightTheme").expect("failed to read value from registry key");
 
   light_theme == 0
 }

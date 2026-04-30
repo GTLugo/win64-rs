@@ -118,10 +118,7 @@ pub(crate) static WINDOW_THREAD_IDS: LazyLock<RwLock<HashMap<Window, ThreadId>>>
   LazyLock::new(|| RwLock::new(HashMap::new()));
 
 pub(crate) fn register_window_thread_id(window: Window) {
-  WINDOW_THREAD_IDS
-    .write()
-    .unwrap()
-    .insert(window, std::thread::current().id());
+  WINDOW_THREAD_IDS.write().unwrap().insert(window, std::thread::current().id());
 }
 
 pub(crate) fn get_window_thread_id(window: &Window) -> Option<ThreadId> {
@@ -149,41 +146,25 @@ impl CreateStruct {
   #[inline]
   pub fn x(&self) -> i32 {
     let scale_factor = Monitor::primary().scale_factor();
-    self
-      .position
-      .0
-      .map(|p| p.to_physical(scale_factor).0)
-      .unwrap_or(CW_USEDEFAULT)
+    self.position.0.map(|p| p.to_physical(scale_factor).0).unwrap_or(CW_USEDEFAULT)
   }
 
   #[inline]
   pub fn y(&self) -> i32 {
     let scale_factor = Monitor::primary().scale_factor();
-    self
-      .position
-      .1
-      .map(|p| p.to_physical(scale_factor).0)
-      .unwrap_or(CW_USEDEFAULT)
+    self.position.1.map(|p| p.to_physical(scale_factor).0).unwrap_or(CW_USEDEFAULT)
   }
 
   #[inline]
   pub fn width(&self) -> i32 {
     let scale_factor = Monitor::primary().scale_factor();
-    self
-      .size
-      .0
-      .map(|p| p.to_physical(scale_factor).0)
-      .unwrap_or(CW_USEDEFAULT)
+    self.size.0.map(|p| p.to_physical(scale_factor).0).unwrap_or(CW_USEDEFAULT)
   }
 
   #[inline]
   pub fn height(&self) -> i32 {
     let scale_factor = Monitor::primary().scale_factor();
-    self
-      .size
-      .1
-      .map(|p| p.to_physical(scale_factor).0)
-      .unwrap_or(CW_USEDEFAULT)
+    self.size.1.map(|p| p.to_physical(scale_factor).0).unwrap_or(CW_USEDEFAULT)
   }
 }
 
@@ -199,10 +180,7 @@ pub fn create_window(create_struct: CreateStruct, wnd_proc: Box<dyn WindowProced
   // let mut new_style = desc.style;
   // new_style.remove(WindowStyle::Visible);
 
-  let lp_param_ptr = Box::into_raw(Box::new(LpParam {
-    create_struct,
-    wnd_proc: Some(wnd_proc),
-  }));
+  let lp_param_ptr = Box::into_raw(Box::new(LpParam { create_struct, wnd_proc: Some(wnd_proc) }));
   let lp_param = unsafe { lp_param_ptr.as_ref() }.unwrap();
 
   let name = WideCString::from_str(&lp_param.create_struct.name).unwrap();
@@ -365,7 +343,8 @@ impl<WndClass, WndProc> WindowBuilder<WndClass, WndProc> {
     match size {
       Some(size) => {
         let size: PhysicalSize<i32> = size.into().to_physical(1.0);
-        self.size = (Some(PixelUnit::Physical(size.width.into())), Some(PixelUnit::Physical(size.height.into())));
+        self.size =
+          (Some(PixelUnit::Physical(size.width.into())), Some(PixelUnit::Physical(size.height.into())));
       },
       None => self.size = (None, None),
     };
@@ -523,7 +502,9 @@ impl Window {
   pub fn dwm_set_window_attribute(&self, attribute: DwmWindowAttribute) {
     match attribute {
       DwmWindowAttribute::UseImmersiveDarkMode(enable) => self.use_immersive_dark_mode(enable),
-      DwmWindowAttribute::SystemBackdropType(backdrop_type) => self.system_backdrop_type(backdrop_type.to_raw()),
+      DwmWindowAttribute::SystemBackdropType(backdrop_type) => {
+        self.system_backdrop_type(backdrop_type.to_raw())
+      },
       DwmWindowAttribute::CaptionColor(color) => self.caption_color(color),
       DwmWindowAttribute::BorderColor(color) => self.border_color(color),
     }
@@ -563,12 +544,7 @@ impl Window {
   }
 
   pub fn extend_into_client_all(&self) {
-    let margins = MARGINS {
-      cxLeftWidth: -1,
-      cxRightWidth: -1,
-      cyTopHeight: -1,
-      cyBottomHeight: -1,
-    };
+    let margins = MARGINS { cxLeftWidth: -1, cxRightWidth: -1, cyTopHeight: -1, cyBottomHeight: -1 };
 
     unsafe {
       DwmExtendFrameIntoClientArea(self.to_ptr(), &margins);
@@ -693,11 +669,7 @@ impl Window {
       return;
     };
     // May 2020 Update https://stackoverflow.com/a/70693198/17004103
-    let dw_attribute: u32 = if version < 19041 {
-      19
-    } else {
-      DWMWA_USE_IMMERSIVE_DARK_MODE as _
-    };
+    let dw_attribute: u32 = if version < 19041 { 19 } else { DWMWA_USE_IMMERSIVE_DARK_MODE as _ };
     unsafe {
       DwmSetWindowAttribute(
         self.to_ptr(),
@@ -719,7 +691,9 @@ impl Window {
   pub fn redraw(&self) -> Result<()> {
     reset_last_error();
     // TODO: expose update region params and redraw flags
-    match unsafe { RedrawWindow(self.to_ptr(), std::ptr::null(), std::ptr::null_mut(), Gdi::RDW_INTERNALPAINT) } {
+    match unsafe {
+      RedrawWindow(self.to_ptr(), std::ptr::null(), std::ptr::null_mut(), Gdi::RDW_INTERNALPAINT)
+    } {
       0 => last_error(),
       _ => Ok(()),
     }
@@ -859,18 +833,12 @@ impl Window {
 
   pub fn window_position(&self) -> PhysicalPosition<i32> {
     let window_rect = self.get_window_rect().unwrap();
-    PhysicalPosition {
-      x: window_rect.left,
-      y: window_rect.top,
-    }
+    PhysicalPosition { x: window_rect.left, y: window_rect.top }
   }
 
   pub fn client_position(&self) -> PhysicalPosition<i32> {
     let client_rect = self.get_client_rect().unwrap();
-    PhysicalPosition {
-      x: client_rect.left,
-      y: client_rect.top,
-    }
+    PhysicalPosition { x: client_rect.left, y: client_rect.top }
   }
 
   // TODO: Expose flag args

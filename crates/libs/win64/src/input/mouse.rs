@@ -77,7 +77,11 @@ pub(crate) fn mouse_event(message: u32, w_param: WParam, l_param: LParam) -> Mou
       WindowsAndMessaging::WM_LBUTTONDBLCLK | WindowsAndMessaging::WM_LBUTTONDOWN if is_l_down => true,
       WindowsAndMessaging::WM_MBUTTONDBLCLK | WindowsAndMessaging::WM_MBUTTONDOWN if is_m_down => true,
       WindowsAndMessaging::WM_RBUTTONDBLCLK | WindowsAndMessaging::WM_RBUTTONDOWN if is_r_down => true,
-      WindowsAndMessaging::WM_XBUTTONDBLCLK | WindowsAndMessaging::WM_XBUTTONDOWN if is_x1_down || is_x2_down => true,
+      WindowsAndMessaging::WM_XBUTTONDBLCLK | WindowsAndMessaging::WM_XBUTTONDOWN
+        if is_x1_down || is_x2_down =>
+      {
+        true
+      },
       _ => false,
     };
 

@@ -20,12 +20,7 @@ impl Args {
     let cmd_line = std::env::args().collect();
     let info = StartupInfo::get();
 
-    Self {
-      instance,
-      prev_instance: 0,
-      cmd_line,
-      cmd_show: info.show_window,
-    }
+    Self { instance, prev_instance: 0, cmd_line, cmd_show: info.show_window }
   }
 }
 

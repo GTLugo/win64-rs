@@ -21,15 +21,10 @@ pub struct Variants {
 
 impl Variants {
   pub fn from_variants(variants: Punctuated<Variant, Token![,]>) -> Self {
-    let fallback = variants
-      .iter()
-      .find(|v| v.attrs.iter().any(|a| a.path().is_ident("fallback")))
-      .cloned()
-      .unwrap();
-    let regular = variants
-      .into_iter()
-      .filter(|v| !v.attrs.iter().any(|a| a.path().is_ident("fallback")))
-      .collect();
+    let fallback =
+      variants.iter().find(|v| v.attrs.iter().any(|a| a.path().is_ident("fallback"))).cloned().unwrap();
+    let regular =
+      variants.into_iter().filter(|v| !v.attrs.iter().any(|a| a.path().is_ident("fallback"))).collect();
 
     Self { regular, fallback }
   }

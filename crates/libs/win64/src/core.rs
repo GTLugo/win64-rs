@@ -75,10 +75,7 @@ pub struct StartupInfo {
 
 impl StartupInfo {
   pub fn get() -> Self {
-    let mut info = STARTUPINFOW {
-      cb: std::mem::size_of::<STARTUPINFOW>() as u32,
-      ..Default::default()
-    };
+    let mut info = STARTUPINFOW { cb: std::mem::size_of::<STARTUPINFOW>() as u32, ..Default::default() };
 
     unsafe { GetStartupInfoW(&mut info) };
     Self {
@@ -129,9 +126,7 @@ pub fn rtl_get_version() -> Option<&'static OsVersionInfo> {
           minor_version: info.dwMinorVersion,
           build_number: info.dwBuildNumber,
           platform_id: info.dwPlatformId,
-          csdversion: String::from_utf16_lossy(&info.szCSDVersion)
-            .trim_matches('\0')
-            .to_string(),
+          csdversion: String::from_utf16_lossy(&info.szCSDVersion).trim_matches('\0').to_string(),
         })
       } else {
         None
@@ -143,11 +138,7 @@ pub fn rtl_get_version() -> Option<&'static OsVersionInfo> {
 
 pub fn win10_build_version() -> Option<u32> {
   let version = rtl_get_version()?;
-  if version.major_version == 10 && version.minor_version == 0 {
-    Some(version.build_number)
-  } else {
-    None
-  }
+  if version.major_version == 10 && version.minor_version == 0 { Some(version.build_number) } else { None }
 }
 
 // Courtesy of winit

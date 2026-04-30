@@ -10,22 +10,12 @@ pub struct Rect {
 
 impl Rect {
   pub fn to_raw(&self) -> RECT {
-    RECT {
-      left: self.left,
-      top: self.top,
-      right: self.right,
-      bottom: self.bottom,
-    }
+    RECT { left: self.left, top: self.top, right: self.right, bottom: self.bottom }
   }
 }
 
 impl From<RECT> for Rect {
   fn from(value: RECT) -> Self {
-    Self {
-      left: value.left,
-      top: value.top,
-      right: value.right,
-      bottom: value.bottom,
-    }
+    Self { left: value.left, top: value.top, right: value.right, bottom: value.bottom }
   }
 }
