@@ -13,6 +13,7 @@ use {
   },
   keyboard_types::{
     Code,
+    KeyState,
     Location,
   },
   std::mem::MaybeUninit,
@@ -62,6 +63,31 @@ pub fn new_ex_scancode(scancode: u8, extended: bool) -> ExScancode {
 pub fn ex_scancode_from_lparam(lparam: LParam) -> ExScancode {
   let lparam = destructure_key_lparam(lparam);
   new_ex_scancode(lparam.scancode, lparam.extended)
+}
+
+pub fn get_key_state(code: Code) -> KeyState {
+  let Some(scancode) = code_to_scancode(code) else {
+    return KeyState::Up;
+  };
+
+  let state = unsafe { GetKeyState(scancode as i32) };
+
+  const KEY_DOWN: i16 = 0x8000u16 as i16;
+  match (state & KEY_DOWN) == KEY_DOWN {
+    true => KeyState::Down,
+    false => KeyState::Up,
+  }
+}
+
+pub fn is_key_toggled(code: Code) -> bool {
+  let Some(scancode) = code_to_scancode(code) else {
+    return false;
+  };
+
+  let state = unsafe { GetKeyState(scancode as i32) };
+
+  const KEY_TOGGLED: i16 = 0x0001u16 as i16;
+  (state & KEY_TOGGLED) == KEY_TOGGLED
 }
 
 /// Gets the keyboard state as reported by messages that have been removed from the event queue.
